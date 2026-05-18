@@ -1,4 +1,4 @@
-import { Component, signal, inject, OnInit } from '@angular/core';
+import { Component, signal, computed, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
@@ -26,6 +26,28 @@ export class AdminCategories implements OnInit {
 
   autoSlug = signal('');
   formData: CreateCategoryRequest = this.blankForm();
+
+  searchQuery = signal('');
+  statusFilter = signal('all'); // 'all', 'active', 'inactive'
+
+  filteredCategories = computed(() => {
+    const query = this.searchQuery().toLowerCase().trim();
+    const status = this.statusFilter();
+    return this.categories().filter(cat => {
+      // Filter by status
+      if (status === 'active' && cat.isActive === false) return false;
+      if (status === 'inactive' && cat.isActive !== false) return false;
+      
+      // Filter by search query
+      if (!query) return true;
+      return (
+        cat.name.toLowerCase().includes(query) ||
+        (cat.nameHindi && cat.nameHindi.toLowerCase().includes(query)) ||
+        (cat.description && cat.description.toLowerCase().includes(query)) ||
+        cat.categoryKey.toLowerCase().includes(query)
+      );
+    });
+  });
 
   ngOnInit() { this.loadCategories(); }
 
@@ -69,7 +91,8 @@ export class AdminCategories implements OnInit {
       colorClass:      cat.colorClass      ?? 'event-custom',
       startingPrice:   cat.startingPrice   ?? 0,
       description:     cat.description     ?? '',
-      popularServices: [...(cat.popularServices ?? [])]
+      popularServices: [...(cat.popularServices ?? [])],
+      isActive:        cat.isActive        ?? true
     };
     this.autoSlug.set(cat.categoryKey);
     this.syncPickerFromGradient(this.formData.gradient ?? '');
@@ -179,6 +202,7 @@ export class AdminCategories implements OnInit {
     { name: 'Candy Cotton',   gradient: 'linear-gradient(135deg,#f093fb,#f5576c)' },
     { name: 'Royal Purple',   gradient: 'linear-gradient(135deg,#7b4397,#dc2430)' },
     { name: 'Silver Fox',     gradient: 'linear-gradient(135deg,#bdc3c7,#2c3e50)' },
+    { name: 'Electric Peacock', gradient: 'linear-gradient(135deg,#8a2387,#e94057,#f27121)' },
   ];
 
   /** Custom color picker state */
@@ -204,6 +228,16 @@ export class AdminCategories implements OnInit {
       `linear-gradient(${this.pickerDirection},${this.pickerColor1},${this.pickerColor2})`;
   }
 
+  changeDirection(dir: string) {
+    this.pickerDirection = dir;
+    if (this.formData.gradient && this.formData.gradient.startsWith('linear-gradient(')) {
+      this.formData.gradient = this.formData.gradient.replace(
+        /linear-gradient\(\s*[^,]+,/,
+        `linear-gradient(${dir},`
+      );
+    }
+  }
+
   private syncPickerFromGradient(g: string) {
     const m = g.match(/linear-gradient\(\s*([^,]+),\s*(#[\da-fA-F]{3,8}),\s*(#[\da-fA-F]{3,8})\)/);
     if (m) {
@@ -227,7 +261,8 @@ export class AdminCategories implements OnInit {
       colorClass: 'event-custom',
       startingPrice: 0,
       description: '',
-      popularServices: []
+      popularServices: [],
+      isActive: true
     };
   }
 }

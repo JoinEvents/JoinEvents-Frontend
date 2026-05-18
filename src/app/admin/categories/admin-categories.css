@@ -150,51 +150,46 @@
 
 
 
-/* ── Header ── */
-.page-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-}
-
-.page-title {
-  font-size: 1.6rem;
-  font-weight: 800;
-  color: var(--text-primary, #1e293b);
-  margin: 0 0 0.25rem;
-}
-
-.page-subtitle {
-  font-size: 0.88rem;
+/* ── Filter Chips ── */
+.filter-chip {
+  padding: 7px 18px;
+  border-radius: var(--radius-full, 50px);
+  border: 1.5px solid var(--border-color, #e2e8f0);
+  background: var(--bg-card, #ffffff);
+  font-size: 0.8rem;
+  font-weight: 500;
   color: var(--text-muted, #64748b);
-  margin: 0;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.filter-chip:hover, .filter-chip.active {
+  background: var(--secondary, #64748b);
+  border-color: var(--secondary, #64748b);
+  color: white;
+}
+.filter-chip.chip-success:hover, .filter-chip.chip-success.active {
+  background: var(--success, #10b981);
+  border-color: var(--success, #10b981);
+  color: white;
+}
+.filter-chip.chip-danger:hover, .filter-chip.chip-danger.active {
+  background: var(--danger, #ef4444);
+  border-color: var(--danger, #ef4444);
+  color: white;
 }
 
-/* ── Stats bar ── */
-.stats-bar {
-  display: flex;
-  gap: 1rem;
-  margin-bottom: 1.75rem;
-  flex-wrap: wrap;
+/* ── Admin Search Box ── */
+.admin-search-box {
+  background: var(--bg-card, #ffffff);
 }
 
-.stat-chip {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  background: var(--surface, #f8fafc);
-  border: 1px solid var(--border-color, #e2e8f0);
-  border-radius: 2rem;
-  padding: 0.4rem 1rem;
-  font-size: 0.84rem;
-  color: var(--text-muted, #64748b);
+.admin-search-wrapper {
+  width: 100%;
 }
-
-.stat-chip strong {
-  color: var(--text-primary, #1e293b);
+@media (min-width: 768px) {
+  .admin-search-wrapper {
+    max-width: 320px;
+  }
 }
 
 /* ── Add Button ── */
@@ -312,6 +307,14 @@ input:checked + .slider {
 }
 input:checked + .slider:before {
   transform: translateX(16px);
+}
+
+/* Modal slider override */
+.modal-panel .slider {
+  background-color: #cbd5e1;
+}
+.modal-panel input:checked + .slider {
+  background-color: #10b981;
 }
 
 .category-card:hover .card-actions {

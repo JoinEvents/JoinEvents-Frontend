@@ -31,6 +31,7 @@ export interface CreateCategoryRequest {
   startingPrice?: number;
   description?: string;
   popularServices?: string[];
+  isActive?: boolean;
 }
 
 export type UpdateCategoryRequest = Partial<CreateCategoryRequest>;
