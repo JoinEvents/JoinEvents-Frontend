@@ -549,3 +549,26 @@
   background: rgba(30, 41, 59, 0.98);
   border-color: rgba(255, 255, 255, 0.1);
 }
+
+/* Carousel Dots Overlay */
+.carousel-indicators-mini {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  display: flex;
+  gap: 6px;
+  z-index: 10;
+}
+.dot-mini {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.4);
+  transition: all 0.3s ease;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+.dot-mini.active {
+  background: white;
+  width: 16px;
+  border-radius: 4px;
+}

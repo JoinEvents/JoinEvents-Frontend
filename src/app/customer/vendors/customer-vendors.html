@@ -77,9 +77,17 @@
         <div class="col-12 col-md-6 col-lg-4">
           <div class="package-card-v2" (click)="selectVendor(pkg.id)" style="cursor: pointer;">
             <div class="card-img-wrap">
-              <img [src]="pkg.image" class="card-img" [alt]="pkg.name" loading="lazy">
+              <img [src]="pkg.images && pkg.images.length > 0 ? pkg.images[pkg.activeImageIndex || 0] : pkg.image" class="card-img" [alt]="pkg.name" loading="lazy" style="transition: opacity 0.4s ease-in-out;">
               <div class="price-badge-v2">₹{{ (pkg.price / 100000).toFixed(1) }}L</div>
               <button class="fav-btn" (click)="$event.stopPropagation()"><i class="bi bi-heart"></i></button>
+              
+              @if (pkg.images && pkg.images.length > 1) {
+                <div class="carousel-indicators-mini">
+                  @for (img of pkg.images; track img; let i = $index) {
+                    <span class="dot-mini" [class.active]="i === (pkg.activeImageIndex || 0)"></span>
+                  }
+                </div>
+              }
             </div>
 
             <div class="card-content-v2">

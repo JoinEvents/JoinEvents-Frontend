@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, inject, ChangeDetectionStrategy } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, inject, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterLink, Router } from '@angular/router';
 import { PackageService } from '../../core/services/package.service';
@@ -14,11 +14,12 @@ import { EventType } from '../../core/models/event.model';
   styleUrl: './customer-vendors.css',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class CustomerVendors implements OnInit {
+export class CustomerVendors implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private packageService = inject(PackageService);
   private eventCategoryService = inject(EventCategoryService);
+  private carouselInterval: any;
 
   eventTypeId = signal<string | null>(null);
   eventType = signal<EventType | null>(null);
@@ -39,6 +40,28 @@ export class CustomerVendors implements OnInit {
       this.eventTypeId.set(params['eventTypeId']);
       this.loadData();
     });
+
+    // Start auto-scrolling image carousel for all package cards
+    this.carouselInterval = setInterval(() => {
+      this.packages.update(list => list.map(pkg => {
+        if (pkg.images && pkg.images.length > 1) {
+          return { ...pkg, activeImageIndex: ((pkg.activeImageIndex || 0) + 1) % pkg.images.length };
+        }
+        return pkg;
+      }));
+      this.allPackages.update(list => list.map(pkg => {
+        if (pkg.images && pkg.images.length > 1) {
+          return { ...pkg, activeImageIndex: ((pkg.activeImageIndex || 0) + 1) % pkg.images.length };
+        }
+        return pkg;
+      }));
+    }, 3500);
+  }
+
+  ngOnDestroy() {
+    if (this.carouselInterval) {
+      clearInterval(this.carouselInterval);
+    }
   }
 
   loadData() {
@@ -59,7 +82,12 @@ export class CustomerVendors implements OnInit {
 
       // Load packages by the category key to properly query real backend controller via PackageService
       this.packageService.getPackages(categoryKey as string).subscribe(p => {
-        this.allPackages.set(p);
+        const mapped = p.map(pkg => ({
+          ...pkg,
+          images: pkg.images && pkg.images.length > 0 ? pkg.images : (pkg.image ? [pkg.image] : []),
+          activeImageIndex: 0
+        }));
+        this.allPackages.set(mapped);
         this.applyFilters();
         this.loading.set(false);
       });
