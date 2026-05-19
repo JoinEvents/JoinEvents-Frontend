@@ -59,6 +59,77 @@ export class PackageService extends BaseApiService {
     );
   }
 
+  getPendingPackages(): Observable<any[]> {
+    const cacheBuster = new Date().getTime();
+    return this.get<any[]>(`/support/packages/pending?cb=${cacheBuster}`, undefined, false).pipe(
+      map(list => Array.isArray(list) ? list.map(p => this.normalizePendingPackage(p)) : []),
+      catchError(() => of([]))
+    );
+  }
+
+  private normalizePendingPackage(p: any): any {
+    if (!p) return null;
+
+    const pr = p.pricing || p.Pricing || {};
+    const cap = p.capacity || p.Capacity || {};
+    const am = p.amenities || p.Amenities || {};
+    const pol = p.policies || p.Policies || {};
+    const sp = p.spaces || p.Spaces || [];
+
+    return {
+      id: p.id || p.Id,
+      vendorId: p.vendorId || p.VendorId,
+      vendorName: p.vendorName || p.VendorName || 'JoinEvents Partner',
+      category: p.category || p.Category || 'wedding',
+      name: p.name || p.Name || 'Unnamed Package',
+      description: p.description || p.Description || '',
+      theme: p.theme || p.Theme || '',
+      experience: p.experience !== undefined ? p.experience : (p.Experience !== undefined ? p.Experience : 0),
+      rating: p.rating !== undefined ? p.rating : (p.Rating !== undefined ? p.Rating : 0),
+      totalReviews: p.totalReviews !== undefined ? p.totalReviews : (p.TotalReviews !== undefined ? p.TotalReviews : 0),
+      isVerified: p.isVerified !== undefined ? p.isVerified : (p.IsVerified !== undefined ? p.IsVerified : false),
+      isActive: p.isActive !== undefined ? p.isActive : (p.IsActive !== undefined ? p.IsActive : false),
+      createdAt: p.createdAt || p.CreatedAt,
+      updatedAt: p.updatedAt || p.UpdatedAt,
+      images: p.images || p.Images || [],
+      includes: p.includes || p.Includes || [],
+      pricing: {
+        unit: pr.unit || pr.Unit || 'per event',
+        basePrice: pr.basePrice !== undefined ? pr.basePrice : pr.BasePrice,
+        rent: pr.rent !== undefined ? pr.rent : pr.Rent,
+        vegPrice: pr.vegPrice !== undefined ? pr.vegPrice : pr.VegPrice,
+        nonVegPrice: pr.nonVegPrice !== undefined ? pr.nonVegPrice : pr.NonVegPrice,
+      },
+      capacity: {
+        maxGuests: cap.maxGuests !== undefined ? cap.maxGuests : cap.MaxGuests,
+        parkingCapacity: cap.parkingCapacity !== undefined ? cap.parkingCapacity : cap.ParkingCapacity,
+        totalRooms: cap.totalRooms !== undefined ? cap.totalRooms : cap.TotalRooms,
+      },
+      amenities: {
+        hasAc: am.hasAc !== undefined ? am.hasAc : am.HasAc,
+        hasPowerBackup: am.hasPowerBackup !== undefined ? am.hasPowerBackup : am.HasPowerBackup,
+        hasChangingRooms: am.hasChangingRooms !== undefined ? am.hasChangingRooms : am.HasChangingRooms,
+        hasParking: am.hasParking !== undefined ? am.hasParking : am.HasParking,
+      },
+      policies: {
+        cateringPolicy: pol.cateringPolicy || pol.CateringPolicy || 'Flexible',
+        decorPolicy: pol.decorPolicy || pol.DecorPolicy || 'Flexible',
+        alcoholPolicy: pol.alcoholPolicy || pol.AlcoholPolicy || 'Flexible',
+        djPolicy: pol.djPolicy || pol.DjPolicy || 'Flexible',
+      },
+      spaces: sp.map((s: any) => ({
+        name: s.name || s.Name || '',
+        type: s.type || s.Type || '',
+        seatingCapacity: s.seatingCapacity !== undefined ? s.seatingCapacity : s.SeatingCapacity,
+        floatingCapacity: s.floatingCapacity !== undefined ? s.floatingCapacity : s.FloatingCapacity,
+      }))
+    };
+  }
+
+  verifyPackage(packageId: string, status: string, comment: string): Observable<any> {
+    return this.post<any>(`/support/packages/${packageId}/verify`, { status, comment }, false);
+  }
+
   /**
    * Centralized Normalization Engine:
    * Consolidates and flattens backend database models (handles casing & nesting variations)

@@ -1,6 +1,7 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
+import { PackageService } from '../../core/services/package.service';
 
 @Component({
   selector: 'app-support-dashboard',
@@ -16,6 +17,9 @@ import { AuthService } from '../../core/services/auth.service';
         <a routerLink="/support/tickets" class="btn-support-action">
           <i class="bi bi-headset"></i> View Helpdesk
         </a>
+        <a routerLink="/support/verifications" class="btn-support-action" style="background: rgba(255, 255, 255, 0.15); border-color: rgba(255, 255, 255, 0.25);">
+          <i class="bi bi-shield-check"></i> Verifications Portal
+        </a>
       </div>
     </div>
 
@@ -23,20 +27,37 @@ import { AuthService } from '../../core/services/auth.service';
     <div class="row g-3 mb-4">
       @for (kpi of supportKpis; track kpi.label) {
         <div class="col-6 col-md-3">
-          <div class="premium-stat-card">
-            <div class="stat-inner">
-              <div class="stat-details">
-                <div class="stat-label">{{ kpi.label }}</div>
-                <div class="stat-value">{{ kpi.value }}</div>
+          @if (kpi.link) {
+            <a [routerLink]="kpi.link" [queryParams]="kpi.queryParams" class="premium-stat-card text-decoration-none d-block" style="cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+              <div class="stat-inner">
+                <div class="stat-details">
+                  <div class="stat-label">{{ kpi.label }} <i class="bi bi-arrow-right-short text-muted"></i></div>
+                  <div class="stat-value">{{ kpi.value }}</div>
+                </div>
+                <div class="stat-icon-box" [style.background]="kpi.gradient">
+                  <i class="bi {{ kpi.icon }}"></i>
+                </div>
               </div>
-              <div class="stat-icon-box" [style.background]="kpi.gradient">
-                <i class="bi {{ kpi.icon }}"></i>
+              <div class="stat-progress-bar">
+                <div class="progress-fill" [style.background]="kpi.gradient" style="width: 70%"></div>
+              </div>
+            </a>
+          } @else {
+            <div class="premium-stat-card">
+              <div class="stat-inner">
+                <div class="stat-details">
+                  <div class="stat-label">{{ kpi.label }}</div>
+                  <div class="stat-value">{{ kpi.value }}</div>
+                </div>
+                <div class="stat-icon-box" [style.background]="kpi.gradient">
+                  <i class="bi {{ kpi.icon }}"></i>
+                </div>
+              </div>
+              <div class="stat-progress-bar">
+                <div class="progress-fill" [style.background]="kpi.gradient" style="width: 70%"></div>
               </div>
             </div>
-            <div class="stat-progress-bar">
-              <div class="progress-fill" [style.background]="kpi.gradient" style="width: 70%"></div>
-            </div>
-          </div>
+          }
         </div>
       }
     </div>
@@ -88,14 +109,24 @@ import { AuthService } from '../../core/services/auth.service';
   `,
   styleUrl: './support-dashboard.css'
 })
-export class SupportDashboard {
+export class SupportDashboard implements OnInit {
   private auth = inject(AuthService);
+  private packageService = inject(PackageService);
   user = this.auth.currentUser;
 
-  readonly supportKpis = [
-    { label: 'Open Tickets', value: '8', icon: 'bi-headset', gradient: 'linear-gradient(135deg,#F59E0B,#D97706)' },
-    { label: 'Active Chats', value: '14', icon: 'bi-chat-dots', gradient: 'linear-gradient(135deg,#0EA5E9,#2563EB)' },
-    { label: 'Pending Reviews', value: '1', icon: 'bi-flag', gradient: 'linear-gradient(135deg,#EF4444,#B91C1C)' },
-    { label: 'Today Resolves', value: '23', icon: 'bi-check2-circle', gradient: 'linear-gradient(135deg,#10B981,#059669)' },
+  supportKpis = [
+    { label: 'Open Tickets', value: '8', icon: 'bi-headset', gradient: 'linear-gradient(135deg,#F59E0B,#D97706)', link: '/support/tickets', queryParams: null as any },
+    { label: 'Active Chats', value: '14', icon: 'bi-chat-dots', gradient: 'linear-gradient(135deg,#0EA5E9,#2563EB)', link: null as any, queryParams: null as any },
+    { label: 'Pending Reviews', value: '0', icon: 'bi-flag', gradient: 'linear-gradient(135deg,#EF4444,#B91C1C)', link: '/support/verifications', queryParams: { tab: 'packages' } },
+    { label: 'Today Resolves', value: '23', icon: 'bi-check2-circle', gradient: 'linear-gradient(135deg,#10B981,#059669)', link: null as any, queryParams: null as any },
   ];
+
+  ngOnInit() {
+    this.packageService.getPendingPackages().subscribe(packages => {
+      const kpi = this.supportKpis.find(k => k.label === 'Pending Reviews');
+      if (kpi) {
+        kpi.value = packages.length.toString();
+      }
+    });
+  }
 }

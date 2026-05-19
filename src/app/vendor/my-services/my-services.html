@@ -93,9 +93,12 @@
             <div class="svc-category-badge">{{ svc.category }}</div>
             
             <!-- Status Badge -->
-            <div class="svc-status-badge" [class.verified]="svc.isVerified">
-              <i class="bi" [class.bi-patch-check-fill]="svc.isVerified" [class.bi-hourglass-split]="!svc.isVerified"></i>
-              {{ svc.isVerified ? 'Verified' : 'Under Review' }}
+            <div class="svc-status-badge" [class.verified]="svc.isVerified" [class.rejected]="svc.verificationStatus === 'Rejected'" [style.background]="svc.verificationStatus === 'Rejected' ? '#dc3545' : null">
+              <i class="bi" 
+                 [class.bi-patch-check-fill]="svc.isVerified" 
+                 [class.bi-x-circle-fill]="svc.verificationStatus === 'Rejected'"
+                 [class.bi-hourglass-split]="!svc.isVerified && svc.verificationStatus !== 'Rejected'"></i>
+              {{ svc.isVerified ? 'Verified' : (svc.verificationStatus === 'Rejected' ? 'Rejected' : 'Under Review') }}
             </div>
 
             <!-- Action Trigger -->
@@ -104,6 +107,7 @@
               <ul class="dropdown-menu dropdown-menu-end shadow-xl border-0 rounded-4">
                 <li><a class="dropdown-item py-2 px-3 fw-600" (click)="openPreview(svc); $event.stopPropagation()"><i class="bi bi-eye me-2 text-primary"></i> Preview Listing</a></li>
                 <li><a class="dropdown-item py-2 px-3 fw-600" (click)="manageGallery(svc.id); $event.stopPropagation()"><i class="bi bi-images me-2 text-info"></i> Manage Photos</a></li>
+                <li><a class="dropdown-item py-2 px-3 fw-600" (click)="editService(svc.id); $event.stopPropagation()"><i class="bi bi-pencil me-2 text-warning"></i> Edit Service</a></li>
                 <li><hr class="dropdown-divider opacity-50"></li>
                 <li><a class="dropdown-item py-2 px-3 fw-600 text-danger" (click)="deleteService(svc.id)"><i class="bi bi-trash3 me-2"></i> Delete Listing</a></li>
               </ul>
@@ -111,6 +115,16 @@
           </div>
 
           <div class="svc-card-body">
+            @if (svc.verificationStatus === 'Rejected') {
+              <div class="alert alert-danger p-3 mb-3 rounded-3" style="font-size: 0.8rem; border-left: 4px solid #dc3545; background-color: rgba(220, 53, 69, 0.05);">
+                <div class="fw-bold text-danger mb-1"><i class="bi bi-exclamation-triangle-fill me-1"></i>Verification Rejected</div>
+                <div class="text-secondary mb-2" style="font-style: italic;">"{{ svc.verificationComment || 'Requires corrections.' }}"</div>
+                <button class="btn btn-sm btn-danger w-100 py-1 rounded-pill" (click)="editService(svc.id)">
+                  <i class="bi bi-pencil-square me-1"></i>Fix & Resubmit
+                </button>
+              </div>
+            }
+
             <div class="d-flex justify-content-between align-items-start mb-2">
               <h5 class="svc-name-premium">{{ svc.name }}</h5>
               <div class="svc-rating-pill">
@@ -130,8 +144,8 @@
               </div>
               
               <!-- Active Toggle -->
-              <div class="status-toggle-premium" [attr.title]="!svc.isVerified ? 'Your service is currently under review. It will become live automatically once verified by our team.' : null">
-                <span class="toggle-text">{{ !svc.isVerified ? 'Pending' : (svc.isActive ? 'Live' : 'Paused') }}</span>
+              <div class="status-toggle-premium" [attr.title]="!svc.isVerified ? 'Your service is currently under review or requires corrections. It will become live once verified by our team.' : null">
+                <span class="toggle-text">{{ !svc.isVerified ? (svc.verificationStatus === 'Rejected' ? 'Rejected' : 'Pending') : (svc.isActive ? 'Live' : 'Paused') }}</span>
                 <label class="ee-switch-sm" [style.opacity]="!svc.isVerified ? '0.5' : '1'" [style.cursor]="!svc.isVerified ? 'not-allowed' : 'pointer'">
                   <input type="checkbox" [checked]="svc.isActive && svc.isVerified" [disabled]="!svc.isVerified" (change)="toggleServiceStatus(svc)">
                   <span class="slider-sm"></span>

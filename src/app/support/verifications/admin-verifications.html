@@ -1,80 +1,273 @@
-<div class="page-header"><h1>Vendor Verifications</h1><p>Review vendor applications and approve or reject their profiles</p></div>
+<div class="page-header">
+  <h1>Verifications Portal</h1>
+  <p>Review vendor applications and packages to moderate live customer content</p>
+</div>
 
-<div class="verif-layout">
-  <!-- Vendor List -->
-  <div class="verif-list">
-    @for (v of vendors(); track v.id) {
-      <div class="verif-list-item" [class.active]="selectedVendor()?.id === v.id" (click)="selectVendor(v)">
-        <div class="vli-avatar">{{ v.name[0] }}</div>
-        <div class="flex-1">
-          <div class="vli-name">{{ v.businessName }}</div>
-          <div class="vli-owner">{{ v.name }} · {{ v.city }}</div>
+<!-- Premium Segment Tab Control -->
+<div class="verification-tabs-container mb-4">
+  <button class="verification-tab" [class.active]="activeTab() === 'vendors'" (click)="setTab('vendors')">
+    <i class="bi bi-person-badge me-2"></i>Vendor Profiles ({{ vendors().length }})
+  </button>
+  <button class="verification-tab" [class.active]="activeTab() === 'packages'" (click)="setTab('packages')">
+    <i class="bi bi-box-seam me-2"></i>Service Packages ({{ pendingPackages().length }})
+  </button>
+</div>
+
+<!-- VENDOR PROFILES VERIFICATIONS TAB -->
+@if (activeTab() === 'vendors') {
+  <div class="verif-layout">
+    <!-- Vendor List -->
+    <div class="verif-list" [class.d-none-mobile]="selectedVendor()">
+      @if (vendors().length === 0) {
+        <div class="ee-card p-4 text-center text-muted">
+          <i class="bi bi-patch-check-fill text-success fs-3 mb-2 d-block"></i>
+          No vendor profiles awaiting verification!
         </div>
-        <span class="ee-badge {{ statusColor(v.verificationStatus) }}">{{ statusLabel(v.verificationStatus) }}</span>
-      </div>
-    }
-  </div>
-
-  <!-- Vendor Detail -->
-  @if (selectedVendor(); as v) {
-    <div class="verif-detail">
-      <div class="ee-card p-4 mb-3">
-        <div class="d-flex align-items-start justify-content-between mb-3">
-          <div>
-            <h5 class="verif-detail-title">{{ v.businessName }}</h5>
-            <div class="verif-detail-sub">{{ v.name }} · {{ v.email }} · {{ v.phone }}</div>
+      }
+      @for (v of vendors(); track v.id) {
+        <div class="verif-list-item" [class.active]="selectedVendor()?.id === v.id" (click)="selectVendor(v)">
+          <div class="vli-avatar">{{ v.name[0] }}</div>
+          <div class="flex-1">
+            <div class="vli-name">{{ v.businessName }}</div>
+            <div class="vli-owner">{{ v.name }} · {{ v.city }}</div>
           </div>
           <span class="ee-badge {{ statusColor(v.verificationStatus) }}">{{ statusLabel(v.verificationStatus) }}</span>
         </div>
-        <div class="verif-info-grid">
-          <div class="vi-item"><span class="vi-label">City</span><span class="vi-val">{{ v.city }}</span></div>
-          <div class="vi-item"><span class="vi-label">Services</span><span class="vi-val">{{ v.services.join(', ') | titlecase }}</span></div>
-          <div class="vi-item"><span class="vi-label">Joined</span><span class="vi-val">{{ v.joinedDate }}</span></div>
-          @if (v.gstNumber) { <div class="vi-item"><span class="vi-label">GST No.</span><span class="vi-val">{{ v.gstNumber }}</span></div> }
-        </div>
-      </div>
+      }
+    </div>
 
-      <div class="ee-card p-4 mb-3">
-        <h6 class="section-mini-heading">Submitted Documents</h6>
-        @if (v.verificationDocs.length === 0) {
-          <div class="no-docs"><i class="bi bi-folder-x me-2"></i>No documents uploaded yet</div>
-        } @else {
-          <div class="docs-list">
-            @for (doc of v.verificationDocs; track doc.type) {
-              <div class="doc-review-item">
-                <div class="doc-icon-adm"><i class="bi bi-file-earmark-pdf"></i></div>
-                <div class="flex-1">
-                  <div class="doc-type-adm">{{ doc.type }}</div>
-                  <div class="doc-date">Uploaded {{ doc.uploadedAt }}</div>
+    <!-- Vendor Detail -->
+    @if (selectedVendor(); as v) {
+      <div class="verif-detail" [class.d-block-mobile]="selectedVendor()">
+        <!-- Mobile Back Button -->
+        <button class="mobile-back-btn mb-3" (click)="selectedVendor.set(null)">
+          <i class="bi bi-arrow-left me-1"></i> Back to Profiles
+        </button>
+
+        <div class="ee-card p-4 mb-3">
+          <div class="d-flex align-items-start justify-content-between mb-3">
+            <div>
+              <h5 class="verif-detail-title">{{ v.businessName }}</h5>
+              <div class="verif-detail-sub">{{ v.name }} · {{ v.email }} · {{ v.phone }}</div>
+            </div>
+            <span class="ee-badge {{ statusColor(v.verificationStatus) }}">{{ statusLabel(v.verificationStatus) }}</span>
+          </div>
+          <div class="verif-info-grid">
+            <div class="vi-item"><span class="vi-label">City</span><span class="vi-val">{{ v.city }}</span></div>
+            <div class="vi-item"><span class="vi-label">Services</span><span class="vi-val">{{ v.services.join(', ') | titlecase }}</span></div>
+            <div class="vi-item"><span class="vi-label">Joined</span><span class="vi-val">{{ v.joinedDate }}</span></div>
+            @if (v.gstNumber) { <div class="vi-item"><span class="vi-label">GST No.</span><span class="vi-val">{{ v.gstNumber }}</span></div> }
+          </div>
+        </div>
+
+        <div class="ee-card p-4 mb-3">
+          <h6 class="section-mini-heading">Submitted Documents</h6>
+          @if (v.verificationDocs.length === 0) {
+            <div class="no-docs"><i class="bi bi-folder-x me-2"></i>No documents uploaded yet</div>
+          } @else {
+            <div class="docs-list">
+              @for (doc of v.verificationDocs; track doc.type) {
+                <div class="doc-review-item">
+                  <div class="doc-icon-adm"><i class="bi bi-file-earmark-pdf"></i></div>
+                  <div class="flex-1">
+                    <div class="doc-type-adm">{{ doc.type }}</div>
+                    <div class="doc-date">Uploaded {{ doc.uploadedAt }}</div>
+                  </div>
+                  <span class="ee-badge {{ doc.status === 'approved' ? 'ee-badge-success' : doc.status === 'rejected' ? 'ee-badge-danger' : 'ee-badge-warning' }}">{{ doc.status | titlecase }}</span>
+                  <button class="doc-download-btn"><i class="bi bi-download"></i></button>
                 </div>
-                <span class="ee-badge {{ doc.status === 'approved' ? 'ee-badge-success' : doc.status === 'rejected' ? 'ee-badge-danger' : 'ee-badge-warning' }}">{{ doc.status | titlecase }}</span>
-                <button class="doc-download-btn"><i class="bi bi-download"></i></button>
+              }
+            </div>
+          }
+        </div>
+
+        @if (v.verificationStatus !== 'verified' && v.verificationStatus !== 'rejected') {
+          <div class="ee-card p-4">
+            <h6 class="section-mini-heading">Verification Action</h6>
+            <div class="mb-3">
+              <label class="ee-form-label">Remarks (optional)</label>
+              <textarea class="ee-form-control" rows="2" [(ngModel)]="remarks" placeholder="Add remarks for the vendor..."></textarea>
+            </div>
+            @if (actionDone()) {
+              <div class="action-success" [class.approved]="actionDone() === 'approved'" [class.rejected]="actionDone() === 'rejected'">
+                <i class="bi {{ actionDone() === 'approved' ? 'bi-patch-check-fill' : 'bi-x-circle-fill' }} me-2"></i>
+                Vendor {{ actionDone() === 'approved' ? 'Approved Successfully!' : 'Rejected.' }}
+              </div>
+            } @else {
+              <div class="d-flex gap-3">
+                <button class="approve-btn flex-1" (click)="approve(v.id)"><i class="bi bi-patch-check me-1"></i>Approve Vendor</button>
+                <button class="reject-btn" (click)="reject(v.id)"><i class="bi bi-x-circle me-1"></i>Reject</button>
               </div>
             }
           </div>
         }
       </div>
+    }
+  </div>
+}
 
-      @if (v.verificationStatus !== 'verified' && v.verificationStatus !== 'rejected') {
+<!-- SERVICE PACKAGES VERIFICATIONS TAB -->
+@else {
+  <div class="verif-layout">
+    <!-- Package List -->
+    <div class="verif-list" [class.d-none-mobile]="selectedPackage()">
+      @if (pendingPackages().length === 0) {
+        <div class="ee-card p-4 text-center text-muted">
+          <i class="bi bi-patch-check-fill text-success fs-3 mb-2 d-block"></i>
+          No pending packages awaiting verification!
+        </div>
+      }
+      @for (pkg of pendingPackages(); track pkg.id) {
+        <div class="verif-list-item" [class.active]="selectedPackage()?.id === pkg.id" (click)="selectPackage(pkg)">
+          <div class="vli-avatar" style="background: linear-gradient(135deg, #FF6B35, #F59E0B);">{{ (pkg.name || 'P')[0] }}</div>
+          <div class="flex-1">
+            <div class="vli-name">{{ pkg.name || 'Unnamed Package' }}</div>
+            <div class="vli-owner">{{ pkg.vendorName || 'Vendor' }} · {{ pkg.category | titlecase }}</div>
+          </div>
+          <span class="ee-badge ee-badge-warning">Pending</span>
+        </div>
+      }
+    </div>
+
+    <!-- Package Detail Review -->
+    @if (selectedPackage(); as pkg) {
+      <div class="verif-detail" [class.d-block-mobile]="selectedPackage()">
+        <!-- Mobile Back Button -->
+        <button class="mobile-back-btn mb-3" (click)="selectedPackage.set(null)">
+          <i class="bi bi-arrow-left me-1"></i> Back to Packages
+        </button>
+
+        <div class="ee-card p-4 mb-3">
+          <div class="d-flex align-items-start justify-content-between mb-3">
+            <div>
+              <h5 class="verif-detail-title">{{ pkg.name }}</h5>
+              <div class="verif-detail-sub">Submitted by: <strong class="text-accent">{{ pkg.vendorName || 'Dream Weddings' }}</strong> · Category: {{ pkg.category | titlecase }}</div>
+            </div>
+            <span class="ee-badge ee-badge-warning">Pending Review</span>
+          </div>
+
+          <!-- Horizontal Image Slider -->
+          @if (pkg.images && pkg.images.length > 0) {
+            <div class="pkg-preview-section mb-3">
+              <div class="pkg-preview-section-title">Uploaded Photos ({{ pkg.images.length }})</div>
+              <div class="pkg-images-slider">
+                @for (img of pkg.images; track img) {
+                  <img [src]="img" class="pkg-slider-img" alt="Package Photo" />
+                }
+              </div>
+            </div>
+          }
+
+          <div class="package-preview-grid">
+            <!-- General and Pricing Details -->
+            <div class="pkg-preview-section">
+              <div class="pkg-preview-section-title">General & Pricing</div>
+              <div class="pkg-detail-kv"><span class="pkg-detail-k">Experience Required</span><span class="pkg-detail-v">{{ pkg.experience }} Years</span></div>
+              <div class="pkg-detail-kv"><span class="pkg-detail-k">Pricing Unit</span><span class="pkg-detail-v">{{ pkg.pricing.unit }}</span></div>
+              
+              @if (pkg.pricing.basePrice) {
+                <div class="pkg-detail-kv"><span class="pkg-detail-k">Base Price</span><span class="pkg-detail-v">₹{{ pkg.pricing.basePrice | number }}</span></div>
+              }
+              @if (pkg.pricing.rent) {
+                <div class="pkg-detail-kv"><span class="pkg-detail-k">Daily Rent</span><span class="pkg-detail-v">₹{{ pkg.pricing.rent | number }}</span></div>
+              }
+              @if (pkg.pricing.vegPrice) {
+                <div class="pkg-detail-kv"><span class="pkg-detail-k">Veg Plate Price</span><span class="pkg-detail-v">₹{{ pkg.pricing.vegPrice | number }}</span></div>
+              }
+              @if (pkg.pricing.nonVegPrice) {
+                <div class="pkg-detail-kv"><span class="pkg-detail-k">Non-Veg Plate Price</span><span class="pkg-detail-v">₹{{ pkg.pricing.nonVegPrice | number }}</span></div>
+              }
+            </div>
+
+            <!-- Capacity & Amenities Details -->
+            <div class="pkg-preview-section">
+              <div class="pkg-preview-section-title">Capacity & Amenities</div>
+              <div class="pkg-detail-kv"><span class="pkg-detail-k">Max Guests Capacity</span><span class="pkg-detail-v">{{ pkg.capacity.maxGuests || 'N/A' }}</span></div>
+              <div class="pkg-detail-kv"><span class="pkg-detail-k">Parking Capacity</span><span class="pkg-detail-v">{{ pkg.capacity.parkingCapacity || 'N/A' }} Cars</span></div>
+              <div class="pkg-detail-kv"><span class="pkg-detail-k">Total Guest Rooms</span><span class="pkg-detail-v">{{ pkg.capacity.totalRooms || '0' }} Rooms</span></div>
+              <div class="pkg-detail-kv"><span class="pkg-detail-k">Air Conditioning (AC)</span><span class="pkg-detail-v">{{ pkg.amenities.hasAc ? 'Yes' : 'No' }}</span></div>
+              <div class="pkg-detail-kv"><span class="pkg-detail-k">Power Backup</span><span class="pkg-detail-v">{{ pkg.amenities.hasPowerBackup ? 'Yes' : 'No' }}</span></div>
+              <div class="pkg-detail-kv"><span class="pkg-detail-k">Changing Rooms</span><span class="pkg-detail-v">{{ pkg.amenities.hasChangingRooms ? 'Yes' : 'No' }}</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Spaces Table & Description -->
+        <div class="ee-card p-4 mb-3">
+          <div class="pkg-preview-section-title">Description & Spaces</div>
+          <p class="text-secondary fs-6 mb-3" style="line-height:1.6;">{{ pkg.description }}</p>
+          
+          @if (pkg.spaces && pkg.spaces.length > 0) {
+            <h6 class="section-mini-heading" style="font-size:0.8rem;">Submitted Venue Spaces</h6>
+            <div class="table-responsive">
+              <table class="pkg-spaces-table mb-3">
+                <thead>
+                  <tr>
+                    <th>Space Name</th>
+                    <th>Type</th>
+                    <th>Seating Capacity</th>
+                    <th>Floating Capacity</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (space of pkg.spaces; track space.name) {
+                    <tr>
+                      <td><strong>{{ space.name }}</strong></td>
+                      <td>{{ space.type }}</td>
+                      <td>{{ space.seatingCapacity }} Guests</td>
+                      <td>{{ space.floatingCapacity }} Guests</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </div>
+
+        <!-- Policies & Inclusions -->
+        <div class="ee-card p-4 mb-3">
+          <div class="package-preview-grid mt-0">
+            <div class="pkg-preview-section">
+              <div class="pkg-preview-section-title">Operating Policies</div>
+              <div class="pkg-detail-kv"><span class="pkg-detail-k">Catering Policy</span><span class="pkg-detail-v">{{ pkg.policies.cateringPolicy || 'Flexible' }}</span></div>
+              <div class="pkg-detail-kv"><span class="pkg-detail-k">Decor Policy</span><span class="pkg-detail-v">{{ pkg.policies.decorPolicy || 'Flexible' }}</span></div>
+              <div class="pkg-detail-kv"><span class="pkg-detail-k">Alcohol Policy</span><span class="pkg-detail-v">{{ pkg.policies.alcoholPolicy || 'Flexible' }}</span></div>
+              <div class="pkg-detail-kv"><span class="pkg-detail-k">DJ Policy</span><span class="pkg-detail-v">{{ pkg.policies.djPolicy || 'Flexible' }}</span></div>
+            </div>
+
+            <div class="pkg-preview-section">
+              <div class="pkg-preview-section-title">Service Inclusions</div>
+              <div class="chip-container">
+                @for (inc of pkg.includes; track inc) {
+                  <span class="pkg-chip">{{ inc }}</span>
+                } @empty {
+                  <span class="text-muted fs-6">No specific inclusions defined.</span>
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Moderation Actions -->
         <div class="ee-card p-4">
-          <h6 class="section-mini-heading">Verification Action</h6>
+          <h6 class="section-mini-heading">Package Moderation Remarks</h6>
           <div class="mb-3">
-            <label class="ee-form-label">Remarks (optional)</label>
-            <textarea class="ee-form-control" rows="2" [(ngModel)]="remarks" placeholder="Add remarks for the vendor..."></textarea>
+            <label class="ee-form-label">Review comments / rejection reasons</label>
+            <textarea class="ee-form-control" rows="3" [(ngModel)]="remarks" placeholder="Add detailed remarks to notify the vendor..."></textarea>
           </div>
           @if (actionDone()) {
             <div class="action-success" [class.approved]="actionDone() === 'approved'" [class.rejected]="actionDone() === 'rejected'">
               <i class="bi {{ actionDone() === 'approved' ? 'bi-patch-check-fill' : 'bi-x-circle-fill' }} me-2"></i>
-              Vendor {{ actionDone() === 'approved' ? 'Approved Successfully!' : 'Rejected.' }}
+              Package review submitted: {{ actionDone() === 'approved' ? 'Approved & Live!' : 'Rejected with remarks.' }}
             </div>
           } @else {
             <div class="d-flex gap-3">
-              <button class="approve-btn flex-1" (click)="approve(v.id)"><i class="bi bi-patch-check me-1"></i>Approve Vendor</button>
-              <button class="reject-btn" (click)="reject(v.id)"><i class="bi bi-x-circle me-1"></i>Reject</button>
+              <button class="approve-btn flex-1" (click)="approvePkg(pkg.id)"><i class="bi bi-patch-check me-1"></i>Approve & Publish</button>
+              <button class="reject-btn" (click)="rejectPkg(pkg.id)"><i class="bi bi-x-circle me-1"></i>Reject Package</button>
             </div>
           }
         </div>
-      }
-    </div>
-  }
-</div>
+      </div>
+    }
+  </div>
+}

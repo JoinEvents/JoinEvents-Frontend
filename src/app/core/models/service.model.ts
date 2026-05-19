@@ -26,4 +26,6 @@ export interface VendorService {
   isActive: boolean;
   isVerified: boolean;
   activeImageIndex?: number;
+  verificationStatus?: string;
+  verificationComment?: string | null;
 }

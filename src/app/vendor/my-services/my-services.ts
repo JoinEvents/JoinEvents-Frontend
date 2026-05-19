@@ -126,10 +126,26 @@ export class VendorMyServices implements OnInit, OnDestroy {
           category: p.category || p.Category,
           name: p.name || p.Name,
           description: p.description || p.Description,
-          pricePerUnit: (p.pricing?.basePrice || p.pricing?.BasePrice) || 
-                        (p.pricing?.vegPrice || p.pricing?.VegPrice) || 
-                        (p.pricing?.rent || p.pricing?.Rent) || 0,
-          unit: p.pricing?.unit || p.pricing?.Unit || 'per event',
+          pricePerUnit: (() => {
+            const pricing = p.pricing || p.Pricing || {};
+            const basePrice = pricing.basePrice || pricing.BasePrice || 0;
+            const vegPrice = pricing.vegPrice || pricing.VegPrice || 0;
+            const rent = pricing.rent || pricing.Rent || 0;
+            const rawUnit = (pricing.unit || pricing.Unit || '').toLowerCase();
+            
+            if (rawUnit === 'per plate') {
+              return vegPrice || basePrice || rent || 0;
+            }
+            if (rawUnit === 'per day' || rawUnit === 'per hour') {
+              return rent || basePrice || 0;
+            }
+            return basePrice || rent || vegPrice || 0;
+          })(),
+          unit: (() => {
+            const pricing = p.pricing || p.Pricing || {};
+            const rawUnit = (pricing.unit || pricing.Unit || 'per event').toLowerCase();
+            return rawUnit.startsWith('per ') ? rawUnit.substring(4) : rawUnit;
+          })(),
           minGuests: 0,
           maxGuests: p.capacity?.maxGuests || p.capacity?.MaxGuests || 0,
           city: p.city || p.City || p.address?.city || p.address?.City || '',
@@ -138,7 +154,9 @@ export class VendorMyServices implements OnInit, OnDestroy {
           totalReviews: p.totalReviews || p.TotalReviews || 0,
           isActive: p.isActive !== undefined ? p.isActive : p.IsActive,
           isVerified: p.isVerified !== undefined ? p.isVerified : p.IsVerified,
-          activeImageIndex: 0
+          activeImageIndex: 0,
+          verificationStatus: p.verificationStatus || p.VerificationStatus || 'Pending',
+          verificationComment: p.verificationComment || p.VerificationComment || null
         }));
         
         this.services.set(mappedServices);

@@ -29,7 +29,7 @@ export class SupportLayout {
   readonly navItems = [
     { path: '/support/dashboard', icon: 'bi-grid-1x2', label: 'Dashboard' },
     { path: '/support/tickets', icon: 'bi-headset', label: 'Active Tickets', badge: 8 },
-    { path: '/support/verifications', icon: 'bi-shield-check', label: 'Vendor Verifications', badge: 3 },
+    { path: '/support/verifications', icon: 'bi-shield-check', label: 'Verification Portal', badge: 3 },
     { path: '/support/bookings', icon: 'bi-calendar3', label: 'Booking Monitor' },
     { path: '/support/customers', icon: 'bi-people', label: 'Customer Directory' },
     { path: '/support/vendors', icon: 'bi-shop', label: 'Vendor Directory' },
