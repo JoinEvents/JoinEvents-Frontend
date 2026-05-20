@@ -4,6 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { EventCategoryService } from '../../core/services/event-category.service';
 import { EventType } from '../../core/models/event.model';
 
+import { FavoritesService } from '../../core/services/favorites.service';
+
 @Component({
   selector: 'app-customer-events',
   imports: [RouterLink, FormsModule],
@@ -15,6 +17,7 @@ export class CustomerEvents implements OnInit {
   private api = inject(EventCategoryService);
   private route = inject(ActivatedRoute);
   private cdr = inject(ChangeDetectorRef);
+  public favoritesService = inject(FavoritesService);
   events = signal<EventType[]>([]);
   filtered = signal<EventType[]>([]);
   search = '';
@@ -53,5 +56,21 @@ export class CustomerEvents implements OnInit {
     if (this.selectedCategory !== 'all') result = result.filter(e => e.category === this.selectedCategory);
     if (this.search.trim()) result = result.filter(e => e.name.toLowerCase().includes(this.search.toLowerCase()));
     this.filtered.set(result);
+  }
+
+  isFavorite(id: string): boolean {
+    return this.favoritesService.isFavorite(id);
+  }
+
+  toggleFavorite(event: Event, et: any) {
+    event.stopPropagation();
+    event.preventDefault();
+    this.favoritesService.toggleFavorite({
+      id: et.id,
+      name: et.name,
+      type: 'event',
+      subtitle: `${et.category} • from ₹${((et.startingPrice || 0) / 1000)}k`,
+      routeUrl: `/vendors/${et.id}`
+    });
   }
 }

@@ -4,11 +4,12 @@ import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { MockApiService } from '../../core/services/mock-api.service';
 import { ThemeService } from '../../core/services/theme.service';
+import { BreadcrumbComponent } from '../../shared/components/breadcrumb';
 
 @Component({
   selector: 'app-support-layout',
   standalone: true,
-  imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive, BreadcrumbComponent],
   templateUrl: './support-layout.html',
   styleUrl: './support-layout.css'
 })

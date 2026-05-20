@@ -77,6 +77,9 @@
     <div class="col-12 col-md-6 col-lg-4">
       <div class="pkg-card" [class.popular]="pkg.isPopular">
         @if (pkg.isPopular) { <div class="popular-ribbon">Most Popular</div> }
+        <button class="fav-btn" [class.active]="isFavorite(pkg.id)" (click)="toggleFavorite($event, pkg)">
+          <i class="bi" [class.bi-heart-fill]="isFavorite(pkg.id)" [class.bi-heart]="!isFavorite(pkg.id)"></i>
+        </button>
         <div class="pkg-header" [style.background]="getTierGradient(pkg.tier)">
           <div class="pkg-tier-label">{{ getTierLabel(pkg.tier) }}</div>
           <div class="pkg-name">{{ pkg.name }}</div>

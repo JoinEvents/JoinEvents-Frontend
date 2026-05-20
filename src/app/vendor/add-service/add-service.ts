@@ -138,13 +138,53 @@ export class VendorAddService implements OnInit {
       this.serviceId.set(id);
       this.loadServiceData(id);
     }
+
+    this.loadGoogleMapsScript();
   }
 
+  loadGoogleMapsScript() {
+    if (typeof google !== 'undefined' && google.maps && google.maps.places) {
+      this.initAutocomplete();
+      this.initMap();
+      return;
+    }
 
+    const scriptId = 'google-maps-script';
+    let script = document.getElementById(scriptId) as HTMLScriptElement;
+    if (script) {
+      script.addEventListener('load', () => {
+        this.ngZone.run(() => {
+          this.initAutocomplete();
+          this.initMap();
+        });
+      });
+      return;
+    }
+
+    script = document.createElement('script');
+    script.id = scriptId;
+    script.src = 'https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY&libraries=places';
+    script.async = true;
+    script.defer = true;
+    script.onload = () => {
+      this.ngZone.run(() => {
+        this.initAutocomplete();
+        this.initMap();
+      });
+    };
+    script.onerror = (err) => {
+      console.error('Failed to load Google Maps script dynamically:', err);
+    };
+    document.head.appendChild(script);
+  }
 
   initAutocomplete() {
     if (!this.addressSearchElement || !this.addressSearchElement.nativeElement) {
       console.warn('Skipping Google Autocomplete: Element not found in DOM.');
+      return;
+    }
+    if (typeof google === 'undefined' || !google.maps || !google.maps.places) {
+      console.warn('Google Maps API not loaded yet for autocomplete.');
       return;
     }
     try {
@@ -170,6 +210,10 @@ export class VendorAddService implements OnInit {
   initMap() {
     if (!this.mapElement || !this.mapElement.nativeElement) {
       console.warn('Skipping Google Map: Map container element not found in DOM.');
+      return;
+    }
+    if (typeof google === 'undefined' || !google.maps) {
+      console.warn('Google Maps API not loaded yet for map.');
       return;
     }
     try {

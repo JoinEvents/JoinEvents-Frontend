@@ -6,7 +6,7 @@
   <!-- Dynamic Title Section -->
   <div class="d-flex align-items-center justify-content-between mb-4 mt-2">
     <div>
-      <h1 class="fw-900 mb-0" style="font-size: 2.5rem; letter-spacing: -1.5px;">{{ eventType()?.name }} <span class="text-primary">Packages</span></h1>
+      <h1 class="fw-900 mb-0 page-main-title">{{ eventType()?.name }} <span class="text-primary">Packages</span></h1>
       <p class="text-muted fw-600">Discover handpicked premium experiences for your special day</p>
     </div>
     <div class="d-none d-md-block">
@@ -72,14 +72,16 @@
       <button class="btn-ee-outline mt-3" (click)="filterLocation.set(''); filterBudget.set(10000000); applyFilters()">Clear Filters</button>
     </div>
   } @else {
-    <div class="row g-5">
+    <div class="row g-3 g-md-4 g-lg-5">
       @for (pkg of packages(); track pkg.id) {
         <div class="col-12 col-md-6 col-lg-4">
           <div class="package-card-v2" (click)="selectVendor(pkg.id)" style="cursor: pointer;">
             <div class="card-img-wrap">
               <img [src]="pkg.images && pkg.images.length > 0 ? pkg.images[pkg.activeImageIndex || 0] : pkg.image" class="card-img" [alt]="pkg.name" loading="lazy" style="transition: opacity 0.4s ease-in-out;">
               <div class="price-badge-v2">₹{{ (pkg.price / 100000).toFixed(1) }}L</div>
-              <button class="fav-btn" (click)="$event.stopPropagation()"><i class="bi bi-heart"></i></button>
+              <button class="fav-btn" [class.active]="isFavorite(pkg.id)" (click)="toggleFavorite($event, pkg)">
+                <i class="bi" [class.bi-heart-fill]="isFavorite(pkg.id)" [class.bi-heart]="!isFavorite(pkg.id)"></i>
+              </button>
               
               @if (pkg.images && pkg.images.length > 1) {
                 <div class="carousel-indicators-mini">

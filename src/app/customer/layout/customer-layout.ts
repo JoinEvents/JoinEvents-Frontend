@@ -6,6 +6,8 @@ import { ThemeService } from '../../core/services/theme.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { AiService } from '../../core/services/ai.service';
 import { AiPlanner } from '../ai-planner/ai-planner';
+import { FavoritesService } from '../../core/services/favorites.service';
+import { BreadcrumbComponent } from '../../shared/components/breadcrumb';
 
 export interface NavItem {
   path: string;
@@ -19,7 +21,7 @@ export interface NavItem {
 @Component({
   selector: 'app-customer-layout',
   standalone: true,
-  imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive, AiPlanner],
+  imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive, AiPlanner, BreadcrumbComponent],
   templateUrl: './customer-layout.html',
   styleUrl: './customer-layout.css',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -30,11 +32,13 @@ export class CustomerLayout {
   public theme = inject(ThemeService);
   public notifService = inject(NotificationService);
   private aiService = inject(AiService);
+  public favoritesService = inject(FavoritesService);
 
   sidebarOpen = signal(false);
   sidebarPinned = signal(false);
   showNotifications = signal(false);
   showProfileDropdown = signal(false);
+  showFavorites = signal(false);
   user = this.auth.currentUser;
 
   constructor() {
@@ -103,17 +107,43 @@ export class CustomerLayout {
       });
   }
 
+  favorites = computed(() => this.favoritesService.favorites());
+  favoriteCount = computed(() => this.favorites().length);
+
   logout() { this.auth.logout(); }
   toggleSidebar() { this.sidebarOpen.update(v => !v); }
   togglePin() { this.sidebarPinned.update(v => !v); }
   toggleAiPlanner() { this.aiService.toggle(); }
   toggleNotifications() { 
     this.showNotifications.update(v => !v); 
-    if (this.showNotifications()) this.showProfileDropdown.set(false);
+    if (this.showNotifications()) {
+      this.showProfileDropdown.set(false);
+      this.showFavorites.set(false);
+    }
   }
   toggleProfileDropdown() { 
     this.showProfileDropdown.update(v => !v); 
-    if (this.showProfileDropdown()) this.showNotifications.set(false);
+    if (this.showProfileDropdown()) {
+      this.showNotifications.set(false);
+      this.showFavorites.set(false);
+    }
+  }
+  toggleFavorites() {
+    this.showFavorites.update(v => !v);
+    if (this.showFavorites()) {
+      this.showNotifications.set(false);
+      this.showProfileDropdown.set(false);
+    }
+  }
+  removeFavorite(event: Event, id: string) {
+    event.stopPropagation();
+    this.favoritesService.removeFavorite(id);
+  }
+  goToFavorite(fav: any) {
+    this.showFavorites.set(false);
+    if (fav.routeUrl) {
+      this.router.navigateByUrl(fav.routeUrl);
+    }
   }
   getInitials(name: string) { return name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0,2) || 'U'; }
 

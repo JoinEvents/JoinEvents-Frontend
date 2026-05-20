@@ -1,5 +1,5 @@
 import { Component, signal, computed, OnInit, OnDestroy, inject, effect } from '@angular/core';
-import { CommonModule, UpperCasePipe } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { PackageService } from '../../core/services/package.service';
@@ -9,7 +9,7 @@ import { AuthService } from '../../core/services/auth.service';
 @Component({
   selector: 'app-customer-booking',
   standalone: true,
-  imports: [CommonModule, FormsModule, UpperCasePipe, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink],
   templateUrl: './booking.html',
   styleUrl: './booking.css'
 })
@@ -68,6 +68,7 @@ export class CustomerBooking implements OnInit, OnDestroy {
       next: (pkg) => {
         this.isLoading.set(false);
         if (pkg) {
+          console.log('Loaded Package Data:', pkg);
           this.selectedPackage.set(pkg);
           this.selectedImage.set(pkg.image || pkg.images?.[0]);
           

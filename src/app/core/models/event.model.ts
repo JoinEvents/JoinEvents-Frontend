@@ -30,4 +30,42 @@ export interface EventPackage {
   images?: string[];
   addons?: { id: string, name: string, price: number }[];
   sustainabilityTags?: string[];
+  experience?: number;
+  rating?: number;
+  totalReviews?: number;
+  address?: {
+    country?: string;
+    state?: string;
+    city?: string;
+    locality?: string;
+    street?: string;
+    landmark?: string;
+    pincode?: string;
+  };
+  pricing?: {
+    vegPrice?: number;
+    nonVegPrice?: number;
+    roomPrice?: number;
+    basePrice?: number;
+    rent?: number;
+    unit?: string;
+  };
+  capacity?: {
+    maxGuests?: number;
+    parkingCapacity?: number;
+    totalRooms?: number;
+  };
+  policies?: {
+    cateringPolicy?: string;
+    decorPolicy?: string;
+    alcoholPolicy?: string;
+    djPolicy?: string;
+  };
+  spaces?: {
+    name?: string;
+    type?: string;
+    seatingCapacity?: number;
+    floatingCapacity?: number;
+  }[];
 }
+

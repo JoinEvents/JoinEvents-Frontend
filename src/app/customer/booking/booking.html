@@ -152,6 +152,203 @@
         </div>
       </div>
 
+      <!-- Detailed Pricing Structure -->
+      @if (selectedPackage()?.pricing && (selectedPackage()?.pricing?.vegPrice || selectedPackage()?.pricing?.nonVegPrice || selectedPackage()?.pricing?.roomPrice || selectedPackage()?.pricing?.rent || selectedPackage()?.pricing?.basePrice)) {
+        <div class="detail-card pricing-detail-card">
+          <div class="card-label">Detailed Pricing Structure</div>
+          <div class="pricing-structure-grid">
+            @if (selectedPackage()?.pricing?.vegPrice) {
+              <div class="pricing-structure-item veg">
+                <div class="pricing-item-header">
+                  <span class="plate-dot veg"></span>
+                  <span class="item-title">Veg Menu</span>
+                </div>
+                <div class="item-price">
+                  <span class="currency">₹</span>
+                  <span class="val">{{ selectedPackage()?.pricing?.vegPrice }}</span>
+                  <span class="unit">/ Plate</span>
+                </div>
+              </div>
+            }
+            @if (selectedPackage()?.pricing?.nonVegPrice) {
+              <div class="pricing-structure-item non-veg">
+                <div class="pricing-item-header">
+                  <span class="plate-dot non-veg"></span>
+                  <span class="item-title">Non-Veg Menu</span>
+                </div>
+                <div class="item-price">
+                  <span class="currency">₹</span>
+                  <span class="val">{{ selectedPackage()?.pricing?.nonVegPrice }}</span>
+                  <span class="unit">/ Plate</span>
+                </div>
+              </div>
+            }
+            @if (selectedPackage()?.pricing?.roomPrice) {
+              <div class="pricing-structure-item room">
+                <div class="pricing-item-header">
+                  <i class="bi bi-door-open-fill room-icon"></i>
+                  <span class="item-title">Room Tariff</span>
+                </div>
+                <div class="item-price">
+                  <span class="currency">₹</span>
+                  <span class="val">{{ selectedPackage()?.pricing?.roomPrice }}</span>
+                  <span class="unit">/ Night</span>
+                </div>
+              </div>
+            }
+            @if (selectedPackage()?.pricing?.rent || selectedPackage()?.pricing?.basePrice) {
+              <div class="pricing-structure-item rent">
+                <div class="pricing-item-header">
+                  <i class="bi bi-building rent-icon"></i>
+                  <span class="item-title">Venue Hire / Rent</span>
+                </div>
+                <div class="item-price">
+                  <span class="currency">₹</span>
+                  <span class="val">{{ selectedPackage()?.pricing?.rent || selectedPackage()?.pricing?.basePrice }}</span>
+                  <span class="unit">/ Event</span>
+                </div>
+              </div>
+            }
+          </div>
+          <div class="pricing-info-footer">
+            <i class="bi bi-info-circle-fill"></i>
+            <span>Base Unit pricing type is configured as <strong>{{ selectedPackage()?.pricing?.unit || 'per event' }}</strong>.</span>
+          </div>
+        </div>
+      }
+
+      <!-- Capacity & Venue Logistics -->
+      @if (selectedPackage()?.capacity && (selectedPackage()?.capacity?.parkingCapacity || selectedPackage()?.capacity?.totalRooms)) {
+        <div class="detail-card capacity-logistics-card">
+          <div class="card-label">Capacity & Venue Logistics</div>
+          <div class="capacity-logistics-grid">
+            <div class="logistics-item">
+              <div class="logistics-icon guests"><i class="bi bi-people-fill"></i></div>
+              <div class="logistics-details">
+                <span class="logistics-label">Maximum Guests</span>
+                <span class="logistics-val">{{ selectedPackage()?.capacity?.maxGuests || selectedPackage()?.maxGuests || 100 }} Guests</span>
+              </div>
+            </div>
+            <div class="logistics-item">
+              <div class="logistics-icon parking"><i class="bi bi-p-circle-fill"></i></div>
+              <div class="logistics-details">
+                <span class="logistics-label">Parking Capacity</span>
+                <span class="logistics-val">{{ selectedPackage()?.capacity?.parkingCapacity || 0 }} Vehicles</span>
+              </div>
+            </div>
+            <div class="logistics-item">
+              <div class="logistics-icon rooms"><i class="bi bi-door-closed-fill"></i></div>
+              <div class="logistics-details">
+                <span class="logistics-label">Guest Rooms</span>
+                <span class="logistics-val">{{ selectedPackage()?.capacity?.totalRooms || selectedPackage()?.roomCount || 0 }} Rooms</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- Available Spaces & Layouts -->
+      @if (selectedPackage()?.spaces?.length) {
+        <div class="detail-card spaces-card">
+          <div class="card-label">Available Spaces & Layouts</div>
+          <div class="spaces-vertical-list">
+            @for (space of selectedPackage()?.spaces; track space.name) {
+              <div class="space-list-item">
+                <div class="space-item-meta">
+                  <span class="space-item-name">{{ space.name }}</span>
+                  <span class="space-item-badge" [class.indoor]="space.type === 'Indoor'" [class.outdoor]="space.type === 'Outdoor'">
+                    <i class="bi" [class.bi-house-door-fill]="space.type === 'Indoor'" [class.bi-tree-fill]="space.type === 'Outdoor'"></i>
+                    {{ space.type }}
+                  </span>
+                </div>
+                <div class="space-item-caps">
+                  <div class="cap-indicator">
+                    <span class="cap-title">Seating Capacity</span>
+                    <span class="cap-number">{{ space.seatingCapacity || 'Flexible' }}</span>
+                  </div>
+                  <div class="cap-indicator">
+                    <span class="cap-title">Floating Capacity</span>
+                    <span class="cap-number">{{ space.floatingCapacity || 'Flexible' }}</span>
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- House & Event Policies -->
+      @if (selectedPackage()?.policies) {
+        <div class="detail-card policies-detail-card">
+          <div class="card-label">House & Event Policies</div>
+          <div class="policies-list-grid">
+            <div class="policy-pill">
+              <div class="policy-pill-header">
+                <i class="bi bi-egg-fried catering-icon"></i>
+                <span class="policy-pill-title">Catering</span>
+              </div>
+              <span class="policy-pill-val" [class.strict]="selectedPackage()?.policies?.cateringPolicy?.includes('Inhouse')" [class.flexible]="!selectedPackage()?.policies?.cateringPolicy?.includes('Inhouse')">
+                {{ selectedPackage()?.policies?.cateringPolicy }}
+              </span>
+            </div>
+            <div class="policy-pill">
+              <div class="policy-pill-header">
+                <i class="bi bi-palette-fill decor-icon"></i>
+                <span class="policy-pill-title">Decoration</span>
+              </div>
+              <span class="policy-pill-val" [class.strict]="selectedPackage()?.policies?.decorPolicy?.includes('Panel')" [class.flexible]="!selectedPackage()?.policies?.decorPolicy?.includes('Panel')">
+                {{ selectedPackage()?.policies?.decorPolicy }}
+              </span>
+            </div>
+            <div class="policy-pill">
+              <div class="policy-pill-header">
+                <i class="bi bi-beer alcohol-icon"></i>
+                <span class="policy-pill-title">Alcohol</span>
+              </div>
+              <span class="policy-pill-val" [class.strict]="selectedPackage()?.policies?.alcoholPolicy?.includes('Not')" [class.flexible]="!selectedPackage()?.policies?.alcoholPolicy?.includes('Not')">
+                {{ selectedPackage()?.policies?.alcoholPolicy }}
+              </span>
+            </div>
+            <div class="policy-pill">
+              <div class="policy-pill-header">
+                <i class="bi bi-music-note-beamed dj-icon"></i>
+                <span class="policy-pill-title">DJ & Music</span>
+              </div>
+              <span class="policy-pill-val" [class.strict]="selectedPackage()?.policies?.djPolicy?.includes('Inhouse')" [class.flexible]="!selectedPackage()?.policies?.djPolicy?.includes('Inhouse')">
+                {{ selectedPackage()?.policies?.djPolicy }}
+              </span>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- Venue Location & Full Address -->
+      @if (selectedPackage()?.address && (selectedPackage()?.address?.locality || selectedPackage()?.address?.street)) {
+        <div class="detail-card address-detail-card">
+          <div class="card-label">Venue Location & Address</div>
+          <div class="address-card-body">
+            <div class="address-map-placeholder">
+              <div class="map-icon-circle">
+                <i class="bi bi-geo-alt-fill"></i>
+              </div>
+              <span class="map-badge">Verified Location</span>
+            </div>
+            <div class="address-text-details">
+              <h5 class="street-line">{{ selectedPackage()?.address?.street }}</h5>
+              <p class="locality-line">{{ selectedPackage()?.address?.locality }}</p>
+              @if (selectedPackage()?.address?.landmark) {
+                <div class="landmark-line">
+                  <i class="bi bi-signpost-2-fill"></i>
+                  <span>Landmark: <strong>{{ selectedPackage()?.address?.landmark }}</strong></span>
+                </div>
+              }
+              <p class="city-state-pin">{{ selectedPackage()?.address?.city }}, {{ selectedPackage()?.address?.state }} - {{ selectedPackage()?.address?.pincode }}</p>
+              <span class="country-pill">{{ selectedPackage()?.address?.country }}</span>
+            </div>
+          </div>
+        </div>
+      }
+
       <!-- Vendor Info -->
       <div class="detail-card vendor-info-card">
         <div class="vendor-row">
@@ -166,6 +363,9 @@
             <div class="vendor-tags">
               <span class="v-tag"><i class="bi bi-patch-check-fill"></i> Verified</span>
               <span class="v-tag"><i class="bi bi-lightning-charge-fill"></i> Quick Reply</span>
+              @if (selectedPackage()?.experience) {
+                <span class="v-tag exp-badge"><i class="bi bi-award-fill"></i> {{ selectedPackage()?.experience }} Years Exp</span>
+              }
             </div>
           </div>
           <button class="btn-chat"><i class="bi bi-chat-dots-fill"></i></button>

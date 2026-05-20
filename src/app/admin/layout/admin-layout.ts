@@ -3,6 +3,7 @@ import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { ThemeService } from '../../core/services/theme.service';
 import { NotificationService } from '../../core/services/notification.service';
+import { BreadcrumbComponent } from '../../shared/components/breadcrumb';
 
 export interface NavItem {
   path: string;
@@ -16,7 +17,7 @@ export interface NavItem {
 @Component({
   selector: 'app-admin-layout',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, BreadcrumbComponent],
   templateUrl: './admin-layout.html',
   styleUrl: './admin-layout.css'
 })

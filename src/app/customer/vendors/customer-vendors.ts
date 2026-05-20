@@ -5,6 +5,7 @@ import { PackageService } from '../../core/services/package.service';
 import { EventCategoryService } from '../../core/services/event-category.service';
 import { Vendor } from '../../core/models/vendor.model';
 import { EventType } from '../../core/models/event.model';
+import { FavoritesService } from '../../core/services/favorites.service';
 
 @Component({
   selector: 'app-customer-vendors',
@@ -19,6 +20,7 @@ export class CustomerVendors implements OnInit, OnDestroy {
   private router = inject(Router);
   private packageService = inject(PackageService);
   private eventCategoryService = inject(EventCategoryService);
+  public favoritesService = inject(FavoritesService);
   private carouselInterval: any;
 
   eventTypeId = signal<string | null>(null);
@@ -134,5 +136,20 @@ export class CustomerVendors implements OnInit, OnDestroy {
 
   selectVendor(packageId: string) {
     this.router.navigate(['/book', packageId]);
+  }
+
+  isFavorite(id: string): boolean {
+    return this.favoritesService.isFavorite(id);
+  }
+
+  toggleFavorite(event: Event, pkg: any) {
+    event.stopPropagation();
+    this.favoritesService.toggleFavorite({
+      id: pkg.id,
+      name: pkg.name,
+      type: 'package',
+      subtitle: `${pkg.location} • ₹${(pkg.price / 100000).toFixed(1)}L`,
+      routeUrl: `/book/${pkg.id}`
+    });
   }
 }

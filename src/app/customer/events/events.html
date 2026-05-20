@@ -32,6 +32,9 @@
     <div class="col-12 col-md-6 col-xl-4">
       <div class="event-catalog-card ee-card rounded-4">
         <div class="event-card-banner" [style.background]="event.gradient">
+          <button class="fav-btn" [class.active]="isFavorite(event.id)" (click)="toggleFavorite($event, event)">
+            <i class="bi" [class.bi-heart-fill]="isFavorite(event.id)" [class.bi-heart]="!isFavorite(event.id)"></i>
+          </button>
           <i class="bi {{ event.icon }} event-card-icon"></i>
           <div class="event-card-hindi">{{ event.nameHindi }}</div>
         </div>

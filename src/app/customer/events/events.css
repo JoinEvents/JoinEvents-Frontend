@@ -215,3 +215,28 @@
   display: inline-block;
 }
 
+.event-card-banner .fav-btn {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    transition: all 0.3s;
+    z-index: 10;
+    cursor: pointer;
+}
+.event-card-banner .fav-btn:hover, .event-card-banner .fav-btn.active {
+    background: white;
+    color: #ef4444;
+    border-color: white;
+}
+

@@ -60,10 +60,44 @@
         @if (notifications().length > 0) { <span class="notif-dot"></span> }
       </a>
 
-      <!-- Roshi AI Trigger (Mobile only) -->
-      <button class="topbar-icon-btn d-xl-none" (click)="toggleAiPlanner()" title="Roshi AI">
-        <i class="bi bi-stars" style="color: var(--primary);"></i>
-      </button>
+      <!-- Favorites Dropdown -->
+      <div class="topbar-icon-btn position-relative" (click)="toggleFavorites()" title="Favorites">
+        <i class="bi bi-heart"></i>
+        @if (favoriteCount() > 0) { <span class="notif-dot" style="background: var(--danger);"></span> }
+
+        @if (showFavorites()) {
+        <div class="notif-dropdown" (click)="$event.stopPropagation()">
+          <div class="notif-header">
+            <h6>Favorites ({{ favoriteCount() }})</h6>
+          </div>
+          <div class="notif-list">
+            @if (favorites().length === 0) {
+              <div class="text-center py-4 text-muted">
+                <i class="bi bi-heartbreak fs-4 mb-2 d-block text-soft"></i>
+                No favorites added yet.
+              </div>
+            }
+            @for (fav of favorites(); track fav.id) {
+            <div class="notif-item" (click)="goToFavorite(fav)">
+              <div class="notif-icon bg-light text-danger">
+                @if (fav.type === 'package') { <i class="bi bi-box"></i> }
+                @else if (fav.type === 'event') { <i class="bi bi-calendar-event"></i> }
+                @else if (fav.type === 'vendor') { <i class="bi bi-shop"></i> }
+                @else if (fav.type === 'service') { <i class="bi bi-wrench-adjustable"></i> }
+              </div>
+              <div class="notif-body">
+                <div class="notif-title">{{ fav.name }}</div>
+                <div class="notif-msg text-capitalize text-muted">{{ fav.type }} @if (fav.subtitle) { • {{ fav.subtitle }} }</div>
+              </div>
+              <button class="btn btn-sm btn-link text-danger border-0 p-0 align-self-center ms-auto" (click)="removeFavorite($event, fav.id)">
+                <i class="bi bi-trash"></i>
+              </button>
+            </div>
+            }
+          </div>
+        </div>
+        }
+      </div>
 
       <div class="topbar-icon-btn position-relative" (click)="toggleNotifications()">
         <i class="bi bi-bell"></i>
@@ -143,6 +177,7 @@
 
   <!-- Page Content -->
   <main id="main-content" class="main-content">
+    <app-breadcrumb />
     <router-outlet />
   </main>
 

@@ -14,6 +14,16 @@ import { Employee, EmployeeRole, EmployeeStatus } from '../models/employee.model
 
 import { environment } from '../../../environments/environment';
  
+const DEFAULT_INCLUSIONS: { [key: string]: string[] } = {
+  wedding: ['Premium Venue', 'Gourmet Catering', 'Elegant Stage Decor', 'High-End Sound & Lighting', 'Luxury Couple Suite', 'Photography & Videography'],
+  birthday: ['Vibrant Venue', 'Fun Party Catering', 'Themed Balloon Decor', 'Dynamic Party Anchor', 'Live Music & DJ'],
+  birthday_party: ['Vibrant Venue', 'Fun Party Catering', 'Themed Balloon Decor', 'Dynamic Party Anchor', 'Live Music & DJ'],
+  corporate: ['Conference Hall', 'Premium Buffet Catering', 'AV & Projector Setup', 'High-Speed Wi-Fi', 'Executive Lounge Access'],
+  beauty: ['Professional Makeup Artists', 'Premium Hairstyling', 'Designer Bridal Wear', 'Traditional Mehendi Art'],
+  travel: ['Luxury Chauffeur Services', 'Premium AC Coach Hire', 'Professional Tour Guide', 'Custom Travel Logistics'],
+  shopping: ['Handcrafted Invites', 'Customized Guest Hampers', 'Traditional Indian Outfit Curation']
+};
+
 @Injectable({ providedIn: 'root' })
 export class MockApiService {
   private http = inject(HttpClient);
@@ -87,7 +97,15 @@ export class MockApiService {
           'https://images.unsplash.com/photo-1522673607200-16488321499b?auto=format&fit=crop&q=80&w=800',
           'https://images.unsplash.com/photo-1513273159385-48995328406f?auto=format&fit=crop&q=80&w=800',
           'https://images.unsplash.com/photo-1537633552985-df8429e8048b?auto=format&fit=crop&q=80&w=800'
-        ]
+        ],
+        experience: 5,
+        rating: 4.8,
+        totalReviews: 24,
+        address: { country: 'India', state: 'Uttar Pradesh', city: 'Agra', locality: 'Taj East Gate', street: 'Fatehabad Road', landmark: 'Near Taj Mahal', pincode: '282001' },
+        pricing: { vegPrice: 1500, nonVegPrice: 2000, roomPrice: 5000, basePrice: 200000, rent: 100000, unit: 'per event' },
+        capacity: { maxGuests: 700, parkingCapacity: 150, totalRooms: 50 },
+        policies: { cateringPolicy: 'Inhouse Only', decorPolicy: 'Panel Decorators Only', alcoholPolicy: 'Outside Allowed', djPolicy: 'Inhouse DJ Only' },
+        spaces: [{ name: 'Grand Ballroom', type: 'Indoor', seatingCapacity: 500, floatingCapacity: 800 }, { name: 'Royal Lawns', type: 'Outdoor', seatingCapacity: 400, floatingCapacity: 700 }]
       },
       { 
         id: 'w-prem-2', 
@@ -113,7 +131,15 @@ export class MockApiService {
         images: [
           'https://images.unsplash.com/photo-1541010222019-15ad350bc51f?auto=format&fit=crop&q=80&w=800',
           'https://images.unsplash.com/photo-1505932794465-1475557465c9?auto=format&fit=crop&q=80&w=800'
-        ]
+        ],
+        experience: 8,
+        rating: 4.9,
+        totalReviews: 45,
+        address: { country: 'India', state: 'Rajasthan', city: 'Jodhpur', locality: 'Palace Road', street: 'Circuit House Rd', landmark: 'Near Circuit House', pincode: '342006' },
+        pricing: { vegPrice: 2500, nonVegPrice: 3500, roomPrice: 12000, basePrice: 500000, rent: 300000, unit: 'per event' },
+        capacity: { maxGuests: 500, parkingCapacity: 200, totalRooms: 64 },
+        policies: { cateringPolicy: 'Inhouse Only', decorPolicy: 'Panel Decorators Only', alcoholPolicy: 'Inhouse Only', djPolicy: 'Inhouse DJ Only' },
+        spaces: [{ name: 'Heritage Courtyard', type: 'Outdoor', seatingCapacity: 350, floatingCapacity: 600 }, { name: 'Durbar Hall', type: 'Indoor', seatingCapacity: 200, floatingCapacity: 300 }]
       },
       { 
         id: 'w-std-1', 
@@ -139,9 +165,38 @@ export class MockApiService {
         images: [
           'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&q=80&w=800',
           'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&q=80&w=800'
-        ]
+        ],
+        experience: 3,
+        rating: 4.5,
+        totalReviews: 12,
+        address: { country: 'India', state: 'Karnataka', city: 'Bangalore', locality: 'Whitefield', street: 'Green Meadows Road', landmark: 'Near Hope Farm Circle', pincode: '560066' },
+        pricing: { vegPrice: 1000, nonVegPrice: 1500, roomPrice: 3500, basePrice: 50000, rent: 50000, unit: 'per event' },
+        capacity: { maxGuests: 400, parkingCapacity: 80, totalRooms: 12 },
+        policies: { cateringPolicy: 'Flexible', decorPolicy: 'Flexible', alcoholPolicy: 'Outside Allowed', djPolicy: 'Flexible' },
+        spaces: [{ name: 'The Secret Garden', type: 'Outdoor', seatingCapacity: 250, floatingCapacity: 450 }]
       },
-      { id: 'b-basic', eventTypeId: 'birthday', name: 'Fun Birthday', tier: 'basic', price: 25000, description: 'Simple & cheerful birthday party setup', services: ['Venue (50 guests)','Snacks & Cake','Balloon Decoration','Photography'], maxGuests: 50, durationHours: 4, location: 'Local Venue', image: 'https://images.unsplash.com/photo-1530103862676-fa8c9d34b3b3?auto=format&fit=crop&q=80&w=800', images: ['https://images.unsplash.com/photo-1530103862676-fa8c9d34b3b3?auto=format&fit=crop&q=80&w=800'] },
+      { 
+        id: 'b-basic', 
+        eventTypeId: 'birthday', 
+        name: 'Fun Birthday', 
+        tier: 'basic', 
+        price: 25000, 
+        description: 'Simple & cheerful birthday party setup', 
+        services: ['Venue (50 guests)','Snacks & Cake','Balloon Decoration','Photography'], 
+        maxGuests: 50, 
+        durationHours: 4, 
+        location: 'Local Venue', 
+        image: 'https://images.unsplash.com/photo-1530103862676-fa8c9d34b3b3?auto=format&fit=crop&q=80&w=800', 
+        images: ['https://images.unsplash.com/photo-1530103862676-fa8c9d34b3b3?auto=format&fit=crop&q=80&w=800'],
+        experience: 2,
+        rating: 4.2,
+        totalReviews: 8,
+        address: { country: 'India', state: 'Telangana', city: 'Hyderabad', locality: 'Madhapur', street: 'Hitech City Road', landmark: 'Near Cyber Towers', pincode: '500081' },
+        pricing: { vegPrice: 400, nonVegPrice: 600, roomPrice: 2000, basePrice: 10000, rent: 15000, unit: 'per event' },
+        capacity: { maxGuests: 50, parkingCapacity: 15, totalRooms: 1 },
+        policies: { cateringPolicy: 'Flexible', decorPolicy: 'Flexible', alcoholPolicy: 'Not Allowed', djPolicy: 'Flexible' },
+        spaces: [{ name: 'Mini Hall', type: 'Indoor', seatingCapacity: 40, floatingCapacity: 60 }]
+      },
     ];
     const result = eventTypeId ? packages.filter(p => p.eventTypeId === eventTypeId) : packages;
     
@@ -157,59 +212,133 @@ export class MockApiService {
         }
 
         // Thoroughly normalize incoming API package shapes into front-end readable objects
-        return list.map((p: any) => ({
-          id: p.id || p.Id,
-          eventTypeId: p.eventTypeId || p.EventTypeId || p.category || p.Category || 'wedding',
-          name: p.name || p.Name,
-          vendorName: p.vendorName || p.VendorName || 'JoinEvents Partner',
-          location: p.location || p.Location || p.city || p.City || p.address?.city || p.Address?.City || 'Multiple Locations',
-          tier: p.tier || p.Tier || 'premium',
-          price: p.price || p.Price || p.pricing?.basePrice || p.pricing?.BasePrice || p.pricing?.vegPrice || p.pricing?.VegPrice || 0,
-          description: p.description || p.Description,
-          maxGuests: p.maxGuests || p.MaxGuests || p.capacity?.maxGuests || p.capacity?.MaxGuests || 100,
-          roomCount: p.roomCount || p.RoomCount || p.capacity?.totalRooms || p.capacity?.TotalRooms || 0,
-          vegOnly: p.vegOnly !== undefined ? p.vegOnly : (p.pricing?.vegPrice && !p.pricing?.nonVegPrice ? true : false),
-          image: p.image || p.Image || p.images?.[0] || p.Images?.[0] || 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&q=80&w=800',
-          images: p.images || p.Images || [],
-          sustainabilityTags: p.sustainabilityTags || p.SustainabilityTags || []
-        }));
+        return list.map((p: any) => this.normalizePackage(p));
       }),
-      catchError(() => of(result).pipe(delay(300)))
+      catchError(() => of(result.map(p => this.normalizePackage(p))).pipe(delay(300)))
     );
   }
 
-  getPackageById(id: string): Observable<any> {
-    const normalizePackage = (p: any) => {
-      if (!p) return null;
-      return {
-        id: p.id || p.Id,
-        eventTypeId: p.eventTypeId || p.EventTypeId || p.category || p.Category || 'wedding',
-        name: p.name || p.Name,
-        vendorName: p.vendorName || p.VendorName || 'JoinEvents Partner',
-        location: p.location || p.Location || p.city || p.City || 'Multiple Locations',
-        tier: p.tier || p.Tier || 'premium',
-        price: p.price || p.Price || p.pricing?.basePrice || p.pricing?.BasePrice || p.pricing?.vegPrice || p.pricing?.VegPrice || p.pricing?.rent || p.pricing?.Rent || 0,
-        description: p.description || p.Description,
-        services: (p.services && p.services.length > 0 ? p.services : null) || 
-                  (p.Services && p.Services.length > 0 ? p.Services : null) || 
-                  (p.includes && p.includes.length > 0 ? p.includes : null) || 
-                  (p.Includes && p.Includes.length > 0 ? p.Includes : null) || 
-                  (p.name || p.Name ? [p.name || p.Name] : ['General Service']),
-        addons: p.addons || p.Addons || [],
-        maxGuests: p.maxGuests || p.MaxGuests || p.capacity?.maxGuests || p.capacity?.MaxGuests || 100,
-        durationHours: p.durationHours || p.DurationHours || 24,
-        image: p.image || p.Image || p.images?.[0] || p.Images?.[0],
-        images: p.images || p.Images || []
-      };
-    };
+  private normalizePackage(p: any): any {
+    if (!p) return null;
 
+    // Resolve nested/flat pricing configurations
+    const pr = p.Pricing || p.pricing || {};
+    const priceValue = p.price || p.Price || pr.BasePrice || pr.basePrice || pr.VegPrice || pr.vegPrice || 0;
+
+    // Resolve nested/flat capacity data
+    const cp = p.Capacity || p.capacity || {};
+    const guests = p.MaxGuests || p.maxGuests || cp.MaxGuests || cp.maxGuests || 100;
+    const rooms = p.RoomCount || p.roomCount || cp.TotalRooms || cp.totalRooms || 0;
+
+    // Resolve food dietary settings
+    const isVegOnly = p.VegOnly !== undefined ? p.VegOnly : (p.vegOnly !== undefined ? p.vegOnly : (pr.VegPrice && !pr.NonVegPrice ? true : false));
+
+    // Resolve included features arrays
+    const inc = p.Includes || p.includes || p.Services || p.services || [];
+    let finalInclusions: string[] = [];
+    if (Array.isArray(inc) && inc.length > 0) {
+      finalInclusions = inc;
+    } else {
+      const catKey = (p.Category || p.category || p.EventTypeId || p.eventTypeId || 'wedding').toString().toLowerCase();
+      if (catKey.includes('wedding') || catKey.includes('shaadi')) {
+        finalInclusions = DEFAULT_INCLUSIONS['wedding'];
+      } else if (catKey.includes('birthday') || catKey.includes('party')) {
+        finalInclusions = DEFAULT_INCLUSIONS['birthday'];
+      } else if (catKey.includes('corporate')) {
+        finalInclusions = DEFAULT_INCLUSIONS['corporate'];
+      } else if (catKey.includes('beauty')) {
+        finalInclusions = DEFAULT_INCLUSIONS['beauty'];
+      } else if (catKey.includes('travel')) {
+        finalInclusions = DEFAULT_INCLUSIONS['travel'];
+      } else if (catKey.includes('shopping')) {
+        finalInclusions = DEFAULT_INCLUSIONS['shopping'];
+      } else {
+        finalInclusions = p.Name || p.name ? [p.Name || p.name] : ['Professional Service'];
+      }
+    }
+
+    // Resolve primary locations
+    const addr = p.Address || p.address || {};
+    const cityLoc = p.City || p.city || addr.City || addr.city || p.Location || p.location || 'Multiple Locations';
+
+    // Resolve visual attachments list
+    const imgs = p.Images || p.images || [];
+    const primaryImg = p.Image || p.image || imgs[0] || 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&q=80&w=800';
+
+    // Resolve Amenities
+    const am = p.Amenities || p.amenities || {};
+
+    return {
+      id: p.id || p.Id,
+      eventTypeId: p.eventTypeId || p.EventTypeId || p.Category || p.category || 'wedding',
+      name: p.Name || p.name,
+      vendorName: p.VendorName || p.vendorName || 'JoinEvents Partner',
+      location: cityLoc,
+      tier: p.Tier || p.tier || 'premium',
+      price: priceValue,
+      description: p.Description || p.description,
+      maxGuests: guests,
+      roomCount: rooms,
+      vegOnly: isVegOnly,
+      services: Array.isArray(finalInclusions) ? finalInclusions : [],
+      addons: p.Addons || p.addons || [],
+      image: primaryImg,
+      images: imgs,
+      sustainabilityTags: p.SustainabilityTags || p.sustainabilityTags || [],
+      amenities: {
+        hasAc: am.HasAc || am.hasAc || false,
+        hasPowerBackup: am.HasPowerBackup || am.hasPowerBackup || false,
+        hasChangingRooms: am.HasChangingRooms || am.hasChangingRooms || false,
+        hasParking: am.HasParking || am.hasParking || false
+      },
+      experience: p.Experience !== undefined ? p.Experience : (p.experience !== undefined ? p.experience : 0),
+      rating: p.Rating !== undefined ? p.Rating : (p.rating !== undefined ? p.rating : 0),
+      totalReviews: p.TotalReviews !== undefined ? p.TotalReviews : (p.totalReviews !== undefined ? p.totalReviews : 0),
+      address: {
+        country: addr.Country || addr.country || 'India',
+        state: addr.State || addr.state || '',
+        city: addr.City || addr.city || cityLoc,
+        locality: addr.Locality || addr.locality || '',
+        street: addr.Street || addr.street || '',
+        landmark: addr.Landmark || addr.landmark || '',
+        pincode: addr.Pincode || addr.pincode || ''
+      },
+      pricing: {
+        vegPrice: pr.VegPrice !== undefined ? pr.VegPrice : (pr.vegPrice !== undefined ? pr.vegPrice : (isVegOnly ? priceValue : 0)),
+        nonVegPrice: pr.NonVegPrice !== undefined ? pr.NonVegPrice : (pr.nonVegPrice !== undefined ? pr.nonVegPrice : (!isVegOnly ? priceValue : 0)),
+        roomPrice: pr.RoomPrice !== undefined ? pr.RoomPrice : (pr.roomPrice !== undefined ? pr.roomPrice : 0),
+        basePrice: pr.BasePrice !== undefined ? pr.BasePrice : (pr.basePrice !== undefined ? pr.basePrice : 0),
+        rent: pr.Rent !== undefined ? pr.Rent : (pr.rent !== undefined ? pr.rent : 0),
+        unit: pr.Unit || pr.unit || 'per event'
+      },
+      capacity: {
+        maxGuests: guests,
+        parkingCapacity: cp.ParkingCapacity !== undefined ? cp.ParkingCapacity : (cp.parkingCapacity !== undefined ? cp.parkingCapacity : (p.parkingCapacity || 0)),
+        totalRooms: rooms
+      },
+      policies: {
+        cateringPolicy: p.Policies?.CateringPolicy || p.Policies?.cateringPolicy || p.policies?.CateringPolicy || p.policies?.cateringPolicy || 'Flexible',
+        decorPolicy: p.Policies?.DecorPolicy || p.Policies?.decorPolicy || p.policies?.DecorPolicy || p.policies?.decorPolicy || 'Flexible',
+        alcoholPolicy: p.Policies?.AlcoholPolicy || p.Policies?.alcoholPolicy || p.policies?.AlcoholPolicy || p.policies?.alcoholPolicy || 'Flexible',
+        djPolicy: p.Policies?.DjPolicy || p.Policies?.djPolicy || p.policies?.DjPolicy || p.policies?.djPolicy || 'Flexible'
+      },
+      spaces: (p.Spaces || p.spaces || []).map((s: any) => ({
+        name: s.Name || s.name || '',
+        type: s.Type || s.type || 'Indoor',
+        seatingCapacity: s.SeatingCapacity !== undefined ? s.SeatingCapacity : (s.seatingCapacity !== undefined ? s.seatingCapacity : 0),
+        floatingCapacity: s.FloatingCapacity !== undefined ? s.FloatingCapacity : (s.floatingCapacity !== undefined ? s.floatingCapacity : 0)
+      }))
+    };
+  }
+
+  getPackageById(id: string): Observable<any> {
     // Try public endpoint first
     return this.http.get<any>(`${this.apiUrl}/packages/${id}`, { headers: { 'X-Suppress-Errors': 'true' } }).pipe(
-      map(res => normalizePackage(res.data || res.package || res.Package || res)),
+      map(res => this.normalizePackage(res.data || res.package || res.Package || res)),
       catchError(() => {
         // Try vendor endpoint as fallback (for unpublished services)
         return this.http.get<any>(`${this.apiUrl}/vendor/packages/${id}`, { headers: { 'X-Suppress-Errors': 'true' } }).pipe(
-          map(res => normalizePackage(res.data || res.package || res.Package || res)),
+          map(res => this.normalizePackage(res.data || res.package || res.Package || res)),
           catchError(() => {
             // Final fallback: check mock lists
             return this.getPackages().pipe(
@@ -220,7 +349,7 @@ export class MockApiService {
                 return this.getVendorServices().pipe(
                   map(services => {
                     const svc = services.find(s => s.id === id);
-                    if (svc) return normalizePackage(svc);
+                    if (svc) return this.normalizePackage(svc);
                     return null; // Not found anywhere
                   })
                 );

@@ -5,6 +5,16 @@ import { EventPackage, EventType } from '../models/event.model';
 import { Observable, of } from 'rxjs';
 import { catchError, map, delay } from 'rxjs/operators';
 
+const DEFAULT_INCLUSIONS: { [key: string]: string[] } = {
+  wedding: ['Premium Venue', 'Gourmet Catering', 'Elegant Stage Decor', 'High-End Sound & Lighting', 'Luxury Couple Suite', 'Photography & Videography'],
+  birthday: ['Vibrant Venue', 'Fun Party Catering', 'Themed Balloon Decor', 'Dynamic Party Anchor', 'Live Music & DJ'],
+  birthday_party: ['Vibrant Venue', 'Fun Party Catering', 'Themed Balloon Decor', 'Dynamic Party Anchor', 'Live Music & DJ'],
+  corporate: ['Conference Hall', 'Premium Buffet Catering', 'AV & Projector Setup', 'High-Speed Wi-Fi', 'Executive Lounge Access'],
+  beauty: ['Professional Makeup Artists', 'Premium Hairstyling', 'Designer Bridal Wear', 'Traditional Mehendi Art'],
+  travel: ['Luxury Chauffeur Services', 'Premium AC Coach Hire', 'Professional Tour Guide', 'Custom Travel Logistics'],
+  shopping: ['Handcrafted Invites', 'Customized Guest Hampers', 'Traditional Indian Outfit Curation']
+};
+
 @Injectable({ providedIn: 'root' })
 export class PackageService extends BaseApiService {
 
@@ -151,7 +161,27 @@ export class PackageService extends BaseApiService {
 
     // Resolve included features arrays
     const inc = p.Includes || p.includes || p.Services || p.services || [];
-    const finalInclusions = Array.isArray(inc) && inc.length > 0 ? inc : (p.Name || p.name ? [p.Name || p.name] : ['Professional Service']);
+    let finalInclusions: string[] = [];
+    if (Array.isArray(inc) && inc.length > 0) {
+      finalInclusions = inc;
+    } else {
+      const catKey = (p.Category || p.category || p.EventTypeId || p.eventTypeId || 'wedding').toString().toLowerCase();
+      if (catKey.includes('wedding') || catKey.includes('shaadi')) {
+        finalInclusions = DEFAULT_INCLUSIONS['wedding'];
+      } else if (catKey.includes('birthday') || catKey.includes('party')) {
+        finalInclusions = DEFAULT_INCLUSIONS['birthday'];
+      } else if (catKey.includes('corporate')) {
+        finalInclusions = DEFAULT_INCLUSIONS['corporate'];
+      } else if (catKey.includes('beauty')) {
+        finalInclusions = DEFAULT_INCLUSIONS['beauty'];
+      } else if (catKey.includes('travel')) {
+        finalInclusions = DEFAULT_INCLUSIONS['travel'];
+      } else if (catKey.includes('shopping')) {
+        finalInclusions = DEFAULT_INCLUSIONS['shopping'];
+      } else {
+        finalInclusions = p.Name || p.name ? [p.Name || p.name] : ['Professional Service'];
+      }
+    }
 
     // Resolve primary locations
     const addr = p.Address || p.address || {};

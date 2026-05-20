@@ -227,7 +227,7 @@
     transition: all 0.3s;
 }
 
-.fav-btn:hover {
+.fav-btn:hover, .fav-btn.active {
     background: white;
     color: #ef4444;
 }
@@ -321,12 +321,103 @@
     color: var(--text-main);
 }
 
-/* Mobile Adjustments */
+/* Mobile & Responsive Adjustments */
+.page-main-title {
+    font-size: 2.5rem;
+    letter-spacing: -1.5px;
+}
+
+@media (max-width: 1200px) {
+    .search-hero {
+        border-radius: 24px;
+        padding: 8px;
+    }
+    .search-item {
+        flex: 1 1 45%;
+        border-right: none;
+        border-bottom: 1px solid var(--border-color);
+    }
+    .search-item:nth-child(even) {
+        border-left: 1px solid var(--border-color);
+    }
+    .search-action {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        padding: 15px;
+    }
+    .btn-search-round {
+        width: 100%;
+        height: 50px;
+        border-radius: 16px;
+    }
+}
+
 @media (max-width: 768px) {
-    .search-hero { border-radius: 20px; }
-    .search-item { border-right: none; border-bottom: 1px solid var(--border-color); }
-    .search-action { width: 100%; }
-    .btn-search-round { width: 100%; border-radius: 15px; }
+    .page-main-title {
+        font-size: 2rem;
+        letter-spacing: -1px;
+    }
+    .search-hero {
+        border-radius: 20px;
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .search-item {
+        flex: 1 1 100%;
+        width: 100%;
+        border-left: none !important;
+        border-right: none !important;
+        border-bottom: 1px solid var(--border-color);
+    }
+    .search-item:nth-last-child(2) {
+        border-bottom: none;
+    }
+    .search-action {
+        width: 100%;
+        padding: 10px;
+    }
+    .btn-search-round {
+        width: 100%;
+        border-radius: 15px;
+        height: 50px;
+    }
+}
+
+@media (max-width: 576px) {
+    .vendors-page {
+        padding: 12px;
+    }
+    .page-main-title {
+        font-size: 1.6rem;
+    }
+    .vendors-page p.text-muted {
+        font-size: 0.85rem;
+    }
+    .card-content-v2 {
+        padding: 12px 16px 16px;
+    }
+    .pkg-title-v2 {
+        font-size: 1.25rem;
+    }
+    .price-badge-v2 {
+        top: 15px;
+        left: 15px;
+        padding: 8px 16px;
+        font-size: 1rem;
+    }
+    .fav-btn {
+        top: 15px;
+        right: 15px;
+        width: 40px;
+        height: 40px;
+        font-size: 1.1rem;
+    }
+    .card-img-wrap {
+        height: 220px;
+        margin: 8px;
+        border-radius: 20px;
+    }
 }
 
 /* Dark Mode Overrides — Using :host-context to support body-level theme class */
@@ -375,7 +466,7 @@
     color: white;
 }
 
-:host-context(.dark-theme) .fav-btn:hover {
+:host-context(.dark-theme) .fav-btn:hover, :host-context(.dark-theme) .fav-btn.active {
     background: white;
     color: #ef4444;
 }

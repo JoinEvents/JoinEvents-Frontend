@@ -6,6 +6,8 @@ import { PackageService } from '../../core/services/package.service';
 import { SearchService } from '../../core/services/search.service';
 import { EventPackage } from '../../core/models/event.model';
 
+import { FavoritesService } from '../../core/services/favorites.service';
+
 @Component({
   selector: 'app-customer-packages',
   standalone: true,
@@ -18,6 +20,7 @@ export class CustomerPackages implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   public search = inject(SearchService);
+  public favoritesService = inject(FavoritesService);
 
   packages = signal<EventPackage[]>([]);
   selectedEvent = signal('wedding');
@@ -104,4 +107,19 @@ export class CustomerPackages implements OnInit {
   }
 
   getTierLabel(tier: string) { return tier === 'basic' ? 'Silver' : tier === 'standard' ? 'Gold ⭐ Most Popular' : 'Diamond 💎 Premium'; }
+
+  isFavorite(id: string): boolean {
+    return this.favoritesService.isFavorite(id);
+  }
+
+  toggleFavorite(event: Event, pkg: any) {
+    event.stopPropagation();
+    this.favoritesService.toggleFavorite({
+      id: pkg.id,
+      name: pkg.name,
+      type: 'package',
+      subtitle: `${pkg.tier} • ₹${pkg.price.toLocaleString('en-IN')}`,
+      routeUrl: `/book/${pkg.id}`
+    });
+  }
 }
