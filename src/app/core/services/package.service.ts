@@ -197,6 +197,8 @@ export class PackageService extends BaseApiService {
     return {
       id: p.id || p.Id,
       eventTypeId: p.EventTypeId || p.eventTypeId || p.Category || p.category || 'wedding',
+      category: p.Category || p.category || p.EventTypeId || p.eventTypeId || 'wedding',
+      vendorId: p.vendorId || p.VendorId,
       name: p.Name || p.name,
       vendorName: p.VendorName || p.vendorName || 'JoinEvents Partner',
       location: cityLoc,
@@ -216,7 +218,10 @@ export class PackageService extends BaseApiService {
         hasPowerBackup: am.HasPowerBackup || am.hasPowerBackup || false,
         hasChangingRooms: am.HasChangingRooms || am.hasChangingRooms || false,
         hasParking: am.HasParking || am.hasParking || false
-      }
+      },
+      experience: p.Experience !== undefined ? p.Experience : (p.experience !== undefined ? p.experience : 0),
+      rating: p.Rating !== undefined ? p.Rating : (p.rating !== undefined ? p.rating : 0),
+      totalReviews: p.TotalReviews !== undefined ? p.TotalReviews : (p.totalReviews !== undefined ? p.totalReviews : 0)
     };
   }
 }

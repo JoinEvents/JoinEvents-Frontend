@@ -18,19 +18,7 @@
     </div>
   }
 
-  <!-- Breadcrumb Navigation -->
-  <nav class="booking-breadcrumb">
-    <a [routerLink]="['/vendors', selectedPackage()?.eventTypeId]" class="breadcrumb-back">
-      <i class="bi bi-arrow-left"></i>
-    </a>
-    <div class="breadcrumb-trail">
-      <a routerLink="/events" class="crumb">Events</a>
-      <i class="bi bi-chevron-right crumb-sep"></i>
-      <a [routerLink]="['/vendors', selectedPackage()?.eventTypeId]" class="crumb">Vendors</a>
-      <i class="bi bi-chevron-right crumb-sep"></i>
-      <span class="crumb active">{{ selectedPackage()?.name || 'Package' }}</span>
-    </div>
-  </nav>
+
 
   <!-- Package Hero Card with Gallery -->
   <div class="hero-banner">
@@ -59,7 +47,7 @@
       <h1 class="hero-title">{{ selectedPackage()?.name }}</h1>
       <div class="hero-meta-row">
         <span class="meta-item"><i class="bi bi-geo-alt-fill"></i> {{ selectedPackage()?.location }}</span>
-        <span class="meta-item"><i class="bi bi-star-fill"></i> 4.9 <span class="meta-sub">(120)</span></span>
+        <span class="meta-item"><i class="bi bi-star-fill"></i> {{ (selectedPackage()?.rating || 0).toFixed(1) }} <span class="meta-sub">({{ selectedPackage()?.totalReviews || 0 }} reviews)</span></span>
         <span class="meta-item"><i class="bi bi-clock"></i> 8-12 Hrs</span>
       </div>
     </div>
@@ -369,6 +357,134 @@
             </div>
           </div>
           <button class="btn-chat"><i class="bi bi-chat-dots-fill"></i></button>
+        </div>
+      </div>
+
+      <!-- Customer Reviews & Ratings Section -->
+      <div class="detail-card reviews-section-card">
+        <div class="reviews-header-row">
+          <div class="card-label mb-0">Customer Reviews & Ratings</div>
+          @if (completedBookingForPackage()) {
+            <button class="btn-write-review" (click)="toggleReviewForm()">
+              <i class="bi" [class.bi-pencil-square]="!showReviewForm()" [class.bi-x-circle]="showReviewForm()"></i>
+              {{ showReviewForm() ? 'Close Form' : (existingReview() ? 'Edit Your Review' : 'Write a Review') }}
+            </button>
+          }
+        </div>
+
+        <!-- Write Review Form (Collapsible) -->
+        @if (showReviewForm()) {
+          <div class="review-form-container">
+            <h4>Share Your Experience</h4>
+            <div class="rating-picker-wrapper">
+              <span class="rating-picker-label">Your Rating:</span>
+              <div class="star-rating-picker">
+                @for (star of [1, 2, 3, 4, 5]; track star) {
+                  <button type="button" class="star-picker-btn" (click)="newRating.set(star)">
+                    <i class="bi" [class.bi-star-fill]="newRating() >= star" [class.bi-star]="newRating() < star"></i>
+                  </button>
+                }
+              </div>
+            </div>
+
+            <div class="form-field mt-3">
+              <label>Event Type / Name</label>
+              <div class="input-wrap">
+                <i class="bi bi-tag-fill"></i>
+                <input type="text" [(ngModel)]="newReviewEventName" placeholder="e.g. Wedding Reception, Corporate Anniversary">
+              </div>
+            </div>
+
+            <div class="form-field mt-3">
+              <label>Your Review Comment</label>
+              <textarea [(ngModel)]="newComment" rows="4" class="form-textarea" placeholder="Tell us about the service, food quality, behavior, setup..."></textarea>
+            </div>
+
+            <div class="form-actions mt-3">
+              <button class="btn-submit-review" (click)="submitReview()">Submit Review</button>
+            </div>
+          </div>
+        }
+
+        <!-- Rating Overview Grid -->
+        <div class="rating-overview-grid mt-4">
+          <div class="rating-summary-box">
+            <div class="big-rating">{{ (selectedPackage()?.rating || 0).toFixed(1) }}</div>
+            <div class="star-row-visual">
+              @for (star of [1, 2, 3, 4, 5]; track star) {
+                <i class="bi"
+                  [class.bi-star-fill]="(selectedPackage()?.rating || 0) >= star"
+                  [class.bi-star-half]="(selectedPackage()?.rating || 0) < star && (selectedPackage()?.rating || 0) >= star - 0.5"
+                  [class.bi-star]="(selectedPackage()?.rating || 0) < star - 0.5">
+                </i>
+              }
+            </div>
+            <div class="total-reviews-sub">{{ selectedPackage()?.totalReviews || 0 }} verified reviews</div>
+          </div>
+
+          <div class="rating-bars-breakdown">
+            @for (score of [5, 4, 3, 2, 1]; track score) {
+              <div class="breakdown-row">
+                <span class="score-num">{{ score }} <i class="bi bi-star-fill text-warning"></i></span>
+                <div class="progress-bar-track">
+                  <div class="progress-bar-fill" [style.width.%]="vendorReviews().length ? (ratingDistribution()[score] / vendorReviews().length) * 100 : 0"></div>
+                </div>
+                <span class="score-count">{{ ratingDistribution()[score] }}</span>
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- Reviews List -->
+        <div class="reviews-list-wrapper mt-4">
+          @if (vendorReviews().length === 0) {
+            <div class="text-center py-4 text-muted">
+              <i class="bi bi-chat-left-dots fs-3 d-block mb-2"></i>
+              <span>No reviews yet. Be the first to review!</span>
+            </div>
+          } @else {
+            <div class="reviews-items-container">
+              @for (review of displayedReviews(); track review.id) {
+                <div class="review-item-card">
+                  <div class="review-item-header">
+                    <div class="reviewer-avatar" [style.background]="getUserColor(review.customerName)">
+                      {{ review.customerName ? review.customerName.charAt(0).toUpperCase() : 'C' }}
+                    </div>
+                    <div class="reviewer-meta-box">
+                      <div class="reviewer-name-row">
+                        <span class="reviewer-name">{{ review.customerName }}</span>
+                        <span class="verified-booking-badge">
+                          <i class="bi bi-shield-check"></i> Verified Booking
+                        </span>
+                      </div>
+                      <div class="reviewer-sub-info">
+                        <span class="review-event-tag">{{ review.eventName || 'Event Booking' }}</span>
+                        <span class="review-date-dot">•</span>
+                        <span class="review-date-text">{{ review.date }}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="review-item-body">
+                    <div class="review-stars-display mb-2">
+                      @for (star of [1, 2, 3, 4, 5]; track star) {
+                        <i class="bi" [class.bi-star-fill]="review.rating >= star" [class.bi-star]="review.rating < star"></i>
+                      }
+                    </div>
+                    <p class="review-comment-text">{{ review.comment }}</p>
+                  </div>
+                </div>
+              }
+              
+              @if (vendorReviews().length > 3 && !showAllReviews()) {
+                <div class="text-center mt-4">
+                  <button type="button" class="btn-read-more-reviews" (click)="showAllReviews.set(true)">
+                    Read More Reviews <i class="bi bi-chevron-down ms-1"></i>
+                  </button>
+                </div>
+              }
+            </div>
+          }
         </div>
       </div>
 

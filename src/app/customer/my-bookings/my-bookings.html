@@ -70,17 +70,17 @@
         <!-- Action Toolbar -->
         <div class="detail-actions-bar mb-4">
           @if (['pending', 'advance_paid', 'confirmed'].includes(selectedBooking()!.status)) {
-            <button class="btn btn-outline-danger btn-sm me-2" (click)="showCancelPrompt.set(true)">
-              <i class="bi bi-x-circle me-1"></i> Cancel Booking
+            <button class="btn-booking-action btn-booking-action-cancel" (click)="showCancelPrompt.set(true)">
+              <i class="bi bi-x-circle-fill"></i> Cancel Booking
             </button>
           }
           @if (['in_progress', 'completed', 'settled'].includes(selectedBooking()!.status)) {
-            <button class="btn btn-outline-warning btn-sm me-2" (click)="showDisputePrompt.set(true)">
-              <i class="bi bi-flag me-1"></i> Raise Dispute
+            <button class="btn-booking-action btn-booking-action-dispute" (click)="showDisputePrompt.set(true)">
+              <i class="bi bi-flag-fill"></i> Raise Dispute
             </button>
           }
-          <button class="btn btn-outline-purple btn-sm" routerLink="/messages">
-            <i class="bi bi-chat-dots me-1"></i> Chat with Vendor
+          <button class="btn-booking-action btn-booking-action-chat" [routerLink]="['/messages']" [queryParams]="{ vendorId: b.services && b.services.length ? b.services[0].vendorId : 'v1', bookingId: b.id }">
+            <i class="bi bi-chat-dots-fill"></i> Chat with Vendor
           </button>
         </div>
 

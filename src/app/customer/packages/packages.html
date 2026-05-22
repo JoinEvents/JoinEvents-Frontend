@@ -14,7 +14,7 @@
   @if (vendorId()) {
     <div class="selected-vendor-pill ms-auto">
       <i class="bi bi-shop me-2"></i> Viewing packages from: <span class="fw-bold ms-1">Spice Garden Catering</span>
-      <a routerLink="/vendors/{{selectedEvent()}}" class="ms-2 text-primary-ee"><i class="bi bi-x-circle"></i></a>
+      <a href="javascript:void(0)" (click)="goToVendors(selectedEvent())" class="ms-2 text-primary-ee"><i class="bi bi-x-circle"></i></a>
     </div>
   }
 </div>

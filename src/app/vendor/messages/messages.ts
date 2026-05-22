@@ -1,9 +1,12 @@
-import { Component, signal, OnInit, inject, ViewChild, ElementRef, AfterViewChecked } from '@angular/core';
+import { Component, signal, computed, OnInit, inject, ViewChild, ElementRef, AfterViewChecked, DestroyRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { MockApiService } from '../../core/services/mock-api.service';
+import { MessengerService } from '../../core/services/messenger.service';
 import { AuthService } from '../../core/services/auth.service';
 import { ChatThread, ChatMessage } from '../../core/models/message.model';
 import { CommonModule } from '@angular/common';
+import { timer, of } from 'rxjs';
+import { switchMap, catchError, map } from 'rxjs/operators';
+import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-vendor-messages',
@@ -15,19 +18,96 @@ import { CommonModule } from '@angular/common';
 export class VendorMessages implements OnInit, AfterViewChecked {
   @ViewChild('scrollMe') private myScrollContainer!: ElementRef;
 
-  private api = inject(MockApiService);
+  private messenger = inject(MessengerService);
   private auth = inject(AuthService);
+  private destroyRef = inject(DestroyRef);
+
   threads = signal<ChatThread[]>([]);
+  searchQuery = signal('');
+  filteredThreads = computed(() => {
+    const q = this.searchQuery().toLowerCase().trim();
+    if (!q) return this.threads();
+    return this.threads().filter(t => 
+      t.subject?.toLowerCase().includes(q) || 
+      t.lastMessage?.toLowerCase().includes(q)
+    );
+  });
   messages = signal<ChatMessage[]>([]);
   selectedThread = signal<ChatThread | null>(null);
+  selectedThread$ = toObservable(this.selectedThread);
   newMessage = '';
   user = this.auth.currentUser;
 
   ngOnInit() {
-    this.api.getChatThreads('v1').subscribe(t => { 
+    this.destroyRef.onDestroy(() => {
+      this.messenger.activeThreadId.set(null);
+    });
+
+    const userId = this.user()?.id || 'v1';
+    
+    this.messenger.getChatThreads(userId).pipe(
+      catchError(err => {
+        console.error('Failed to load chat threads initially:', err);
+        return of([]);
+      })
+    ).subscribe(t => { 
       this.threads.set(t); 
       if (t.length && window.innerWidth > 768) {
         this.openThread(t[0]); 
+      }
+    });
+
+    // Background polling for messages: restart polling instantly when selectedThread changes
+    this.selectedThread$.pipe(
+      takeUntilDestroyed(this.destroyRef),
+      switchMap(active => {
+        if (!active) return of([]);
+        return timer(0, 3000).pipe(
+          switchMap(() => this.messenger.getChatMessages(active.id).pipe(
+            switchMap(newMsgs => {
+              const currentIds = this.messages().filter(m => typeof m.id === 'string' && !m.id.startsWith('temp-')).map(m => m.id || '').join(',');
+              const newIds = newMsgs.map(m => m.id || '').join(',');
+              if (newIds !== currentIds) {
+                return this.messenger.markAsRead(active.id).pipe(
+                  map(() => newMsgs),
+                  catchError(() => of(newMsgs))
+                );
+              }
+              return of(newMsgs);
+            }),
+            catchError(() => of([]))
+          ))
+        );
+      })
+    ).subscribe(newMsgs => {
+      const currentIds = this.messages().filter(m => typeof m.id === 'string' && !m.id.startsWith('temp-')).map(m => m.id || '').join(',');
+      const newIds = newMsgs.map(m => m.id || '').join(',');
+      if (newIds !== currentIds) {
+        this.messages.set(newMsgs);
+        setTimeout(() => this.scrollToBottom(), 50);
+        
+        // Refresh threads list to update navigation counts immediately
+        const userId = this.user()?.id || 'v1';
+        this.messenger.getChatThreads(userId).subscribe(updated => {
+          this.threads.set(updated);
+        });
+      }
+    });
+
+    // Background polling for threads/status every 5 seconds
+    timer(5000, 5000).pipe(
+      takeUntilDestroyed(this.destroyRef),
+      switchMap(() => this.messenger.getChatThreads(userId).pipe(catchError(() => of([]))))
+    ).subscribe(ts => {
+      if (ts.length) {
+        const active = this.selectedThread();
+        this.threads.set(ts);
+        if (active) {
+          const updated = ts.find(x => x.id === active.id);
+          if (updated && updated.status !== active.status) {
+            this.selectedThread.set(updated);
+          }
+        }
       }
     });
   }
@@ -46,55 +126,113 @@ export class VendorMessages implements OnInit, AfterViewChecked {
 
   openThread(t: ChatThread) {
     this.selectedThread.set(t);
-    this.api.getChatMessages(t.id).subscribe(m => {
-      this.messages.set(m);
-      setTimeout(() => this.scrollToBottom(), 100);
-    });
+    this.messenger.activeThreadId.set(t.id);
+    this.messages.set([]);
+    setTimeout(() => this.scrollToBottom(), 50);
   }
 
   closeThread() {
     this.selectedThread.set(null);
+    this.messenger.activeThreadId.set(null);
+  }
+
+  isChatDisabled(): boolean {
+    const status = this.selectedThread()?.status;
+    return status === 'Pending' || status === 'Rejected' || status === 'Closed';
+  }
+
+  acceptThread() {
+    const thread = this.selectedThread();
+    if (!thread) return;
+
+    this.messenger.acceptChat(thread.id).subscribe({
+      next: () => {
+        // Update local thread status immediately
+        const updatedThread: ChatThread = { ...thread, status: 'Accepted' };
+        this.selectedThread.set(updatedThread);
+        // Force refresh threads list
+        const userId = this.user()?.id || 'v1';
+        this.messenger.getChatThreads(userId).subscribe(t => this.threads.set(t));
+      },
+      error: (err) => console.error('Error accepting chat:', err)
+    });
+  }
+
+  rejectThread() {
+    const thread = this.selectedThread();
+    if (!thread) return;
+
+    this.messenger.rejectChat(thread.id).subscribe({
+      next: () => {
+        // Update local thread status immediately
+        const updatedThread: ChatThread = { ...thread, status: 'Rejected' };
+        this.selectedThread.set(updatedThread);
+        // Force refresh threads list
+        const userId = this.user()?.id || 'v1';
+        this.messenger.getChatThreads(userId).subscribe(t => this.threads.set(t));
+      },
+      error: (err) => console.error('Error rejecting chat:', err)
+    });
   }
 
   sendMessage() {
-    if (!this.newMessage.trim()) return;
-    const msg: ChatMessage = { 
-      id: 'new' + Date.now(), 
-      threadId: this.selectedThread()!.id, 
-      senderId: 'v1', 
-      senderName: this.user()!.name, 
+    if (this.isChatDisabled() || !this.newMessage.trim()) return;
+    
+    const thread = this.selectedThread();
+    const currentUser = this.user();
+    if (!thread || !currentUser) return;
+
+    const msgPayload: Partial<ChatMessage> = { 
+      threadId: thread.id, 
+      senderId: currentUser.id, 
+      senderName: currentUser.name, 
       senderRole: 'vendor', 
       content: this.newMessage, 
       timestamp: new Date().toISOString(), 
       isRead: false, 
       type: 'text' 
     };
-    this.messages.update(m => [...m, msg]);
+
+    // Optimistic UI Update
+    const tempId = 'temp-' + Date.now();
+    const optimisticMsg: ChatMessage = { ...msgPayload, id: tempId } as ChatMessage;
+    
+    this.messages.update(m => [...m, optimisticMsg]);
     this.newMessage = '';
     
-    setTimeout(() => {
-      const reply: ChatMessage = {
-        id: 'reply' + Date.now(),
-        threadId: msg.threadId,
-        senderId: 'c1',
-        senderName: 'Rajesh Kumar',
-        senderRole: 'customer',
-        content: 'That sounds perfect! Please share the final invoice so we can proceed with the advance payment.',
-        timestamp: new Date().toISOString(),
-        isRead: false,
-        type: 'text'
-      };
-      if (this.selectedThread()?.id === reply.threadId) {
-        this.messages.update(m => [...m, reply]);
+    this.messenger.sendMessage(msgPayload).subscribe({
+      next: (savedMsg) => {
+        this.messages.update(m => m.map(item => item.id === tempId ? savedMsg : item));
+        setTimeout(() => this.scrollToBottom(), 50);
+      },
+      error: () => {
+        this.messages.update(m => m.filter(item => item.id !== tempId));
       }
-    }, 2000);
+    });
   }
-
-  formatTime(ts: string): string {
-    return new Date(ts).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+  formatTime(ts?: string): string {
+    if (!ts) return '';
+    const date = new Date(ts);
+    if (isNaN(date.getTime())) return '';
+    
+    const now = new Date();
+    const isToday = date.toDateString() === now.toDateString();
+    
+    if (isToday) {
+      return date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+    }
+    
+    const yesterday = new Date(now);
+    yesterday.setDate(now.getDate() - 1);
+    const isYesterday = date.toDateString() === yesterday.toDateString();
+    if (isYesterday) {
+      return 'Yesterday';
+    }
+    
+    return date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
   }
 
   isSent(msg: ChatMessage): boolean { 
-    return msg.senderRole === 'vendor'; 
+    return msg.senderId?.toLowerCase() === this.user()?.id?.toLowerCase(); 
   }
 }

@@ -4,6 +4,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { ThemeService } from '../../core/services/theme.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { BreadcrumbComponent } from '../../shared/components/breadcrumb';
+import { MessengerService } from '../../core/services/messenger.service';
 
 export interface NavItem {
   path: string;
@@ -25,6 +26,7 @@ export class VendorLayout {
   private auth = inject(AuthService);
   public theme = inject(ThemeService);
   public notifService = inject(NotificationService);
+  private messenger = inject(MessengerService);
 
   user = this.auth.currentUser;
   sidebarOpen = signal(false);
@@ -74,15 +76,19 @@ export class VendorLayout {
     { path: '/vendor/notifications', icon: 'bi-bell',          label: 'Notifications' }
   ];
 
-  get navItems(): NavItem[] {
+  navItems = computed(() => {
     return this.navItemsBase.map((item: NavItem) => {
       if (item.path.includes('notifications')) {
         const unread = this.unreadCount();
         return { ...item, badge: unread > 0 ? unread : undefined } as NavItem;
       }
+      if (item.path.includes('messages')) {
+        const unread = this.messenger.unreadThreadsCount();
+        return { ...item, badge: unread > 0 ? unread : undefined } as NavItem;
+      }
       return item;
     });
-  }
+  });
 
   logout() { this.auth.logout(); }
   toggleSidebar() { this.sidebarOpen.update(v => !v); }
@@ -110,9 +116,7 @@ export class VendorLayout {
   }
   onTouchEnd(e: TouchEvent) {
     const diffX = e.changedTouches[0].clientX - this.touchStartX;
-    if (diffX > 60) {
-      this.sidebarOpen.set(true);
-    } else if (diffX < -60) {
+    if (diffX < -60) {
       this.sidebarOpen.set(false);
     }
   }

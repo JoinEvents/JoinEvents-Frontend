@@ -1,10 +1,14 @@
-import { Component, signal, computed, OnInit, OnDestroy, inject, effect } from '@angular/core';
+import { Component, signal, computed, OnInit, OnDestroy, inject, effect, Input, SimpleChanges, OnChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { PackageService } from '../../core/services/package.service';
 import { EventPackage } from '../../core/models/event.model';
 import { AuthService } from '../../core/services/auth.service';
+import { MockApiService } from '../../core/services/mock-api.service';
+import { ToastService } from '../../core/services/toast.service';
+import { BookingService } from '../../core/services/booking.service';
+import { Booking } from '../../core/models/booking.model';
 
 @Component({
   selector: 'app-customer-booking',
@@ -13,13 +17,50 @@ import { AuthService } from '../../core/services/auth.service';
   templateUrl: './booking.html',
   styleUrl: './booking.css'
 })
-export class CustomerBooking implements OnInit, OnDestroy {
+export class CustomerBooking implements OnInit, OnDestroy, OnChanges {
+  @Input() packageId?: string;
+
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private api = inject(PackageService);
   private auth = inject(AuthService);
+  private mockApi = inject(MockApiService);
+  private toast = inject(ToastService);
+  private bookingService = inject(BookingService);
 
   userRole = computed(() => this.auth.currentUser()?.role);
+
+  vendorReviews = computed(() => {
+    const pkg = this.selectedPackage();
+    if (!pkg || !pkg.vendorId) return [];
+    return this.mockApi.globalReviews().filter(r => r.vendorId === pkg.vendorId && r.status === 'published');
+  });
+
+  showAllReviews = signal(false);
+
+  displayedReviews = computed(() => {
+    const reviews = this.vendorReviews();
+    return this.showAllReviews() ? reviews : reviews.slice(0, 3);
+  });
+
+  averageRating = computed(() => {
+    const reviews = this.vendorReviews();
+    if (reviews.length === 0) return 4.8; // Fallback to package rating/default if no reviews
+    const sum = reviews.reduce((acc, r) => acc + r.rating, 0);
+    return sum / reviews.length;
+  });
+
+  ratingDistribution = computed(() => {
+    const reviews = this.vendorReviews();
+    const dist: Record<number, number> = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+    reviews.forEach(r => {
+      const rating = Math.round(r.rating);
+      if (dist[rating] !== undefined) {
+        dist[rating]++;
+      }
+    });
+    return dist;
+  });
 
   selectedPackage = signal<any | null>(null);
   similarPackages = signal<any[]>([]);
@@ -36,6 +77,44 @@ export class CustomerBooking implements OnInit, OnDestroy {
   showMobileBooking = signal(false);
   selectedServiceDetail = signal<any | null>(null);
   selectedImage = signal<string | null>(null);
+
+  userBookings = signal<Booking[]>([]);
+
+  completedBookingForPackage = computed(() => {
+    const pkg = this.selectedPackage();
+    const bookings = this.userBookings();
+    if (!pkg || !bookings || bookings.length === 0) return null;
+    return bookings.find(b => b.packageId === pkg.id && (b.status === 'completed' || b.status === 'settled')) || null;
+  });
+
+  existingReview = computed(() => {
+    const booking = this.completedBookingForPackage();
+    if (!booking) return null;
+    return this.mockApi.globalReviews().find(r => r.bookingId === booking.id) || null;
+  });
+
+  showReviewForm = signal(false);
+  newRating = signal(5);
+  newComment = '';
+  newReviewEventName = '';
+
+  toggleReviewForm() {
+    const show = !this.showReviewForm();
+    this.showReviewForm.set(show);
+    if (show) {
+      const existing = this.existingReview();
+      const booking = this.completedBookingForPackage();
+      if (existing) {
+        this.newRating.set(existing.rating);
+        this.newComment = existing.comment;
+        this.newReviewEventName = existing.eventName || booking?.eventName || 'Event Celebration';
+      } else {
+        this.newRating.set(5);
+        this.newComment = '';
+        this.newReviewEventName = booking?.eventName || 'Event Celebration';
+      }
+    }
+  }
   
   private slideshowInterval: any;
 
@@ -51,9 +130,35 @@ export class CustomerBooking implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
-    const pkgId = this.route.snapshot.paramMap.get('packageId');
+    const pkgId = this.packageId || this.route.snapshot.paramMap.get('packageId');
     if (pkgId) {
       this.loadPackage(pkgId);
+    }
+    this.loadUserBookings();
+  }
+
+  loadUserBookings() {
+    const user = this.auth.currentUser();
+    if (user && user.role === 'customer') {
+      this.bookingService.getBookings(user.id).subscribe({
+        next: (bookings) => {
+          this.userBookings.set(bookings || []);
+        },
+        error: (err) => {
+          console.error('Error loading user bookings:', err);
+          this.userBookings.set([]);
+        }
+      });
+    } else {
+      this.userBookings.set([]);
+    }
+  }
+
+  ngOnChanges(changes: SimpleChanges) {
+    if (changes['packageId'] && !changes['packageId'].isFirstChange()) {
+      if (this.packageId) {
+        this.loadPackage(this.packageId);
+      }
     }
   }
 
@@ -96,6 +201,90 @@ export class CustomerBooking implements OnInit, OnDestroy {
         this.router.navigate([target]);
       }
     });
+  }
+
+
+  submitReview() {
+    const pkg = this.selectedPackage();
+    const currentUser = this.auth.currentUser();
+    const booking = this.completedBookingForPackage();
+    if (!pkg || !pkg.vendorId) return;
+
+    if (!currentUser) {
+      this.toast.error('You must be logged in to submit a review.');
+      return;
+    }
+
+    if (!booking) {
+      this.toast.error('You must have a completed booking for this package to submit a review.');
+      return;
+    }
+
+    if (!this.newComment.trim()) {
+      this.toast.error('Please enter a comment.');
+      return;
+    }
+
+    const customerName = currentUser.name || 'Anonymous User';
+    const isEdit = !!this.existingReview();
+    const oldReviewRating = this.existingReview()?.rating || 0;
+    
+    this.mockApi.submitReview(
+      booking.id,
+      pkg.vendorId,
+      customerName,
+      this.newReviewEventName || booking.eventName || 'Event Celebration',
+      this.newRating(),
+      this.newComment.trim()
+    ).subscribe({
+      next: (res) => {
+        this.toast.success('Thank you! Your review has been submitted successfully.');
+        
+        this.selectedPackage.update(p => {
+          if (!p) return p;
+          const oldTotal = p.totalReviews || 0;
+          const oldRating = p.rating || 0;
+          
+          let newTotal = oldTotal;
+          let newRating = oldRating;
+          
+          if (isEdit) {
+            const totalSum = (oldRating * oldTotal) - oldReviewRating + this.newRating();
+            newRating = oldTotal > 0 ? (totalSum / oldTotal) : this.newRating();
+          } else {
+            newTotal = oldTotal + 1;
+            newRating = ((oldRating * oldTotal) + this.newRating()) / newTotal;
+          }
+          
+          return { ...p, rating: newRating, totalReviews: newTotal };
+        });
+        
+        this.newComment = '';
+        this.newRating.set(5);
+        this.showReviewForm.set(false);
+      },
+      error: (err) => {
+        this.toast.error('Failed to submit review.');
+      }
+    });
+  }
+
+  getUserColor(name: string): string {
+    if (!name) return '#FF6B35';
+    const colors = [
+      'linear-gradient(135deg, #FF6B6B, #FF8E53)',
+      'linear-gradient(135deg, #4E54C8, #8F94FB)',
+      'linear-gradient(135deg, #11998E, #38EF7D)',
+      'linear-gradient(135deg, #FC466B, #3F5EFB)',
+      'linear-gradient(135deg, #FF9966, #FF5E62)',
+      'linear-gradient(135deg, #7F00FF, #E100FF)'
+    ];
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) {
+      hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const index = Math.abs(hash) % colors.length;
+    return colors[index];
   }
 
   startSlideshow() {
@@ -231,11 +420,31 @@ export class CustomerBooking implements OnInit, OnDestroy {
   }
 
   confirmBooking() {
-    this.isLoading.set(true);
-    setTimeout(() => {
-      this.isLoading.set(false);
-      this.bookingSuccess.set(true);
-    }, 1500);
+    const pkg = this.selectedPackage();
+    if (!pkg) return;
+
+    const bookingDetails = {
+      packageId: pkg.id,
+      packageName: pkg.name,
+      packageCategory: pkg.category,
+      vendorId: pkg.vendorId,
+      bookingDate: this.bookingDate,
+      bookingCity: this.bookingCity || pkg.address?.city || pkg.city || '',
+      bookingGuests: this.bookingGuests || '0',
+      selectedAddons: this.selectedAddons(),
+      includeInsurance: this.includeInsurance(),
+      couponCode: this.couponCode,
+      discountAmount: this.discountAmount(),
+      basePrice: pkg.price || 0,
+      addonsTotal: this.getAddonsTotal(),
+      gstAmount: this.getGstAmount(),
+      insurancePrice: this.getInsurancePrice(),
+      totalAmount: this.getTotalAmount(),
+      advanceAmount: this.getAdvanceAmount()
+    };
+
+    sessionStorage.setItem('joinevents_booking_pending', JSON.stringify(bookingDetails));
+    this.router.navigate(['/checkout', pkg.id]);
   }
 
   handleImageFallback(event: Event, fallbackUrl: string) {

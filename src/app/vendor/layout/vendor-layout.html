@@ -16,7 +16,7 @@
     </div>
     <nav class="sidebar-nav">
       <div class="nav-section-label">Vendor Menu</div>
-      @for (item of navItems; track item.path) {
+      @for (item of navItems(); track item.path) {
         <a [routerLink]="item.path" routerLinkActive="active" class="sidebar-link" (click)="sidebarOpen.set(false)">
           <i class="bi {{ item.icon }}"></i><span>{{ item.label }}</span>
           @if (item.badge) { <span class="badge-count">{{ item.badge }}</span> }

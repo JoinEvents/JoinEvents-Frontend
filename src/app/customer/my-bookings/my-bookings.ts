@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { MockApiService } from '../../core/services/mock-api.service';
 import { BookingService } from '../../core/services/booking.service';
 import { ToastService } from '../../core/services/toast.service';
+import { AuthService } from '../../core/services/auth.service';
 import { Booking } from '../../core/models/booking.model';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
@@ -18,6 +19,7 @@ export class MyBookings implements OnInit {
   private api = inject(MockApiService);
   private bookingService = inject(BookingService);
   private toast = inject(ToastService);
+  private auth = inject(AuthService);
   private route = inject(ActivatedRoute);
   bookings = signal<Booking[]>([]);
   selectedBooking = signal<Booking | null>(null);
@@ -69,7 +71,8 @@ export class MyBookings implements OnInit {
   });
 
   ngOnInit() {
-    this.bookingService.getBookings('c1').subscribe(b => {
+    const userId = this.auth.currentUser()?.id || 'c1';
+    this.bookingService.getBookings(userId).subscribe(b => {
       this.bookings.set(b);
       const bookingId = this.route.snapshot.queryParams['bookingId'];
       if (bookingId) {

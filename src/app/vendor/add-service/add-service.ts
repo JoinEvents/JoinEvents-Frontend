@@ -48,6 +48,7 @@ export class VendorAddService implements OnInit {
   uploadedPhotos = signal<string[]>([]);
   isEditMode = signal(false);
   serviceId = signal<string | null>(null);
+  showVerificationModal = signal(false);
 
   // Form Data
   formData = {
@@ -455,6 +456,15 @@ export class VendorAddService implements OnInit {
   }
 
   saveService() {
+    this.showVerificationModal.set(true);
+  }
+
+  cancelSaveService() {
+    this.showVerificationModal.set(false);
+  }
+
+  confirmSaveService() {
+    this.showVerificationModal.set(false);
     this.isSubmitting.set(true);
 
     const payload = {

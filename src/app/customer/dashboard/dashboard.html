@@ -103,7 +103,7 @@
         <div class="p-4 pt-0">
           <div class="modern-category-grid">
             @for (et of eventTypes().slice(0,6); track et.id) {
-              <a [routerLink]="['/vendors', et.id]" class="category-card" [style.--accent-color]="et.gradient">
+              <div (click)="goToVendors(et.category)" class="category-card" [style.--accent-color]="et.gradient" style="cursor: pointer;">
                 <div class="category-icon" [style.background]="et.gradient">
                   <i class="bi {{ et.icon }}"></i>
                 </div>
@@ -111,7 +111,7 @@
                   <div class="cat-name">{{ et.name }}</div>
                   <div class="cat-sub">From ₹{{ ((et.startingPrice || 0) / 1000) }}k</div>
                 </div>
-              </a>
+              </div>
             }
           </div>
         </div>

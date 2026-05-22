@@ -1,0 +1,423 @@
+<div class="checkout-container">
+  @if (!checkoutSuccess()) {
+    <div class="checkout-header">
+      <h1 class="checkout-title"><i class="bi bi-shield-check text-purple me-2"></i> Secure Checkout</h1>
+      <p class="checkout-subtitle">Review your booking summary and select your preferred payment method.</p>
+    </div>
+
+
+
+    @if (bookingDetails()) {
+      <div class="checkout-grid">
+        <!-- LEFT COLUMN: Payment Methods & Options -->
+        <div class="checkout-main-content">
+          
+          <!-- Section 1: Choose Payment Split -->
+          <div class="checkout-card">
+            <h3 class="card-section-title"><i class="bi bi-cash-stack text-purple me-2"></i> 1. Select Payment Split</h3>
+            <p class="section-desc">Choose whether to secure your booking with a 20% advance deposit or pay the full amount upfront.</p>
+            
+            <div class="payment-split-options">
+              <label class="split-option-card" [class.active]="paymentType() === 'advance'" (click)="paymentType.set('advance')">
+                <input type="radio" name="paymentSplit" value="advance" [checked]="paymentType() === 'advance'" class="d-none">
+                <div class="split-info">
+                  <span class="split-title">Pay 20% Advance Deposit</span>
+                  <span class="split-amount">₹{{ advanceAmount() | number }}</span>
+                </div>
+                <div class="split-badge">Secures Booking</div>
+              </label>
+
+              <label class="split-option-card" [class.active]="paymentType() === 'full'" (click)="paymentType.set('full')">
+                <input type="radio" name="paymentSplit" value="full" [checked]="paymentType() === 'full'" class="d-none">
+                <div class="split-info">
+                  <span class="split-title">Pay Full & Final Amount</span>
+                  <span class="split-amount">₹{{ totalAmount() | number }}</span>
+                </div>
+                <div class="split-badge success">Zero Balance Due</div>
+              </label>
+            </div>
+          </div>
+
+          <!-- Section 2: Choose Payment Method -->
+          <div class="checkout-card mt-4">
+            <h3 class="card-section-title"><i class="bi bi-credit-card text-purple me-2"></i> 2. Choose Payment Method</h3>
+            
+            <!-- Payment Method Tabs -->
+            <div class="payment-tabs">
+              <button class="tab-btn" [class.active]="paymentMethod() === 'card'" (click)="paymentMethod.set('card')">
+                <i class="bi bi-credit-card-2-front"></i> Card
+              </button>
+              <button class="tab-btn" [class.active]="paymentMethod() === 'upi'" (click)="paymentMethod.set('upi')">
+                <i class="bi bi-qr-code"></i> UPI
+              </button>
+              <button class="tab-btn" [class.active]="paymentMethod() === 'netbanking'" (click)="paymentMethod.set('netbanking')">
+                <i class="bi bi-bank"></i> Net Banking
+              </button>
+              <button class="tab-btn" [class.active]="paymentMethod() === 'emi'" (click)="paymentMethod.set('emi')">
+                <i class="bi bi-percent"></i> EMI
+              </button>
+            </div>
+
+            <!-- Tab Content: Credit/Debit Card -->
+            @if (paymentMethod() === 'card') {
+              <div class="tab-pane-content animation-fade-in">
+                <!-- Premium Card Mockup -->
+                <div class="credit-card-mockup">
+                  <div class="card-chip"></div>
+                  <div class="card-logo">
+                    @if (cardNumber().startsWith('4')) {
+                      <i class="bi bi-credit-card-2-front text-white fs-3"> Visa</i>
+                    } @else if (cardNumber().startsWith('5')) {
+                      <i class="bi bi-credit-card-2-front text-white fs-3"> Mastercard</i>
+                    } @else {
+                      <i class="bi bi-credit-card-2-back text-white fs-3"></i>
+                    }
+                  </div>
+                  <div class="card-number-display">{{ cardNumber() || '•••• •••• •••• ••••' }}</div>
+                  <div class="card-details-row">
+                    <div>
+                      <div class="card-label">CARD HOLDER</div>
+                      <div class="card-val">{{ cardHolder().toUpperCase() || 'YOUR NAME' }}</div>
+                    </div>
+                    <div>
+                      <div class="card-label">EXPIRES</div>
+                      <div class="card-val">{{ cardExpiry() || 'MM/YY' }}</div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Form Fields -->
+                <div class="payment-form">
+                  <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span class="form-section-subtitle">Card Information</span>
+                    <button type="button" class="btn-autofill" (click)="autofillCardDetails()">
+                      <i class="bi bi-magic me-1"></i> Quick Autofill Test Card
+                    </button>
+                  </div>
+                  <div class="form-group mb-3">
+                    <label class="form-label-custom">Card Holder Name</label>
+                    <input type="text" class="form-input-custom" [ngModel]="cardHolder()" (ngModelChange)="cardHolder.set($event)" placeholder="As it appears on card">
+                  </div>
+                  <div class="form-group mb-3">
+                    <label class="form-label-custom">Card Number</label>
+                    <input type="text" class="form-input-custom" [ngModel]="cardNumber()" (input)="onCardNumberInput($event)" placeholder="4000 1234 5678 9010">
+                  </div>
+                  <div class="row">
+                    <div class="col-6">
+                      <div class="form-group mb-3">
+                        <label class="form-label-custom">Expiry Date</label>
+                        <input type="text" class="form-input-custom" [ngModel]="cardExpiry()" (input)="onCardExpiryInput($event)" placeholder="MM/YY">
+                      </div>
+                    </div>
+                    <div class="col-6">
+                      <div class="form-group mb-3">
+                        <label class="form-label-custom">CVV</label>
+                        <input type="password" class="form-input-custom" [ngModel]="cardCvv()" (input)="onCardCvvInput($event)" placeholder="•••">
+                      </div>
+                    </div>
+                  </div>
+                  <div class="secure-checkout-hint">
+                    <i class="bi bi-lock-fill"></i> Card details are fully encrypted and transmitted securely.
+                  </div>
+                </div>
+              </div>
+            }
+
+            <!-- Tab Content: UPI -->
+            @if (paymentMethod() === 'upi') {
+              <div class="tab-pane-content animation-fade-in text-center">
+                <p class="section-desc text-center mb-4">Scan the generated QR code or enter your UPI ID to make a payment.</p>
+                
+                <div class="upi-qr-box mb-4">
+                  <!-- Custom Generated QR Code Mockup -->
+                  <div class="qr-mock">
+                    <i class="bi bi-qr-code-scan"></i>
+                  </div>
+                  <div class="qr-info">
+                    <span class="qr-title">Scan QR Code</span>
+                    <span class="qr-amount">Payable: ₹{{ payableAmount() | number }}</span>
+                  </div>
+                </div>
+
+                <div class="upi-divider">
+                  <span>OR ENTER UPI ID</span>
+                </div>
+
+                <div class="payment-form text-start">
+                  <div class="form-group mb-3">
+                    <label class="form-label-custom">UPI ID</label>
+                    <div class="input-group">
+                      <span class="input-group-text bg-transparent border-end-0"><i class="bi bi-phone"></i></span>
+                      <input type="text" class="form-input-custom ps-2" [ngModel]="upiId()" (ngModelChange)="upiId.set($event)" placeholder="e.g. mobile@upi, name@okaxis">
+                    </div>
+                  </div>
+                </div>
+              </div>
+            }
+
+            <!-- Tab Content: Net Banking -->
+            @if (paymentMethod() === 'netbanking') {
+              <div class="tab-pane-content animation-fade-in">
+                <p class="section-desc mb-3">Select your bank from the popular options below or select other banks from the list.</p>
+                
+                <div class="popular-banks-grid">
+                  @for (bank of popularBanks; track bank.id) {
+                    <div class="bank-card" [class.selected]="selectedBank() === bank.id" (click)="selectedBank.set(bank.id)">
+                      <i class="bi" [class]="bank.logo"></i>
+                      <span>{{ bank.name }}</span>
+                      @if (selectedBank() === bank.id) {
+                        <div class="bank-check"><i class="bi bi-check-circle-fill"></i></div>
+                      }
+                    </div>
+                  }
+                </div>
+
+                <div class="form-group mt-4">
+                  <label class="form-label-custom">Other Banks</label>
+                  <select class="form-input-custom select" [ngModel]="selectedBank()" (ngModelChange)="selectedBank.set($event)">
+                    <option value="">-- Choose Bank --</option>
+                    <option value="sbi">State Bank of India</option>
+                    <option value="hdfc">HDFC Bank</option>
+                    <option value="icici">ICICI Bank</option>
+                    <option value="axis">Axis Bank</option>
+                    <option value="kotak">Kotak Mahindra Bank</option>
+                    <option value="pnb">Punjab National Bank</option>
+                    <option value="bob">Bank of Baroda</option>
+                  </select>
+                </div>
+              </div>
+            }
+
+            <!-- Tab Content: EMI -->
+            @if (paymentMethod() === 'emi') {
+              <div class="tab-pane-content animation-fade-in">
+                <p class="section-desc mb-3">Choose your credit card bank to see eligible EMI tenures and installment breakdowns.</p>
+                
+                <div class="row">
+                  <!-- Select EMI Bank -->
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label-custom">Select EMI Bank Card</label>
+                    <select class="form-input-custom select" [ngModel]="selectedEmiBank()" (ngModelChange)="selectedEmiBank.set($event)">
+                      <option value="">-- Choose EMI Bank --</option>
+                      @for (b of emiBanks; track b.id) {
+                        <option [value]="b.id">{{ b.name }} ({{ b.rate }}% interest p.a.)</option>
+                      }
+                    </select>
+                  </div>
+
+                  <!-- Select EMI Tenure -->
+                  @if (selectedEmiBank()) {
+                    <div class="col-12 mt-3">
+                      <label class="form-label-custom mb-3 d-block">Choose EMI Plan</label>
+                      <div class="emi-tenures-grid">
+                        @for (months of [3, 6, 9, 12]; track months) {
+                          <div class="tenure-card" [class.selected]="selectedTenure() === months" (click)="selectedTenure.set(months)">
+                            <div class="tenure-header">
+                              <span class="tenure-months">{{ months }} Months</span>
+                              <span class="tenure-rate">{{ emiInterestRate() * 100 }}% interest</span>
+                            </div>
+                            <div class="tenure-emi">₹{{ emiMonthlyPayment() | number }}/mo</div>
+                            <div class="tenure-total">Total interest: +₹{{ emiTotalInterest() | number }}</div>
+                          </div>
+                        }
+                      </div>
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- RIGHT COLUMN: Sticky Order Summary & Pay -->
+        <div class="checkout-sidebar">
+          <div class="order-summary-card">
+            <h3 class="summary-title">Order Summary</h3>
+            
+            <div class="summary-package-info">
+              <span class="summary-pkg-category">{{ bookingDetails().packageCategory | uppercase }}</span>
+              <h4 class="summary-pkg-name">{{ bookingDetails().packageName }}</h4>
+              
+              <div class="summary-meta-rows mt-2">
+                <span><i class="bi bi-calendar-event me-2"></i>{{ bookingDetails().bookingDate }}</span>
+                <span><i class="bi bi-geo-alt me-2"></i>{{ bookingDetails().bookingCity }}</span>
+                <span><i class="bi bi-people me-2"></i>{{ bookingDetails().bookingGuests }} guests</span>
+              </div>
+            </div>
+
+            <!-- Cost Breakdown -->
+            <div class="pricing-breakdown mt-4">
+              <div class="price-row">
+                <span>Base Package Price</span>
+                <span>₹{{ basePrice() | number }}</span>
+              </div>
+
+              @if (bookingDetails().selectedAddons && bookingDetails().selectedAddons.length > 0) {
+                <div class="addon-header-summary mt-2 mb-1">Addons Selected:</div>
+                @for (addon of bookingDetails().selectedAddons; track addon.id) {
+                  <div class="price-row addon-row">
+                    <span class="small-text"><i class="bi bi-plus-circle-fill text-purple me-1"></i> {{ addon.name }}</span>
+                    <span class="small-text">₹{{ addon.price | number }}</span>
+                  </div>
+                }
+              }
+
+              @if (insurancePrice() > 0) {
+                <div class="price-row">
+                  <span>Booking Protection Insurance</span>
+                  <span>₹{{ insurancePrice() | number }}</span>
+                </div>
+              }
+
+              <!-- Coupon Code Area -->
+              <div class="coupon-section mt-3 mb-3">
+                @if (appliedCoupon()) {
+                  <div class="applied-coupon-row">
+                    <div class="d-flex align-items-center gap-2">
+                      <i class="bi bi-tag-fill text-purple"></i>
+                      <span class="coupon-tag">{{ appliedCoupon() }}</span>
+                    </div>
+                    <button class="btn-remove-coupon" (click)="removeCoupon()"><i class="bi bi-x"></i></button>
+                  </div>
+                  @if (discountAmount() > 0) {
+                    <div class="price-row discount-row animation-fade-in">
+                      <span>Discount (10%)</span>
+                      <span class="text-success">- ₹{{ discountAmount() | number }}</span>
+                    </div>
+                  }
+                } @else {
+                  <div class="coupon-input-group">
+                    <input type="text" class="coupon-input" [ngModel]="couponCode()" (ngModelChange)="couponCode.set($event)" placeholder="Promo code (e.g. WELCOME10)">
+                    <button class="btn-coupon-apply" (click)="applyCoupon()">Apply</button>
+                  </div>
+                  @if (couponError()) {
+                    <span class="coupon-msg-err">{{ couponError() }}</span>
+                  }
+                  @if (couponSuccess()) {
+                    <span class="coupon-msg-ok">{{ couponSuccess() }}</span>
+                  }
+                }
+              </div>
+
+              <div class="price-row">
+                <span>GST (18%)</span>
+                <span>₹{{ gstAmount() | number }}</span>
+              </div>
+
+              <hr class="summary-divider">
+
+              <div class="price-row total">
+                <span>Total Amount</span>
+                <span>₹{{ totalAmount() | number }}</span>
+              </div>
+
+              <div class="price-row payable mt-2">
+                <span>Amount Payable Today</span>
+                <span class="payable-today-value">₹{{ payableAmount() | number }}</span>
+              </div>
+
+              @if (paymentType() === 'advance') {
+                <div class="price-row balance-due-hint mt-1 text-end small-text text-muted">
+                  <span>Balance of 80% (₹{{ (totalAmount() - advanceAmount()) | number }}) due post-event</span>
+                </div>
+              }
+            </div>
+
+            <!-- Pay CTA -->
+            <button class="btn-pay-confirm mt-4" (click)="payAndConfirm()" [disabled]="isProcessing()">
+              <i class="bi bi-lock-fill me-2"></i> Pay & Confirm Booking
+            </button>
+            <p class="security-guarantee-text text-center mt-3">
+              <i class="bi bi-shield-fill-check text-purple me-1"></i> SSL encrypted transaction. 
+            </p>
+          </div>
+        </div>
+      </div>
+    }
+  } @else {
+    <!-- SUCCESS STATE (CONGRATULATIONS SCREEN) -->
+    <div class="success-screen-card animation-zoom-in">
+      <div class="success-check-wrapper">
+        <div class="success-checkmark">
+          <i class="bi bi-check-lg"></i>
+        </div>
+      </div>
+      
+      <h2 class="success-title">Booking Confirmed & Paid!</h2>
+      <p class="success-desc">Congratulations! Your payment of <strong>₹{{ payableAmount() | number }}</strong> has been processed successfully.</p>
+      
+      <div class="receipt-box mt-4">
+        <h4 class="receipt-title">Transaction Receipt</h4>
+        
+        <div class="receipt-rows">
+          <div class="receipt-row">
+            <span>Transaction ID</span>
+            <strong>TXN-{{ transactionId() || 'N/A' }}</strong>
+          </div>
+          <div class="receipt-row">
+            <span>Reference ID</span>
+            <strong>REF-{{ paymentProviderRef().slice(0, 10) }}...</strong>
+          </div>
+          <div class="receipt-row">
+            <span>Event Category</span>
+            <strong>{{ bookingDetails()?.packageCategory | titlecase }}</strong>
+          </div>
+          <div class="receipt-row">
+            <span>Event Date</span>
+            <strong>{{ bookingDetails()?.bookingDate }}</strong>
+          </div>
+          <div class="receipt-row">
+            <span>Payment Method</span>
+            <strong>{{ paymentMethod() | uppercase }}</strong>
+          </div>
+          <div class="receipt-row border-top pt-2 mt-2">
+            <span>Paid Amount</span>
+            <strong class="text-purple">₹{{ payableAmount() | number }}</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="success-actions mt-4">
+        <button class="btn-view-bookings" routerLink="/bookings">
+          <i class="bi bi-calendar3 me-2"></i> View My Bookings
+        </button>
+        <button class="btn-back-dashboard mt-2" routerLink="/dashboard">
+          Go to Dashboard
+        </button>
+      </div>
+    </div>
+  }
+
+  <!-- PROCESSING OVERLAY / SPINNER -->
+  @if (isProcessing()) {
+    <div class="processing-overlay animation-fade-in">
+      <div class="processing-card">
+        <div class="spinner-custom"></div>
+        <h3 class="processing-status-title">
+          @if (processingStep() === 'loading') {
+            Loading Package Details...
+          } @else if (processingStep() === 'creating') {
+            Securing Your Date...
+          } @else if (processingStep() === 'initiating') {
+            Initiating Payment Gateway...
+          } @else if (processingStep() === 'verifying') {
+            Verifying Transaction...
+          } @else {
+            Processing...
+          }
+        </h3>
+        <p class="processing-status-desc">
+          @if (processingStep() === 'loading') {
+            Fetching package information from the server.
+          } @else if (processingStep() === 'creating') {
+            Creating booking entries in the database. Please do not refresh.
+          } @else if (processingStep() === 'initiating') {
+            Opening a secure payment session with the provider.
+          } @else if (processingStep() === 'verifying') {
+            Waiting for confirmation from your bank or provider.
+          }
+        </p>
+      </div>
+    </div>
+  }
+</div>

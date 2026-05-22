@@ -144,8 +144,24 @@
               </div>
               
               <!-- Active Toggle -->
-              <div class="status-toggle-premium" [attr.title]="!svc.isVerified ? 'Your service is currently under review or requires corrections. It will become live once verified by our team.' : null">
-                <span class="toggle-text">{{ !svc.isVerified ? (svc.verificationStatus === 'Rejected' ? 'Rejected' : 'Pending') : (svc.isActive ? 'Live' : 'Paused') }}</span>
+              <div class="status-toggle-premium">
+                @if (!svc.isVerified) {
+                  <div class="custom-tooltip-wrapper">
+                    <span class="toggle-text text-warning d-inline-flex align-items-center gap-1">
+                      {{ svc.verificationStatus === 'Rejected' ? 'Rejected' : 'Pending' }}
+                      <i class="bi bi-info-circle-fill small text-muted"></i>
+                    </span>
+                    <div class="custom-tooltip-content">
+                      <div class="tooltip-header">Verification Info</div>
+                      <div class="tooltip-message">
+                        <i class="bi bi-info-circle-fill text-primary"></i>
+                        <span>Your service is currently under review or requires corrections. It will automatically go live once verified by our support team.</span>
+                      </div>
+                    </div>
+                  </div>
+                } @else {
+                  <span class="toggle-text">{{ svc.isActive ? 'Live' : 'Paused' }}</span>
+                }
                 <label class="ee-switch-sm" [style.opacity]="!svc.isVerified ? '0.5' : '1'" [style.cursor]="!svc.isVerified ? 'not-allowed' : 'pointer'">
                   <input type="checkbox" [checked]="svc.isActive && svc.isVerified" [disabled]="!svc.isVerified" (change)="toggleServiceStatus(svc)">
                   <span class="slider-sm"></span>

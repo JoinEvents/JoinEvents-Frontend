@@ -1,5 +1,5 @@
 import { Component, signal, inject } from '@angular/core';
-import { Router, NavigationEnd, RouterLink } from '@angular/router';
+import { Router, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
@@ -77,7 +77,7 @@ const iconMap: Record<string, string> = {
 @Component({
   selector: 'app-breadcrumb',
   standalone: true,
-  imports: [RouterLink],
+  imports: [],
   template: `
     @if (crumbs().length > 0) {
       <nav class="modern-breadcrumb" aria-label="breadcrumb">
@@ -85,7 +85,7 @@ const iconMap: Record<string, string> = {
           @for (crumb of crumbs(); track $index; let last = $last) {
             <li class="breadcrumb-item" [class.active]="last">
               @if (!last && crumb.url) {
-                <a [routerLink]="crumb.url" class="breadcrumb-link">
+                <a (click)="navigate(crumb.url, $event)" class="breadcrumb-link" style="cursor: pointer;">
                   @if (crumb.icon) {
                     <i class="bi {{ crumb.icon }} crumb-icon"></i>
                   }
@@ -143,6 +143,10 @@ const iconMap: Record<string, string> = {
       font-family: var(--font-body);
     }
 
+    .breadcrumb-item::before {
+      content: none !important;
+    }
+
     .breadcrumb-link {
       display: flex;
       align-items: center;
@@ -196,6 +200,11 @@ export class BreadcrumbComponent {
   private router = inject(Router);
   crumbs = signal<BreadcrumbItem[]>([]);
 
+  navigate(url: string, event: Event) {
+    event.preventDefault();
+    this.router.navigateByUrl(url);
+  }
+
   constructor() {
     this.router.events.pipe(
       filter(event => event instanceof NavigationEnd),
@@ -235,8 +244,11 @@ export class BreadcrumbComponent {
   }
 
   generateBreadcrumbs() {
-    const url = this.router.url.split('?')[0];
-    const cleanUrl = url.replace(/\/$/, '');
+    const urlTree = this.router.parseUrl(this.router.url);
+    const urlPath = urlTree.root.children['primary'] ? urlTree.root.children['primary'].segments.map(it => it.path).join('/') : '';
+    const queryParams = urlTree.queryParams;
+
+    const cleanUrl = '/' + urlPath.replace(/\/$/, '');
     const dashboardUrls = ['', '/dashboard', '/admin/dashboard', '/vendor/dashboard', '/support/dashboard', '/admin', '/vendor', '/support'];
     
     if (dashboardUrls.includes(cleanUrl)) {
@@ -244,7 +256,7 @@ export class BreadcrumbComponent {
       return;
     }
 
-    const segments = url.split('/').filter(s => s);
+    const segments = urlPath.split('/').filter(s => s);
     const crumbsList: BreadcrumbItem[] = [];
 
     let cumulativePath = '';
@@ -279,8 +291,6 @@ export class BreadcrumbComponent {
         } else {
           label = 'Details';
         }
-      } else if (parentSegment === 'vendors') {
-        label = `${this.titleCase(segment)} Vendors`;
       } else {
         label = labelMap[segment] || this.titleCase(segment);
       }
@@ -292,6 +302,35 @@ export class BreadcrumbComponent {
       }
 
       const icon = iconMap[segment];
+
+      // If this is the 'vendors' segment on the customer portal, and we have a query parameter like ?wedding
+      if (segment === 'vendors' && parentSegment === 'events' && !portalPrefix) {
+        const queryKeys = Object.keys(queryParams);
+        if (queryKeys.length > 0) {
+          const eventType = queryKeys[0];
+          const packageId = queryParams[eventType];
+          
+          if (packageId && typeof packageId === 'string' && packageId.startsWith('pkg_')) {
+            crumbsList.push({
+              label: `${this.titleCase(eventType)} Vendors`,
+              url: `/events/vendors?${eventType}`,
+              icon: icon
+            });
+            crumbsList.push({
+              label: 'Details',
+              url: '',
+              icon: ''
+            });
+          } else {
+            crumbsList.push({
+              label: `${this.titleCase(eventType)} Vendors`,
+              url: '', // terminal crumb
+              icon: icon
+            });
+          }
+          continue; // Skip adding the raw 'Vendors' crumb
+        }
+      }
 
       crumbsList.push({
         label,

@@ -27,16 +27,27 @@ export class AuthService {
 
   currentUser = signal<AuthUser | null>(this.loadFromStorage());
 
+  private isTokenExpired(token: string): boolean {
+    return false; // Bypassed: tokens do not automatically expire on frontend
+  }
+
   private loadFromStorage(): AuthUser | null {
     try {
-      const stored = sessionStorage.getItem('joinevents_user');
-      return stored ? JSON.parse(stored) : null;
+      const stored = localStorage.getItem('joinevents_user');
+      if (!stored) return null;
+      
+      const user = JSON.parse(stored);
+      if (user.token && this.isTokenExpired(user.token)) {
+        localStorage.removeItem('joinevents_user');
+        return null;
+      }
+      return user;
     } catch { return null; }
   }
 
   login(email: string, password: string, role: UserRole, returnUrl?: string): Observable<{ success: boolean; message: string }> {
     // Clear any existing session first
-    sessionStorage.removeItem('joinevents_user');
+    localStorage.removeItem('joinevents_user');
     this.currentUser.set(null);
 
     return this.http.post<any>(`${this.apiUrl}/auth/login`, { email, password, role }).pipe(
@@ -49,7 +60,7 @@ export class AuthService {
             role: response.user?.role || role,
             token: response.token || response.AccessToken || response.accessToken
           };
-          sessionStorage.setItem('joinevents_user', JSON.stringify(user));
+          localStorage.setItem('joinevents_user', JSON.stringify(user));
           this.currentUser.set(user);
           
           if (returnUrl) {
@@ -72,7 +83,7 @@ export class AuthService {
   }
 
   register(name: string, email: string, phone: string, password: string, role: UserRole): Observable<{ success: boolean; message: string }> {
-    sessionStorage.removeItem('joinevents_user');
+    localStorage.removeItem('joinevents_user');
     this.currentUser.set(null);
 
     return this.http.post<any>(`${this.apiUrl}/auth/register`, { name, email, phone, password, role }).pipe(
@@ -85,7 +96,7 @@ export class AuthService {
             role: response.user?.role || role,
             token: response.token || response.AccessToken || response.accessToken
           };
-          sessionStorage.setItem('joinevents_user', JSON.stringify(user));
+          localStorage.setItem('joinevents_user', JSON.stringify(user));
           this.currentUser.set(user);
           const path = user.role === 'customer' ? '/dashboard' : `/${user.role}/dashboard`;
           this.router.navigate([path]);
@@ -103,7 +114,7 @@ export class AuthService {
   }
 
   logout(): void {
-    sessionStorage.removeItem('joinevents_user');
+    localStorage.removeItem('joinevents_user');
     this.currentUser.set(null);
     this.router.navigate(['/login']);
   }

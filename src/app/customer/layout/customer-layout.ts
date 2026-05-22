@@ -8,6 +8,7 @@ import { AiService } from '../../core/services/ai.service';
 import { AiPlanner } from '../ai-planner/ai-planner';
 import { FavoritesService } from '../../core/services/favorites.service';
 import { BreadcrumbComponent } from '../../shared/components/breadcrumb';
+import { MessengerService } from '../../core/services/messenger.service';
 
 export interface NavItem {
   path: string;
@@ -33,6 +34,7 @@ export class CustomerLayout {
   public notifService = inject(NotificationService);
   private aiService = inject(AiService);
   public favoritesService = inject(FavoritesService);
+  private messenger = inject(MessengerService);
 
   sidebarOpen = signal(false);
   sidebarPinned = signal(false);
@@ -89,13 +91,13 @@ export class CustomerLayout {
     { path: '/planner',   icon: 'bi-pencil-square',  label: 'Event Planner', protected: true },
     { path: '/rfp',       icon: 'bi-megaphone',      label: 'RFP Board', badge: 0, protected: true },
     { path: '/bookings',  icon: 'bi-journal-check',  label: 'My Bookings', protected: true },
-    { path: '/messages',  icon: 'bi-chat-dots',      label: 'Messages', badge: 2, protected: true },
+    { path: '/messages',  icon: 'bi-chat-dots',      label: 'Messages', protected: true },
     { path: '/payments',  icon: 'bi-credit-card',    label: 'Payments', protected: true },
     { path: '/support',   icon: 'bi-ticket-detailed', label: 'Support', protected: true },
     { path: '/notifications', icon: 'bi-bell',       label: 'Notifications', protected: true }
   ];
 
-  get filteredNavItems(): NavItem[] {
+  filteredNavItems = computed(() => {
     return this.navItems
       .filter(item => !item.protected || this.user())
       .map((item: NavItem) => {
@@ -103,9 +105,13 @@ export class CustomerLayout {
           const unread = this.unreadCount();
           return { ...item, badge: unread > 0 ? unread : undefined } as NavItem;
         }
+        if (item.path.includes('messages')) {
+          const unread = this.messenger.unreadThreadsCount();
+          return { ...item, badge: unread > 0 ? unread : undefined } as NavItem;
+        }
         return item;
       });
-  }
+  });
 
   favorites = computed(() => this.favoritesService.favorites());
   favoriteCount = computed(() => this.favorites().length);
@@ -167,9 +173,7 @@ export class CustomerLayout {
     
     // Only trigger swipe if horizontal movement is significantly greater than vertical movement
     if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 60) {
-      if (diffX > 0) {
-        this.sidebarOpen.set(true);
-      } else {
+      if (diffX < 0) {
         this.sidebarOpen.set(false);
       }
     }

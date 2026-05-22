@@ -8,12 +8,16 @@
     <div class="search-wrapper">
       <div class="search-input-group">
         <i class="bi bi-search"></i>
-        <input type="text" placeholder="Search conversations...">
+        <input 
+          type="text" 
+          placeholder="Search conversations..."
+          [ngModel]="searchQuery()"
+          (ngModelChange)="searchQuery.set($event)">
       </div>
     </div>
 
     <div class="threads-list">
-      @for (thread of threads(); track thread.id) {
+      @for (thread of filteredThreads(); track thread.id) {
         <div class="thread-item" [class.active]="selectedThread()?.id === thread.id" (click)="openThread(thread)">
           <div class="thread-avatar-wrap">
             <div class="thread-avatar">{{ thread.subject?.charAt(0) || '?' }}</div>
@@ -22,7 +26,7 @@
           <div class="thread-content">
             <div class="thread-header">
               <span class="thread-name">{{ thread.subject }}</span>
-              <span class="thread-time">10:30 AM</span>
+              <span class="thread-time">{{ formatTime(thread.lastMessageTime) }}</span>
             </div>
             <div class="d-flex align-items-center justify-content-between">
               <div class="thread-preview">{{ thread.lastMessage }}</div>
@@ -47,7 +51,17 @@
           <div class="header-avatar">{{ selectedThread()?.subject?.charAt(0) }}</div>
           <div>
             <div class="header-name">{{ selectedThread()?.subject }}</div>
-            <div class="header-status"><span class="status-dot online"></span> Active Now</div>
+            <div class="header-status">
+              @if (selectedThread()?.status === 'Pending') {
+                <span class="status-dot warning"></span> Waiting for Approval
+              } @else if (selectedThread()?.status === 'Rejected') {
+                <span class="status-dot offline"></span> Request Declined
+              } @else if (selectedThread()?.status === 'Closed') {
+                <span class="status-dot offline"></span> Chat Closed
+              } @else {
+                <span class="status-dot online"></span> Active Now
+              }
+            </div>
           </div>
         </div>
         <div class="header-actions">
@@ -56,6 +70,29 @@
           <button class="action-btn"><i class="bi bi-three-dots-vertical"></i></button>
         </div>
       </header>
+
+      @if (selectedThread()?.status === 'Pending') {
+        <div class="alert alert-warning m-3 d-flex align-items-center" role="alert">
+          <i class="bi bi-hourglass-split me-2 fs-5"></i>
+          <div>
+            <strong>Chat Request Pending:</strong> Waiting for the vendor to accept your chat request.
+          </div>
+        </div>
+      } @else if (selectedThread()?.status === 'Rejected') {
+        <div class="alert alert-danger m-3 d-flex align-items-center" role="alert">
+          <i class="bi bi-x-circle-fill me-2 fs-5"></i>
+          <div>
+            <strong>Chat Request Declined:</strong> The vendor has declined this chat request.
+          </div>
+        </div>
+      } @else if (selectedThread()?.status === 'Closed') {
+        <div class="alert alert-secondary m-3 d-flex align-items-center" role="alert">
+          <i class="bi bi-lock-fill me-2 fs-5"></i>
+          <div>
+            <strong>Chat Closed:</strong> This chat session has ended.
+          </div>
+        </div>
+      }
 
       <div class="messages-viewport" #scrollMe>
         <div class="date-badge">Today</div>
@@ -77,16 +114,17 @@
 
       <footer class="chat-footer">
         <div class="input-container">
-          <button class="tool-btn"><i class="bi bi-paperclip"></i></button>
+          <button class="tool-btn" [disabled]="isChatDisabled()"><i class="bi bi-paperclip"></i></button>
           <textarea 
             class="msg-input" 
             [(ngModel)]="newMessage" 
             (keyup.enter)="sendMessage()" 
-            placeholder="Write your message..." 
+            [placeholder]="isChatDisabled() ? 'Chat is disabled...' : 'Write your message...'" 
+            [disabled]="isChatDisabled()"
             rows="1">
           </textarea>
-          <button class="tool-btn"><i class="bi bi-emoji-smile"></i></button>
-          <button class="send-trigger" (click)="sendMessage()" [disabled]="!newMessage.trim()">
+          <button class="tool-btn" [disabled]="isChatDisabled()"><i class="bi bi-emoji-smile"></i></button>
+          <button class="send-trigger" (click)="sendMessage()" [disabled]="!newMessage.trim() || isChatDisabled()">
             <i class="bi bi-send-fill"></i>
           </button>
         </div>

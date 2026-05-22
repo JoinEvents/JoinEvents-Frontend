@@ -1,7 +1,7 @@
 import { Component, signal, OnInit, inject, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, ActivatedRoute, RouterLink } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { PackageService } from '../../core/services/package.service';
 import { SearchService } from '../../core/services/search.service';
 import { EventPackage } from '../../core/models/event.model';
@@ -11,7 +11,7 @@ import { FavoritesService } from '../../core/services/favorites.service';
 @Component({
   selector: 'app-customer-packages',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule],
   templateUrl: './packages.html',
   styleUrl: './packages.css'
 })
@@ -99,7 +99,11 @@ export class CustomerPackages implements OnInit {
   }
 
   bookPackage(pkg: EventPackage) {
-    this.router.navigate(['/book', pkg.id]);
+    this.router.navigate(['/events/vendors'], { queryParams: { [pkg.eventTypeId]: pkg.id } });
+  }
+
+  goToVendors(id: string) {
+    this.router.navigateByUrl(`/events/vendors?${id}`);
   }
 
   getTierGradient(tier: string) {
@@ -119,7 +123,7 @@ export class CustomerPackages implements OnInit {
       name: pkg.name,
       type: 'package',
       subtitle: `${pkg.tier} • ₹${pkg.price.toLocaleString('en-IN')}`,
-      routeUrl: `/book/${pkg.id}`
+      routeUrl: `/events/vendors?${pkg.eventTypeId}=${pkg.id}`
     });
   }
 }

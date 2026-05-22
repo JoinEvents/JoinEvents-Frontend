@@ -109,9 +109,7 @@ export class AdminLayout {
   }
   onTouchEnd(e: TouchEvent) {
     const diffX = e.changedTouches[0].clientX - this.touchStartX;
-    if (diffX > 60) {
-      this.sidebarOpen.set(true);
-    } else if (diffX < -60) {
+    if (diffX < -60) {
       this.sidebarOpen.set(false);
     }
   }

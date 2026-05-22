@@ -76,7 +76,7 @@
               <span class="p-label">Starting from</span>
               <span class="p-val">₹{{ (event.startingPrice || 0).toLocaleString('en-IN') }}</span>
             </div>
-            <a [routerLink]="['/vendors', event.id]" class="btn-ee-primary rounded-pill px-4">
+            <a href="javascript:void(0)" (click)="goToVendors(event.category)" class="btn-ee-primary rounded-pill px-4">
               Explore <i class="bi bi-arrow-right ms-2"></i>
             </a>
           </div>

@@ -1,16 +1,17 @@
 import { Component, OnInit, OnDestroy, signal, inject, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute, RouterLink, Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { PackageService } from '../../core/services/package.service';
 import { EventCategoryService } from '../../core/services/event-category.service';
 import { Vendor } from '../../core/models/vendor.model';
 import { EventType } from '../../core/models/event.model';
 import { FavoritesService } from '../../core/services/favorites.service';
+import { CustomerBooking } from '../booking/booking';
 
 @Component({
   selector: 'app-customer-vendors',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, CustomerBooking],
   templateUrl: './customer-vendors.html',
   styleUrl: './customer-vendors.css',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -28,6 +29,7 @@ export class CustomerVendors implements OnInit, OnDestroy {
   allPackages = signal<any[]>([]);
   packages = signal<any[]>([]);
   loading = signal(true);
+  selectedPackageId = signal<string | null>(null);
 
   // Filter signals
   filterLocation = signal('');
@@ -38,9 +40,18 @@ export class CustomerVendors implements OnInit, OnDestroy {
   filterEcoFriendly = signal(false);
 
   ngOnInit() {
-    this.route.params.subscribe(params => {
-      this.eventTypeId.set(params['eventTypeId']);
-      this.loadData();
+    this.route.queryParamMap.subscribe(params => {
+      const keys = params.keys;
+      const typeId = keys.length > 0 ? keys[0] : null;
+      this.eventTypeId.set(typeId);
+
+      const pkgId = typeId ? params.get(typeId) : null;
+      if (pkgId && pkgId.startsWith('pkg_')) {
+        this.selectedPackageId.set(pkgId);
+      } else {
+        this.selectedPackageId.set(null);
+        this.loadData();
+      }
     });
 
     // Start auto-scrolling image carousel for all package cards
@@ -135,7 +146,12 @@ export class CustomerVendors implements OnInit, OnDestroy {
   }
 
   selectVendor(packageId: string) {
-    this.router.navigate(['/book', packageId]);
+    const type = this.eventTypeId();
+    if (type) {
+      this.router.navigate(['/events/vendors'], { queryParams: { [type]: packageId } });
+    } else {
+      this.router.navigate(['/book', packageId]);
+    }
   }
 
   isFavorite(id: string): boolean {
@@ -149,7 +165,7 @@ export class CustomerVendors implements OnInit, OnDestroy {
       name: pkg.name,
       type: 'package',
       subtitle: `${pkg.location} • ₹${(pkg.price / 100000).toFixed(1)}L`,
-      routeUrl: `/book/${pkg.id}`
+      routeUrl: `/events/vendors?${this.eventTypeId()}=${pkg.id}`
     });
   }
 }

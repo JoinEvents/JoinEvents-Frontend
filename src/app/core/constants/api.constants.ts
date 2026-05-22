@@ -10,6 +10,7 @@ export const API_ROUTES = {
     REQUEST: '/messenger/request',
     ACCEPT: (threadId: string) => `/messenger/threads/${threadId}/accept`,
     REJECT: (threadId: string) => `/messenger/threads/${threadId}/reject`,
+    READ: (threadId: string) => `/messenger/threads/${threadId}/read`,
   },
   PACKAGES: {
     SEARCH: '/packages/search',

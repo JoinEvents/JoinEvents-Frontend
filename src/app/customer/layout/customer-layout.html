@@ -23,7 +23,7 @@
 
     <nav class="sidebar-nav">
       <div class="nav-section-label">Main Menu</div>
-      @for (item of filteredNavItems; track item.path) {
+      @for (item of filteredNavItems(); track item.path) {
       <a [routerLink]="item.path" routerLinkActive="active" class="sidebar-link" (click)="sidebarOpen.set(false)">
         <i class="bi {{ item.icon }}"></i>
         <span>{{ item.label }}</span>

@@ -1,5 +1,5 @@
 import { Component, signal, OnInit, inject, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
-import { RouterLink, ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { EventCategoryService } from '../../core/services/event-category.service';
 import { EventType } from '../../core/models/event.model';
@@ -8,13 +8,14 @@ import { FavoritesService } from '../../core/services/favorites.service';
 
 @Component({
   selector: 'app-customer-events',
-  imports: [RouterLink, FormsModule],
+  imports: [FormsModule],
   templateUrl: './events.html',
   styleUrl: './events.css',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class CustomerEvents implements OnInit {
   private api = inject(EventCategoryService);
+  private router = inject(Router);
   private route = inject(ActivatedRoute);
   private cdr = inject(ChangeDetectorRef);
   public favoritesService = inject(FavoritesService);
@@ -70,7 +71,11 @@ export class CustomerEvents implements OnInit {
       name: et.name,
       type: 'event',
       subtitle: `${et.category} • from ₹${((et.startingPrice || 0) / 1000)}k`,
-      routeUrl: `/vendors/${et.id}`
+      routeUrl: `/events/vendors?${et.category?.toLowerCase() || et.id}`
     });
+  }
+
+  goToVendors(id: string) {
+    this.router.navigateByUrl(`/events/vendors?${id}`);
   }
 }

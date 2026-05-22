@@ -254,12 +254,14 @@
 /* ACTION TOOLBAR */
 .detail-actions-bar {
   display: flex;
+  flex-wrap: wrap;
   gap: 12px;
-  padding: 16px 24px;
-  background: var(--bg-light);
-  border-radius: 16px;
+  padding: 14px;
+  background: rgba(255, 107, 53, 0.02);
+  border-radius: 20px;
   border: 1px solid var(--border-color);
   margin-bottom: 24px;
+  align-items: center;
 }
 
 .animation-fade-in {
@@ -271,14 +273,97 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
-.btn-outline-purple {
-  color: #7C3AED;
-  border-color: #7C3AED;
+/* Modern Action Buttons */
+.btn-booking-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 22px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  text-decoration: none;
+  font-family: var(--font-heading);
+  border: 1.5px solid transparent;
+  outline: none;
 }
-.btn-outline-purple:hover {
-  background-color: #7C3AED;
-  color: white;
+
+.btn-booking-action i {
+  font-size: 1.05rem;
 }
+
+/* Chat button - premium focus styling */
+.btn-booking-action-chat {
+  background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+  color: #ffffff !important;
+  border: none;
+  box-shadow: 0 4px 14px rgba(124, 58, 237, 0.25);
+}
+
+.btn-booking-action-chat:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(124, 58, 237, 0.4);
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+}
+
+.btn-booking-action-chat:active {
+  transform: translateY(0);
+}
+
+/* Cancel button - soft outline styled */
+.btn-booking-action-cancel {
+  background: rgba(239, 68, 68, 0.05);
+  border-color: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
+.btn-booking-action-cancel:hover {
+  background: #ef4444;
+  border-color: #ef4444;
+  color: #ffffff;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(239, 68, 68, 0.20);
+}
+
+.btn-booking-action-cancel:active {
+  transform: translateY(0);
+}
+
+/* Dispute button - soft yellow/orange outline styled */
+.btn-booking-action-dispute {
+  background: rgba(245, 158, 11, 0.05);
+  border-color: rgba(245, 158, 11, 0.15);
+  color: #d97706;
+}
+
+.btn-booking-action-dispute:hover {
+  background: #d97706;
+  border-color: #d97706;
+  color: #ffffff;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(245, 158, 11, 0.20);
+}
+
+.btn-booking-action-dispute:active {
+  transform: translateY(0);
+}
+
+/* Dark mode compatibility overrides */
+:host-context(.dark-theme) .detail-actions-bar {
+  background: rgba(255, 255, 255, 0.02);
+}
+:host-context(.dark-theme) .btn-booking-action-cancel {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.25);
+}
+:host-context(.dark-theme) .btn-booking-action-dispute {
+  background: rgba(245, 158, 11, 0.08);
+  border-color: rgba(245, 158, 11, 0.25);
+}
+
 
 /* SECTION CARDS */
 .detail-section-card {

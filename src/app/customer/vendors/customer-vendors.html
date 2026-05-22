@@ -1,8 +1,6 @@
+@if (!selectedPackageId()) {
 <div class="vendors-page">
-  <a routerLink="/events" class="back-to-events-btn">
-    <span class="back-arrow"><i class="bi bi-arrow-left"></i></span>
-    <span class="back-label">All Event Types</span>
-  </a>
+
   <!-- Dynamic Title Section -->
   <div class="d-flex align-items-center justify-content-between mb-4 mt-2">
     <div>
@@ -100,7 +98,7 @@
                     <span class="ee-badge ee-badge-success" style="padding: 2px 8px; font-size: 0.65rem;" title="{{ pkg.sustainabilityTags.join(', ') }}">🌿 Eco-Verified</span>
                   }
                 </div>
-                <span class="pkg-rating"><i class="bi bi-star-fill"></i> 4.8 (120)</span>
+                <span class="pkg-rating"><i class="bi bi-star-fill"></i> {{ (pkg.rating || 0).toFixed(1) }} ({{ pkg.totalReviews || 0 }})</span>
               </div>
               
               <h3 class="pkg-title-v2">{{ pkg.name }}</h3>
@@ -155,3 +153,6 @@
     </div>
   }
 </div>
+} @else {
+  <app-customer-booking [packageId]="selectedPackageId()!" />
+}

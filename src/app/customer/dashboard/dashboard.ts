@@ -1,12 +1,14 @@
 import { Component, signal, OnInit, inject, ChangeDetectionStrategy } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { MockApiService } from '../../core/services/mock-api.service';
 import { RfpService } from '../../core/services/rfp.service';
+import { MessengerService } from '../../core/services/messenger.service';
 import { EventType } from '../../core/models/event.model';
 import { Booking } from '../../core/models/booking.model';
 import { ChatThread } from '../../core/models/message.model';
 import { ToastService } from '../../core/services/toast.service';
+import { catchError, of } from 'rxjs';
 
 import { CommonModule } from '@angular/common';
 
@@ -21,6 +23,7 @@ export class CustomerDashboard implements OnInit {
   private auth = inject(AuthService);
   private api = inject(MockApiService);
   private rfpService = inject(RfpService);
+  private messenger = inject(MessengerService);
 
   user = this.auth.currentUser;
   eventTypes = signal<EventType[]>([]);
@@ -28,6 +31,7 @@ export class CustomerDashboard implements OnInit {
   customerProfile = signal<any>(null);
   recentMessages = signal<ChatThread[]>([]);
   private toast = inject(ToastService);
+  private router = inject(Router);
 
   readonly stats = signal([
     { label: 'Upcoming Events', value: '0', icon: 'bi-calendar-event', gradient: 'linear-gradient(135deg,#FF6B35,#F59E0B)', iconBg: 'rgba(255,107,53,0.12)', iconColor: 'var(--primary)', route: '/bookings' },
@@ -75,8 +79,15 @@ export class CustomerDashboard implements OnInit {
       }
     });
 
-    this.api.getChatThreads(userId).subscribe(threads => {
-      const validThreads = (threads || []).filter(t => t && t.lastMessage && t.participants && t.participants.length > 1);
+    this.messenger.getChatThreads(userId).pipe(
+      catchError(err => {
+        if (err.status !== 401) {
+          console.error('Failed to load recent messages on dashboard:', err);
+        }
+        return of([]);
+      })
+    ).subscribe(threads => {
+      const validThreads = (threads || []).filter(t => t && t.lastMessage);
       this.recentMessages.set(validThreads.slice(0, 3));
       const unread = validThreads.filter(t => t.unreadCount > 0).length;
       if (unread > 0) {
@@ -100,5 +111,10 @@ export class CustomerDashboard implements OnInit {
     if (h < 12) return 'Good Morning';
     if (h < 17) return 'Good Afternoon';
     return 'Good Evening';
+  }
+
+  goToVendors(category: string) {
+    const cleanCategory = (category || '').toLowerCase();
+    this.router.navigateByUrl(`/events/vendors?${cleanCategory}`);
   }
 }

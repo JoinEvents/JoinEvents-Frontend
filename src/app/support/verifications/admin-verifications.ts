@@ -43,7 +43,7 @@ export class AdminVerifications implements OnInit {
 
   loadVendors() {
     this.api.getVendors().subscribe(v => {
-      this.vendors.set(v.filter(x => x.verificationStatus !== 'verified' || x.verificationDocs.length > 0));
+      this.vendors.set(v.filter(x => x.verificationStatus !== 'verified'));
       if (this.activeTab() === 'vendors' && this.vendors().length > 0 && !this.selectedVendor()) {
         this.selectVendor(this.vendors()[0]);
       }
@@ -101,11 +101,11 @@ export class AdminVerifications implements OnInit {
   }
 
   approve(id: string) {
-    this.vendors.update(vs => vs.map(v => v.id === id ? { ...v, verificationStatus: 'verified' } : v));
     this.actionDone.set('approved');
     if (this.selectedVendor()?.id === id) {
       this.selectedVendor.update(v => v ? { ...v, verificationStatus: 'verified' } : v);
     }
+    this.vendors.update(vs => vs.filter(v => v.id !== id));
   }
 
   reject(id: string) {

@@ -3,6 +3,7 @@ import { inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { catchError, throwError } from 'rxjs';
 import { ToastService } from '../services/toast.service';
+import { AuthService } from '../services/auth.service';
 
 /**
  * Centralised API interceptor — auth headers & error handling in one file.
@@ -16,11 +17,12 @@ import { ToastService } from '../services/toast.service';
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const router = inject(Router);
   const toast  = inject(ToastService);
+  const auth   = inject(AuthService);
 
   // ── Attach auth header ──────────────────────────────────────
   let token: string | null = null;
   try {
-    const stored = sessionStorage.getItem('joinevents_user');
+    const stored = localStorage.getItem('joinevents_user');
     if (stored) {
       const user = JSON.parse(stored);
       // Security: Only use real tokens, never fallback to internal user IDs
@@ -42,9 +44,8 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
           case 401:
             // Don't show "Session expired" for the login request itself
             if (!req.url.includes('/auth/login')) {
-              sessionStorage.removeItem('joinevents_user');
               toast.warning('Session expired. Please log in again.');
-              router.navigate(['/login']);
+              auth.logout();
             }
             break;
           case 403:

@@ -446,5 +446,22 @@
       </button>
       }
   </div>
+
+  <!-- Verification Confirmation Modal -->
+  @if (showVerificationModal()) {
+    <div class="modal-overlay">
+      <div class="confirm-modal-card">
+        <div class="modal-illustration">
+          <i class="bi bi-shield-fill-check"></i>
+        </div>
+        <h3>Verification Required</h3>
+        <p>This service listing will be verified by our team before it goes live. Do you want to proceed and submit it for verification?</p>
+        <div class="modal-actions">
+          <button class="btn-cancel" (click)="cancelSaveService()">No, keep editing</button>
+          <button class="btn-confirm" (click)="confirmSaveService()">Yes, submit & launch</button>
+        </div>
+      </div>
+    </div>
+  }
 </div>
 </div>

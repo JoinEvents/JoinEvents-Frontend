@@ -13,10 +13,11 @@ export const routes: Routes = [
     loadComponent: () => import('./customer/layout/customer-layout').then(m => m.CustomerLayout),
     children: [
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
-      { path: 'dashboard', loadComponent: () => import('./customer/dashboard/dashboard').then(m => m.CustomerDashboard) },
+      { path: 'dashboard', loadComponent: () => import('./customer/dashboard/dashboard').then(m => m.CustomerDashboard), canActivate: [authGuard('customer')] },
       { path: 'book/:packageId', loadComponent: () => import('./customer/booking/booking').then(m => m.CustomerBooking), canActivate: [authGuard(['customer', 'vendor'])] },
+      { path: 'checkout/:packageId', loadComponent: () => import('./customer/checkout/checkout').then(m => m.Checkout), canActivate: [authGuard(['customer', 'vendor'])] },
       { path: 'events', loadComponent: () => import('./customer/events/events').then(m => m.CustomerEvents) },
-      { path: 'vendors/:eventTypeId', loadComponent: () => import('./customer/vendors/customer-vendors').then(m => m.CustomerVendors), canActivate: [authGuard(['customer', 'vendor'])] },
+      { path: 'events/vendors', loadComponent: () => import('./customer/vendors/customer-vendors').then(m => m.CustomerVendors), canActivate: [authGuard(['customer', 'vendor'])] },
       { path: 'packages', loadComponent: () => import('./customer/packages/packages').then(m => m.CustomerPackages) },
       { path: 'planner', loadComponent: () => import('./customer/event-planner/event-planner').then(m => m.EventPlanner), canActivate: [authGuard('customer')] },
       { path: 'rfp', loadComponent: () => import('./customer/rfp/customer-rfp').then(m => m.CustomerRfp), canActivate: [authGuard('customer')] },

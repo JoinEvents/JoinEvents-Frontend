@@ -166,7 +166,7 @@
 .package-card-v2 {
     background: var(--bg-card);
     border-radius: 32px;
-    overflow: hidden;
+    overflow: visible;
     transition: all 0.5s cubic-bezier(0.19, 1, 0.22, 1);
     height: 100%;
     border: 1px solid transparent;
