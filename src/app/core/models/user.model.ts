@@ -15,12 +15,21 @@ export interface CustomerProfile extends AuthUser {
   city: string;
   totalBookings: number;
   loyaltyPoints: number;
+  loyaltyTier?: 'Bronze' | 'Silver' | 'Gold';
   totalSpent?: number;
   joinedDate?: string;
   strikes?: number;
   accountStatus?: 'active' | 'warning' | 'restricted' | 'suspended' | 'banned';
   suspensionReason?: string;
   suspensionDuration?: string;
+}
+
+export interface LoyaltyTransaction {
+  id: string;
+  date: string;
+  description: string;
+  points: number;
+  type: 'earned' | 'redeemed';
 }
 
 export interface VendorProfile extends AuthUser {

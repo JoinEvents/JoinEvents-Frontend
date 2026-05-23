@@ -1,0 +1,218 @@
+<div class="rewards-container">
+  <div class="rewards-header">
+    <h1>My Rewards</h1>
+    <p>Unlock exclusive perks and discounts with every booking you make.</p>
+  </div>
+
+  @if (loading()) {
+    <div class="text-center py-5">
+      <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+    </div>
+  } @else {
+    <div class="rewards-grid">
+      <div class="rewards-main-column">
+        <div class="loyalty-card">
+      <div class="card-top">
+        <div class="loyalty-info">
+          <span class="pts-label">Available Balance</span>
+          <h2>{{ balance()?.points || 0 | number }} <span style="font-size: 2rem; font-weight: 500;">pts</span></h2>
+          <div style="font-size: 1rem; color: rgba(255, 255, 255, 0.85); font-weight: 600; margin-top: 0.25rem;">
+            Worth <span style="color: #FFE066;">₹{{ ((balance()?.points || 0) * 5) | number }}</span> in discounts
+          </div>
+        </div>
+        <div class="loyalty-tier">
+          <div class="tier-badge">
+            <i class="bi bi-star-fill"></i> {{ balance()?.tier || 'Bronze' }}
+          </div>
+        </div>
+      </div>
+
+      <!-- Tier Progress -->
+      <div class="tier-progress-container">
+        <div class="progress-labels">
+          <span>Current: {{ balance()?.tier || 'Bronze' }}</span>
+          @if ((balance()?.pointsToNextTier || 0) > 0) {
+            <span>{{ balance()?.pointsToNextTier | number }} pts to next tier</span>
+          } @else {
+            <span>Maximum Tier Reached</span>
+          }
+        </div>
+        <div class="progress-track">
+          <!-- Rough calculation for visual flair (e.g. Bronze -> 5000, Silver -> 15000) -->
+          @if (balance()?.tier === 'Bronze') {
+            <div class="progress-fill" [style.width.%]="(balance()?.points || 0) / 5000 * 100"></div>
+          } @else if (balance()?.tier === 'Silver') {
+            <div class="progress-fill" [style.width.%]="(balance()?.points || 0) / 15000 * 100"></div>
+          } @else {
+            <div class="progress-fill" style="width: 100%"></div>
+          }
+        </div>
+      </div>
+    </div>
+    <div class="history-section">
+      <h3 class="section-title">
+        <i class="bi bi-clock-history"></i> Transaction History
+      </h3>
+      
+      @if (history().length === 0) {
+        <div class="empty-state">
+          <i class="bi bi-stars"></i>
+          <h4>Your journey starts here</h4>
+          <p class="text-muted">You haven't earned or redeemed any points yet. Book your first event to start earning!</p>
+        </div>
+      } @else {
+        <div class="transaction-list">
+          @for (txn of history(); track txn.id) {
+            <div class="transaction-item">
+              <div class="txn-left">
+                <div class="txn-icon" [class.earned]="txn.type === 'earned'" [class.redeemed]="txn.type === 'redeemed'">
+                  <i class="bi" [class.bi-arrow-down-left]="txn.type === 'earned'" [class.bi-arrow-up-right]="txn.type === 'redeemed'"></i>
+                </div>
+                <div>
+                  <div class="transaction-desc">{{ txn.description }}</div>
+                  <div class="transaction-date">{{ txn.date | date:'mediumDate' }} • {{ txn.date | date:'shortTime' }}</div>
+                </div>
+              </div>
+              <div class="transaction-points-wrapper text-end">
+                <div class="transaction-points" [class.earned]="txn.type === 'earned'" [class.redeemed]="txn.type === 'redeemed'">
+                  {{ txn.type === 'earned' ? '+' : '-' }}{{ txn.points | number }} pts
+                </div>
+                <div style="font-size: 0.8rem; font-weight: 600; opacity: 0.8; margin-top: 2px;" [class.text-success]="txn.type === 'earned'" [class.text-danger]="txn.type === 'redeemed'">
+                  {{ txn.type === 'earned' ? '+' : '-' }}₹{{ txn.points * 5 | number }}
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      }
+      </div>
+      </div> <!-- End rewards-main-column -->
+      
+      <!-- How to Earn Section -->
+      <div class="how-to-earn-section">
+        <h3 class="section-title">
+          <i class="bi bi-info-circle"></i> How to Earn Points
+        </h3>
+        <div class="earn-cards">
+          <div class="earn-card">
+            <div class="earn-icon"><i class="bi bi-calendar2-check"></i></div>
+            <div class="earn-content">
+              <h4>Book Events</h4>
+              <p>Earn 20 pts for every ₹100 spent on your bookings.</p>
+            </div>
+          </div>
+          <div class="earn-card referral-trigger" (click)="openReferModal()">
+            <div class="earn-icon"><i class="bi bi-person-plus"></i></div>
+            <div class="earn-content w-100">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <h4 class="mb-0">Refer Friends</h4>
+                <span class="badge bg-primary text-white" style="font-size: 0.75rem; padding: 0.35rem 0.65rem;">Invite Now</span>
+              </div>
+              <p class="mb-0">Get 500 pts when a friend makes their first booking.</p>
+            </div>
+          </div>
+          <div class="earn-card">
+            <div class="earn-icon"><i class="bi bi-gift"></i></div>
+            <div class="earn-content">
+              <h4>Welcome Bonus</h4>
+              <p>Start with 200 pts just for joining JoinEvents.</p>
+            </div>
+          </div>
+          <div class="earn-card">
+            <div class="earn-icon"><i class="bi bi-star"></i></div>
+            <div class="earn-content">
+              <h4>Leave a Review</h4>
+              <p>Earn 50 pts for reviewing a completed event.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Refer Friend Modal -->
+    @if (showReferModal()) {
+      <div class="modal-backdrop-custom" (click)="closeReferModal()">
+        <div class="modal-content-custom" (click)="$event.stopPropagation()">
+          <button class="btn-close-custom" (click)="closeReferModal()">&times;</button>
+          <div class="modal-header-custom text-center">
+            <div class="modal-icon-wrapper invite">
+              <i class="bi bi-gift-fill"></i>
+            </div>
+            <h2 class="mb-1" style="font-weight: 800; font-size: 1.75rem; color: var(--text-main);">Refer a Friend</h2>
+            <p class="text-muted mb-4">Invite a friend to JoinEvents. You both get rewards!</p>
+          </div>
+          <div class="modal-body-custom">
+            <div class="points-highlight-banner mb-4">
+              <span class="bonus-tag">Referral Reward</span>
+              <h3>Earn 500 Points</h3>
+              <p class="mb-0">Worth <strong style="color: #FFE066;">₹2,500</strong> in booking discounts</p>
+            </div>
+            
+            <div class="mb-4">
+              <label for="referralLink" class="form-label" style="font-weight: 600; color: var(--text-main);">Your Referral Link</label>
+              <div class="input-group">
+                <input type="text" class="form-control referral-link-input" id="referralLink" readonly [value]="getReferralLink()">
+                <button class="btn btn-outline-primary" type="button" (click)="copyReferralLink()">
+                  <i class="bi" [class.bi-copy]="!linkCopied()" [class.bi-check-lg]="linkCopied()"></i>
+                  {{ linkCopied() ? 'Copied!' : 'Copy' }}
+                </button>
+              </div>
+            </div>
+            
+            <form (submit)="submitReferral($event, friendEmail.value)">
+              <div class="mb-4">
+                <label for="friendEmail" class="form-label" style="font-weight: 600; color: var(--text-main);">Invite via Email</label>
+                <div class="input-group">
+                  <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                  <input type="email" class="form-control" id="friendEmail" placeholder="Enter friend's email" required #friendEmail>
+                </div>
+                @if (referralError()) {
+                  <div class="text-danger mt-1 small" style="font-weight: 600;">{{ referralError() }}</div>
+                }
+              </div>
+              
+              <button type="submit" class="btn btn-primary w-100 py-2.5" style="font-weight: 700;" [disabled]="submittingReferral()">
+                @if (submittingReferral()) {
+                  <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                  Sending Invite...
+                } @else {
+                  <i class="bi bi-send-fill me-2"></i> Send Invitation
+                }
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- Congratulations Modal -->
+    @if (showCongratsModal()) {
+      <div class="modal-backdrop-custom" (click)="closeCongratsModal()">
+        <div class="modal-content-custom text-center" (click)="$event.stopPropagation()" style="max-width: 440px;">
+          <div class="modal-icon-wrapper congrats animate-bounce">
+            <i class="bi bi-trophy-fill"></i>
+          </div>
+          <h2 class="congrats-title animate-rainbow">Congratulations!</h2>
+          <p class="congrats-subtitle mb-4">Your referral invite was accepted!</p>
+          
+          <div class="congrats-card mb-4">
+            <div class="earned-label">Points Credited Successfully</div>
+            <div>
+              <span class="points-value">+500</span>
+              <span class="points-label-pts">pts</span>
+            </div>
+            <div class="rupee-value">Worth ₹2,500 in booking discounts</div>
+          </div>
+
+          <p class="text-muted mb-4" style="font-size: 0.95rem;">Your friend has successfully registered and booked. Your updated balance is <strong>{{ balance()?.points || 0 | number }} pts</strong>.</p>
+          
+          <button class="btn btn-gradient-primary w-100 py-2.5" style="font-weight: 700; border-radius: var(--radius-md);" (click)="closeCongratsModal()">
+            Awesome, Thanks!
+          </button>
+        </div>
+      </div>
+    }
+  }
+</div>

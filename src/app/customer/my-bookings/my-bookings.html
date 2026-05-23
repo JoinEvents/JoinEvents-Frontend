@@ -18,7 +18,7 @@
 
 <div class="bookings-layout">
   <!-- Booking List -->
-  <div class="bookings-list">
+  <div class="bookings-list" [class.hide-on-mobile]="selectedBooking() !== null">
     @for (b of filteredBookings(); track b.id) {
       <div class="booking-list-card" [class.active]="selectedBooking()?.id === b.id" (click)="selectBooking(b)">
         <div class="card-top-row">
@@ -53,7 +53,10 @@
 
   <!-- Booking Detail -->
   @if (selectedBooking(); as b) {
-    <div class="booking-detail">
+    <div class="booking-detail show-on-mobile">
+      <button class="btn-back-to-list" (click)="selectBooking(null)">
+        <i class="bi bi-arrow-left"></i> Back to Bookings
+      </button>
 
       <!-- Detail Header -->
       <div class="detail-header-card">
@@ -134,6 +137,14 @@
           </div>
         }
 
+        @if (selectedBooking()!.status === 'disputed') {
+          <div class="alert alert-warning mb-4 border-start border-warning border-4 animation-fade-in">
+            <h6 class="fw-bold mb-1 text-warning">Dispute Raised</h6>
+            <p class="small mb-0">Reason: <em>{{ selectedBooking()!.disputeInfo?.reason || 'No details provided' }}</em></p>
+            <p class="small mb-0">Status: <strong>{{ selectedBooking()!.disputeInfo?.status || 'Open' | titlecase }}</strong></p>
+          </div>
+        }
+
         <div class="mb-4">
           <h6 class="fw-bold mb-3">Service Timeline</h6>
         <div class="detail-info-grid">
@@ -157,7 +168,7 @@
       </div>
 
       <!-- Progress Stepper -->
-      <div class="detail-section-card">
+      <div class="detail-section-card mb-4">
         <div class="section-header">
           <h6 class="section-title"><i class="bi bi-signpost-2"></i> Booking Progress</h6>
           @if (b.status !== 'cancelled' && b.status !== 'settled') {
@@ -184,7 +195,7 @@
       </div>
 
       <!-- Payment Summary -->
-      <div class="detail-section-card">
+      <div class="detail-section-card mb-4">
         <div class="section-header">
           <h6 class="section-title"><i class="bi bi-wallet2"></i> Payment Summary</h6>
         </div>
@@ -218,7 +229,7 @@
 
       <!-- Invoice Downloads -->
       @if (b.status === 'advance_paid' || b.status === 'confirmed' || b.status === 'in_progress' || b.status === 'completed' || b.status === 'settled') {
-        <div class="detail-section-card">
+        <div class="detail-section-card mb-4">
           <div class="section-header">
             <h6 class="section-title"><i class="bi bi-file-earmark-text"></i> Documents & Invoices</h6>
           </div>
@@ -272,7 +283,7 @@
 
       <!-- Booked Services -->
       @if (b.services.length) {
-        <div class="detail-section-card">
+        <div class="detail-section-card mb-4">
           <div class="section-header">
             <h6 class="section-title"><i class="bi bi-grid-3x3-gap"></i> Booked Services</h6>
           </div>
@@ -284,8 +295,14 @@
                   <span class="srv-vendor">{{ s.vendorName }}</span>
                 </div>
                 <div class="srv-right">
-                  <span class="srv-price">₹{{ s.price.toLocaleString('en-IN') }}</span>
-                  <span class="srv-status {{ s.status === 'confirmed' ? 'confirmed' : '' }}">{{ s.status }}</span>
+                  <span class="srv-price">
+                    @if (s.price > 0) {
+                      ₹{{ s.price.toLocaleString('en-IN') }}
+                    } @else {
+                      Included
+                    }
+                  </span>
+                  <span class="srv-status {{ s.status === 'confirmed' || s.status === 'included' ? 'confirmed' : '' }}">{{ s.status === 'included' ? 'Included' : (s.status | titlecase) }}</span>
                 </div>
               </div>
             }
@@ -294,7 +311,7 @@
       }
 
       @if (b.notes) {
-        <div class="detail-section-card">
+        <div class="detail-section-card mb-4">
           <div class="section-header">
             <h6 class="section-title"><i class="bi bi-sticky"></i> Notes</h6>
           </div>
@@ -304,7 +321,7 @@
 
       <!-- Rating & Review Section -->
       @if (b.status === 'completed' || b.status === 'settled') {
-        <div class="detail-section-card review-section">
+        <div class="detail-section-card review-section mb-4">
           <div class="section-header">
             <h6 class="section-title"><i class="bi bi-star-half"></i> Event Feedback</h6>
           </div>
@@ -331,6 +348,10 @@
             @if (!submittedReviews()[b.id] || showReviewForm()) {
               <!-- Review Form -->
               <div class="review-form-container">
+                <div class="alert alert-info py-2 mb-3 animation-fade-in d-flex align-items-center gap-2" style="background-color: #f0f8ff; border: 1px solid #cce5ff; border-radius: 8px; color: #004085;">
+                  <i class="bi bi-gift-fill text-primary fs-5"></i>
+                  <span class="small mb-0"><strong>Earn 50 Points!</strong> Share your experience and get 50 loyalty points instantly.</span>
+                </div>
                 <p class="review-prompt">How was your experience with <strong>{{ b.packageName || 'the vendors' }}</strong>?</p>
                 
                 <div class="star-rating-input">
@@ -368,6 +389,12 @@
         </div>
       }
       </div>
+    </div>
+  } @else {
+    <div class="booking-detail-placeholder">
+      <i class="bi bi-calendar-check"></i>
+      <h4>Select a Booking</h4>
+      <p>Choose an event from the list on the left to track progress, download receipts/invoices, or submit feedback.</p>
     </div>
   }
 </div>

@@ -7,7 +7,7 @@ export interface BookingService {
   vendorId: string;
   vendorName: string;
   price: number;
-  status: 'pending' | 'confirmed' | 'completed';
+  status: 'pending' | 'confirmed' | 'completed' | 'included';
 }
 
 export interface Booking {
@@ -40,6 +40,10 @@ export interface Booking {
     reason: string;
     status: 'open' | 'resolved';
     resolution?: string;
+  };
+  review?: {
+    rating: number;
+    comment: string;
   };
   services: BookingService[];
   createdAt: string;

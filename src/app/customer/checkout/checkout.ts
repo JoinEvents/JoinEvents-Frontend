@@ -6,6 +6,7 @@ import { BookingService } from '../../core/services/booking.service';
 import { AuthService } from '../../core/services/auth.service';
 import { PackageService } from '../../core/services/package.service';
 import { ToastService } from '../../core/services/toast.service';
+import { LoyaltyService } from '../../core/services/loyalty.service';
 
 @Component({
   selector: 'app-checkout',
@@ -21,6 +22,7 @@ export class Checkout implements OnInit {
   private auth = inject(AuthService);
   private packageService = inject(PackageService);
   private toast = inject(ToastService);
+  private loyaltyService = inject(LoyaltyService);
 
   bookingDetails = signal<any | null>(null);
   
@@ -37,6 +39,12 @@ export class Checkout implements OnInit {
   appliedCoupon = signal('');
   couponError = signal('');
   couponSuccess = signal('');
+
+  // Loyalty Signals
+  availablePoints = signal(0);
+  pointsToRedeem = signal(0);
+  loyaltyDiscountAmount = signal(0);
+  pointsError = signal('');
 
   // Card Form Signals
   cardNumber = signal('');
@@ -72,10 +80,12 @@ export class Checkout implements OnInit {
   insurancePrice = computed(() => this.bookingDetails()?.includeInsurance ? (this.bookingDetails()?.insurancePrice || 0) : 0);
   
   discountAmount = computed(() => {
+    let discount = 0;
     if (this.appliedCoupon().toUpperCase() === 'WELCOME10') {
-      return Math.round(this.basePrice() * 0.1);
+      discount += Math.round(this.basePrice() * 0.1);
     }
-    return 0;
+    discount += this.loyaltyDiscountAmount();
+    return discount;
   });
 
   gstAmount = computed(() => {
@@ -133,6 +143,15 @@ export class Checkout implements OnInit {
   ngOnInit() {
     const pkgId = this.route.snapshot.paramMap.get('packageId');
     
+    // Fetch Loyalty Balance
+    const user = this.auth.currentUser();
+    if (user) {
+      this.loyaltyService.getBalance(user.id).subscribe({
+        next: (bal) => this.availablePoints.set(bal.points),
+        error: (err) => console.error('Failed to load points', err)
+      });
+    }
+
     // Read details from state or sessionStorage
     let details = history.state?.bookingDetails;
     if (!details) {
@@ -221,6 +240,40 @@ export class Checkout implements OnInit {
     this.couponCode.set('');
     this.couponSuccess.set('');
     this.couponError.set('');
+  }
+
+  applyPoints() {
+    this.pointsError.set('');
+    const pts = this.pointsToRedeem();
+    const user = this.auth.currentUser();
+    if (!user || pts <= 0) return;
+
+    this.isProcessing.set(true);
+    this.loyaltyService.calculateDiscount(user.id, pts).subscribe({
+      next: (res) => {
+        this.isProcessing.set(false);
+        if (res.valid) {
+          this.loyaltyDiscountAmount.set(res.discountAmount);
+          this.toast.success(`${pts} points applied for ₹${res.discountAmount} discount!`);
+        } else {
+          this.pointsError.set(res.errorMessage || 'Invalid points');
+          this.pointsToRedeem.set(0);
+          this.loyaltyDiscountAmount.set(0);
+        }
+      },
+      error: () => {
+        this.isProcessing.set(false);
+        this.pointsError.set('Failed to calculate discount.');
+        this.pointsToRedeem.set(0);
+        this.loyaltyDiscountAmount.set(0);
+      }
+    });
+  }
+
+  removePoints() {
+    this.pointsToRedeem.set(0);
+    this.loyaltyDiscountAmount.set(0);
+    this.pointsError.set('');
   }
 
   // Format credit card number with spaces
@@ -320,7 +373,13 @@ export class Checkout implements OnInit {
       Amount: this.payableAmount(),
       TotalAmount: this.totalAmount(),
       AdvanceAmount: this.paymentType() === 'advance' ? this.advanceAmount() : this.totalAmount(),
-      Status: 'Pending'
+      Status: 'Pending',
+      PackageId: this.cleanGuid(details.packageId),
+      PackageName: details.packageName,
+      EventName: details.packageName || 'Event Celebration',
+      Venue: details.bookingCity || 'Banquet Hall',
+      City: details.bookingCity || 'Mumbai',
+      GuestCount: parseInt(details.bookingGuests) || 100
     };
 
     this.bookingService.createBooking(bookingPayload).subscribe({
@@ -357,6 +416,11 @@ export class Checkout implements OnInit {
                   this.checkoutSuccess.set(true);
                   this.isProcessing.set(false);
                   
+                  // Redeem points if applied
+                  if (this.pointsToRedeem() > 0 && currentUserId) {
+                    this.loyaltyService.redeemPoints(currentUserId, { bookingId: bookingId, pointsToRedeem: this.pointsToRedeem() }).subscribe();
+                  }
+
                   // Clear sessionStorage since transaction is done
                   sessionStorage.removeItem('joinevents_booking_pending');
                 },

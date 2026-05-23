@@ -1,9 +1,9 @@
 import { Component, signal, OnInit, inject, ChangeDetectionStrategy } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
-import { MockApiService } from '../../core/services/mock-api.service';
-import { RfpService } from '../../core/services/rfp.service';
+import { DashboardService } from '../../core/services/dashboard.service';
 import { MessengerService } from '../../core/services/messenger.service';
+import { LoyaltyService } from '../../core/services/loyalty.service';
 import { EventType } from '../../core/models/event.model';
 import { Booking } from '../../core/models/booking.model';
 import { ChatThread } from '../../core/models/message.model';
@@ -14,21 +14,23 @@ import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-customer-dashboard',
-  imports: [RouterLink, CommonModule],
+  imports: [CommonModule, RouterLink],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.css',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class CustomerDashboard implements OnInit {
   private auth = inject(AuthService);
-  private api = inject(MockApiService);
-  private rfpService = inject(RfpService);
+  private dashboardService = inject(DashboardService);
   private messenger = inject(MessengerService);
+  private loyaltyService = inject(LoyaltyService);
 
   user = this.auth.currentUser;
+  loading = signal<boolean>(true);
   eventTypes = signal<EventType[]>([]);
   bookings = signal<Booking[]>([]);
   customerProfile = signal<any>(null);
+  loyaltyBalance = signal<any>(null);
   recentMessages = signal<ChatThread[]>([]);
   private toast = inject(ToastService);
   private router = inject(Router);
@@ -37,16 +39,18 @@ export class CustomerDashboard implements OnInit {
     { label: 'Upcoming Events', value: '0', icon: 'bi-calendar-event', gradient: 'linear-gradient(135deg,#FF6B35,#F59E0B)', iconBg: 'rgba(255,107,53,0.12)', iconColor: 'var(--primary)', route: '/bookings' },
     { label: 'Active Bookings', value: '0', icon: 'bi-journal-check', gradient: 'linear-gradient(135deg,#6B21A8,#9333EA)', iconBg: 'rgba(107,33,168,0.12)', iconColor: 'var(--secondary)', route: '/bookings' },
     { label: 'RFP Requests', value: '0', icon: 'bi-file-earmark-text', gradient: 'linear-gradient(135deg,#16A34A,#0EA5E9)', iconBg: 'rgba(22,163,74,0.12)', iconColor: 'var(--success)', route: '/rfp' },
-    { label: 'Loyalty Points', value: '0', icon: 'bi-star-half', gradient: 'linear-gradient(135deg,#F59E0B,#FF6B35)', iconBg: 'rgba(245,158,11,0.12)', iconColor: 'var(--accent)', route: '/profile' },
+    { label: 'Loyalty Points', value: '0', icon: 'bi-star-half', gradient: 'linear-gradient(135deg,#F59E0B,#FF6B35)', iconBg: 'rgba(245,158,11,0.12)', iconColor: 'var(--accent)', route: '/rewards' },
   ]);
 
   ngOnInit() {
-    this.api.getEventTypes().subscribe(t => this.eventTypes.set(t));
+    this.loading.set(true);
+    
+    this.dashboardService.getEventCategories().subscribe(t => this.eventTypes.set(t));
     
     const user = this.auth.currentUser();
     const userId = user?.id ?? 'c1';
 
-    this.api.getBookings(userId).subscribe(b => {
+    this.dashboardService.getBookings().subscribe(b => {
       this.bookings.set(b);
       const upcoming = b.filter(book => book.status === 'confirmed' || book.status === 'pending' || book.status === 'in_progress').length;
       const active = b.filter(book => book.status === 'confirmed' || book.status === 'in_progress').length;
@@ -57,9 +61,10 @@ export class CustomerDashboard implements OnInit {
         updated[1].value = active.toString();
         return updated;
       });
+      this.loading.set(false);
     });
 
-    this.rfpService.getRfps(userId).subscribe(rfps => {
+    this.dashboardService.getRfps().subscribe(rfps => {
       this.stats.update(s => {
         const updated = [...s];
         updated[2].value = rfps.length.toString();
@@ -67,17 +72,22 @@ export class CustomerDashboard implements OnInit {
       });
     });
 
-    this.api.getCustomers().subscribe(customers => {
-      const customer = customers.find(c => c.id === userId);
+    this.dashboardService.getCustomerProfile().subscribe(customer => {
       if (customer) {
         this.customerProfile.set(customer);
-        this.stats.update(s => {
-          const updated = [...s];
-          updated[3].value = customer.loyaltyPoints.toLocaleString();
-          return updated;
-        });
       }
     });
+
+    if (userId && userId !== 'c1') {
+      this.loyaltyService.getBalance(userId).subscribe(bal => {
+        this.loyaltyBalance.set(bal);
+        this.stats.update(s => {
+          const updated = [...s];
+          updated[3].value = bal.points.toLocaleString();
+          return updated;
+        });
+      });
+    }
 
     this.messenger.getChatThreads(userId).pipe(
       catchError(err => {

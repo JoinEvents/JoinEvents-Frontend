@@ -94,6 +94,10 @@
             <option>Ahmedabad</option>
           </select>
         </div>
+        <div class="col-12">
+          <label class="ee-form-label">Referral Code (Optional)</label>
+          <input type="text" class="ee-form-control" [(ngModel)]="form.referralCode" placeholder="Enter referral code">
+        </div>
       </div>
       <div class="d-flex gap-3 mt-4">
         <button class="btn-ee-outline flex-1" (click)="prevStep()"><i class="bi bi-arrow-left"></i> Back</button>
@@ -156,4 +160,15 @@
       </p>
     </div>
   </div>
+
+  @if (showCongregation) {
+    <div class="congregation-overlay">
+      <div class="congregation-card">
+        <div class="confetti-icon">🎉</div>
+        <h4>Congratulations!</h4>
+        <p>You used a referral code and earned <strong>500 Bonus Points</strong>!</p>
+        <div class="points-badge">+500 Points</div>
+      </div>
+    </div>
+  }
 </div>

@@ -1,12 +1,13 @@
 import { Component, signal, computed, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { MockApiService } from '../../core/services/mock-api.service';
+import { ReviewService } from '../../core/services/review.service';
 import { BookingService } from '../../core/services/booking.service';
 import { ToastService } from '../../core/services/toast.service';
 import { AuthService } from '../../core/services/auth.service';
 import { Booking } from '../../core/models/booking.model';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { LoyaltyService } from '../../core/services/loyalty.service';
 
 @Component({
   selector: 'app-my-bookings',
@@ -16,11 +17,12 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
   styleUrl: './my-bookings.css'
 })
 export class MyBookings implements OnInit {
-  private api = inject(MockApiService);
+  private reviewService = inject(ReviewService);
   private bookingService = inject(BookingService);
   private toast = inject(ToastService);
   private auth = inject(AuthService);
   private route = inject(ActivatedRoute);
+  private loyaltyService = inject(LoyaltyService);
   bookings = signal<Booking[]>([]);
   selectedBooking = signal<Booking | null>(null);
   activeFilter = signal<string>('all');
@@ -37,9 +39,9 @@ export class MyBookings implements OnInit {
   reviewForm = { rating: 5, comment: '' };
   submittedReviews = computed(() => {
     const revs: Record<string, {rating: number, comment: string, status: string}> = {};
-    this.api.globalReviews().forEach(r => {
-      if (r.status !== 'removed') {
-        revs[r.bookingId] = { rating: r.rating, comment: r.comment, status: r.status };
+    this.bookings().forEach(b => {
+      if (b.review) {
+        revs[b.id] = { rating: b.review.rating, comment: b.review.comment, status: 'published' };
       }
     });
     return revs;
@@ -86,7 +88,7 @@ export class MyBookings implements OnInit {
     });
   }
 
-  selectBooking(b: Booking) { 
+  selectBooking(b: Booking | null) { 
     this.selectedBooking.set(b); 
     this.showReviewForm.set(false); // Reset review form state when switching bookings
     this.reviewForm = { rating: 5, comment: '' }; // Reset form
@@ -129,12 +131,37 @@ export class MyBookings implements OnInit {
     this.submittingReview.set(true);
 
     const vendorId = b.services?.length ? b.services[0].vendorId : 'v1';
+    const userId = this.auth.currentUser()?.id || 'c1';
 
-    this.api.submitReview(b.id, vendorId, b.customerName, b.eventName, this.reviewForm.rating, this.reviewForm.comment)
-      .subscribe((newRev) => {
-        this.submittingReview.set(false);
-        this.showReviewForm.set(false);
-        this.toast.success('Thank you! Your review has been submitted and published instantly.');
+    const reviewPayload = {
+      bookingId: b.id,
+      vendorId: vendorId,
+      customerName: b.customerName || 'Customer',
+      eventName: b.eventName || 'Event',
+      rating: this.reviewForm.rating,
+      comment: this.reviewForm.comment.trim()
+    };
+
+    this.reviewService.submitReview(reviewPayload)
+      .subscribe(() => {
+        // Optimistically update frontend booking state
+        this.bookings.update(bs => bs.map(item => item.id === b.id ? { ...item, review: { rating: this.reviewForm.rating, comment: this.reviewForm.comment.trim() } } : item));
+        this.selectedBooking.update(item => item ? { ...item, review: { rating: this.reviewForm.rating, comment: this.reviewForm.comment.trim() } } : null);
+
+        // Claim review bonus points
+        this.loyaltyService.claimReviewBonus(userId, b.id).subscribe({
+          next: () => {
+            this.submittingReview.set(false);
+            this.showReviewForm.set(false);
+            this.toast.success('Thank you! Your review has been submitted and 50 points have been credited to your rewards!');
+          },
+          error: (err) => {
+            console.error('Failed to claim review points', err);
+            this.submittingReview.set(false);
+            this.showReviewForm.set(false);
+            this.toast.success('Thank you! Your review has been submitted successfully.');
+          }
+        });
       });
   }
 
@@ -171,7 +198,7 @@ export class MyBookings implements OnInit {
       this.toast.error('Please describe your dispute.');
       return;
     }
-    this.api.raiseDispute(b.id, this.disputeReason()).subscribe(() => {
+    this.bookingService.raiseDispute(b.id, this.disputeReason()).subscribe(() => {
       this.bookings.update(bs => bs.map(item => item.id === b.id ? { ...item, status: 'disputed', disputeInfo: { reason: this.disputeReason(), status: 'open' } } : item));
       this.selectedBooking.update(item => item ? { ...item, status: 'disputed', disputeInfo: { reason: this.disputeReason(), status: 'open' } } : null);
       this.showDisputePrompt.set(false);

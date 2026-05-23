@@ -181,6 +181,75 @@
   gap: 20px;
 }
 
+.btn-back-to-list {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  color: var(--primary);
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  padding: 0 0 16px 0;
+  width: fit-content;
+}
+.btn-back-to-list:hover {
+  color: var(--primary-dark);
+}
+.btn-back-to-list i {
+  font-size: 1.25rem;
+}
+
+.booking-detail-placeholder {
+  background: var(--bg-card);
+  border-radius: 24px;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+  padding: 60px 40px;
+  text-align: center;
+  color: var(--text-soft);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  height: 100%;
+}
+.booking-detail-placeholder i {
+  font-size: 4rem;
+  background: rgba(255, 107, 53, 0.05);
+  color: var(--primary);
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.booking-detail-placeholder h4 {
+  font-family: var(--font-heading);
+  font-weight: 800;
+  color: var(--text-main);
+  margin: 0;
+  font-size: 1.3rem;
+}
+.booking-detail-placeholder p {
+  font-size: 0.92rem;
+  color: var(--text-muted);
+  max-width: 320px;
+  margin: 0;
+  line-height: 1.6;
+}
+:host-context(.dark-theme) .booking-detail-placeholder {
+  background: #1e293b;
+  border-color: rgba(255,255,255,0.06);
+}
+:host-context(.dark-theme) .booking-detail-placeholder i {
+  background: rgba(255,107,53,0.1);
+}
+
 /* DETAIL HEADER */
 .detail-header-card {
   background: var(--bg-card);
@@ -372,6 +441,7 @@
   border: 1px solid var(--border-color);
   box-shadow: var(--shadow-sm);
   overflow: hidden;
+  margin-bottom: 24px;
 }
 
 .section-header {
@@ -516,8 +586,8 @@
 /* INVOICES */
 .invoices-grid {
   padding: 20px 24px;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 12px;
 }
 
@@ -611,30 +681,55 @@
   .bookings-layout { grid-template-columns: 1fr; }
   .bookings-list { 
     max-height: none; 
-    flex-direction: row; 
-    overflow-x: auto; 
-    padding-bottom: 8px;
-    -ms-overflow-style: none;  /* IE and Edge */
-    scrollbar-width: none;  /* Firefox */
+    flex-direction: column; 
+    overflow-x: visible; 
+    padding-bottom: 0;
   }
-  .booking-list-card { min-width: 280px; flex-shrink: 0; }
-  
-  /* Hide scrollbar for Chrome, Safari and Opera */
-  .bookings-list::-webkit-scrollbar { display: none; }
+  .bookings-list.hide-on-mobile {
+    display: none;
+  }
+  .booking-list-card { min-width: auto; flex-shrink: 1; }
+  .booking-detail { display: none; }
+  .booking-detail.show-on-mobile { display: flex; }
+  .btn-back-to-list { display: inline-flex; }
+  .booking-detail-placeholder { display: none; }
 }
 
 @media (max-width: 576px) {
   .detail-info-grid { grid-template-columns: 1fr; }
   .stepper { flex-direction: column; gap: 0; padding: 20px; }
-  .step { flex-direction: row; align-items: center; gap: 14px; min-width: auto; width: 100%; padding: 8px 0; }
-  .step-label { text-align: left; max-width: none; margin-top: 0; font-size: 0.82rem; }
+  .step { 
+    position: relative; 
+    display: flex;
+    flex-direction: row; 
+    align-items: flex-start; 
+    gap: 16px; 
+    min-width: auto; 
+    width: 100%; 
+    padding: 12px 0 24px 0; 
+  }
+  .step:last-child {
+    padding-bottom: 0;
+  }
+  .step-label { text-align: left; max-width: none; margin-top: 6px; font-size: 0.85rem; }
   .step-line {
+    display: none;
+  }
+  .step:not(:last-child)::after {
+    content: '';
     position: absolute;
-    top: 44px;
+    top: 48px; /* start below 36px dot + 12px padding */
     left: 17px;
-    right: auto;
+    bottom: 0;
     width: 2px;
-    height: 16px;
+    background: var(--border-color);
+    z-index: 1;
+  }
+  .step.done:not(:last-child)::after {
+    background: var(--success);
+  }
+  :host-context(.dark-theme) .step:not(:last-child)::after {
+    background: rgba(255,255,255,0.08);
   }
   .filter-bar { gap: 8px; }
   .filter-chip { padding: 8px 14px; font-size: 0.8rem; }

@@ -30,6 +30,12 @@ export class BookingService extends BaseApiService {
     );
   }
 
+  raiseDispute(bookingId: string, reason: string): Observable<boolean> {
+    return this.post<any>(`/bookings/${bookingId}/dispute`, { reason }, false).pipe(
+      map(() => true)
+    );
+  }
+
   createBooking(booking: any): Observable<any> {
     return this.post<any>('/booking', booking, false);
   }

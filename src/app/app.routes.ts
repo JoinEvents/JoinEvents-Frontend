@@ -25,6 +25,7 @@ export const routes: Routes = [
       { path: 'messages', loadComponent: () => import('./customer/messages/messages').then(m => m.CustomerMessages), canActivate: [authGuard('customer')] },
       { path: 'payments', loadComponent: () => import('./customer/payments/payments').then(m => m.CustomerPayments), canActivate: [authGuard('customer')] },
       { path: 'profile', loadComponent: () => import('./customer/profile/profile').then(m => m.CustomerProfile), canActivate: [authGuard('customer')] },
+      { path: 'rewards', loadComponent: () => import('./customer/rewards/rewards').then(m => m.CustomerRewards), canActivate: [authGuard('customer')] },
       { path: 'support', loadComponent: () => import('./customer/support/support').then(m => m.CustomerSupport), canActivate: [authGuard('customer')] },
       { path: 'notifications', loadComponent: () => import('./shared/pages/notifications/notifications').then(m => m.NotificationsPage), canActivate: [authGuard('customer')] },
     ]

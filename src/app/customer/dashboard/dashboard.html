@@ -1,4 +1,12 @@
 <div class="dashboard-wrapper">
+  @if (loading()) {
+    <div class="loading-state text-center py-5" style="min-height: 60vh; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+      <div class="spinner-border text-primary-ee mb-3" role="status" style="width: 3rem; height: 3rem;">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+      <h5 class="text-muted">Loading your dashboard...</h5>
+    </div>
+  } @else {
   <!-- Top Welcome Section -->
   <div class="welcome-hero-card mb-5" [style.background]="'var(--gradient-hero)'">
     <div class="hero-content">
@@ -159,27 +167,25 @@
       }
 
       <!-- Loyalty Card -->
-      <div class="loyalty-premium-card mb-4" routerLink="/profile" style="cursor: pointer;">
+      <div class="loyalty-premium-card mb-4" routerLink="/rewards" style="cursor: pointer;">
         <div class="loyalty-icon-circle"><i class="bi bi-gem"></i></div>
         <div class="loyalty-info text-center mt-3">
           <div class="loyalty-label">Loyalty Tier</div>
           <div class="loyalty-tier">
-            @if ((customerProfile()?.loyaltyPoints ?? 0) >= 1000) { Platinum Member }
-            @else if ((customerProfile()?.loyaltyPoints ?? 0) >= 400) { Gold Member }
-            @else { Silver Member }
+            {{ loyaltyBalance()?.tier || 'Bronze' }} Member
           </div>
           <div class="loyalty-progress mt-4">
             <div class="d-flex justify-content-between small text-white-50 mb-2">
-              @if ((customerProfile()?.loyaltyPoints ?? 0) < 1000) {
-                <span>Progress to Platinum</span>
-                <span>{{ customerProfile()?.loyaltyPoints ?? 0 }} / 1,000 pts</span>
+              @if ((loyaltyBalance()?.pointsToNextTier || 0) > 0) {
+                <span>Progress to Next Tier</span>
+                <span>{{ loyaltyBalance()?.points || 0 }} pts</span>
               } @else {
                 <span>Highest Tier Reached!</span>
-                <span>{{ customerProfile()?.loyaltyPoints ?? 0 }} pts</span>
+                <span>{{ loyaltyBalance()?.points || 0 }} pts</span>
               }
             </div>
             <div class="progress" style="height: 6px; background: rgba(255,255,255,0.1); border-radius: 10px;">
-              <div class="progress-bar bg-white" [style.width.%]="((customerProfile()?.loyaltyPoints ?? 0) / 1000) * 100" style="border-radius: 10px;"></div>
+              <div class="progress-bar bg-white" [style.width.%]="(loyaltyBalance()?.pointsToNextTier || 0) > 0 ? ((loyaltyBalance()?.points || 0) / (loyaltyBalance()?.points + loyaltyBalance()?.pointsToNextTier)) * 100 : 100" style="border-radius: 10px;"></div>
             </div>
           </div>
         </div>
@@ -199,4 +205,5 @@
       </div>
     </div>
   </div>
+  }
 </div>

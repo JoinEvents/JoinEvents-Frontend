@@ -27,6 +27,14 @@ export const API_ROUTES = {
     STATUS: (id: string) => `/vendor/packages/${id}/status`,
     IMAGES: (id: string) => `/vendor/packages/${id}/images`,
   },
+  CUSTOMER: {
+    PROFILE: '/customer/profile',
+    DASHBOARD: '/customer/dashboard',
+  },
+  EVENT_CATEGORIES: '/event-categories',
+  RFPS: {
+    MY: '/rfps',
+  },
   SERVICE_CATEGORIES: '/service-categories',
   NOTIFICATIONS: {
     BASE: '/notifications',

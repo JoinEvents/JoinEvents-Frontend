@@ -82,11 +82,11 @@ export class AuthService {
     );
   }
 
-  register(name: string, email: string, phone: string, password: string, role: UserRole): Observable<{ success: boolean; message: string }> {
+  register(name: string, email: string, phone: string, password: string, role: UserRole, referralCode?: string): Observable<{ success: boolean; message: string }> {
     localStorage.removeItem('joinevents_user');
     this.currentUser.set(null);
 
-    return this.http.post<any>(`${this.apiUrl}/auth/register`, { name, email, phone, password, role }).pipe(
+    return this.http.post<any>(`${this.apiUrl}/auth/register`, { name, email, phone, password, role, referralCode }).pipe(
       map(response => {
         if (response && response.token) {
           const user: AuthUser = {
@@ -98,8 +98,6 @@ export class AuthService {
           };
           localStorage.setItem('joinevents_user', JSON.stringify(user));
           this.currentUser.set(user);
-          const path = user.role === 'customer' ? '/dashboard' : `/${user.role}/dashboard`;
-          this.router.navigate([path]);
           return { success: true, message: 'Registration successful!' };
         }
         return { success: false, message: 'Invalid response from server.' };
