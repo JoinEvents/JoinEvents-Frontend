@@ -25,7 +25,7 @@
     @if (filteredNotifications().length > 0) {
     <div class="notifications-list card border-0 shadow-sm rounded-5 overflow-hidden">
         @for (n of filteredNotifications(); track n.id) {
-        <div class="notification-item" [class.unread]="!n.isRead">
+        <div class="notification-item" [class.unread]="!n.isRead" (click)="onNotificationClick(n)">
             <div class="item-icon" [style.background]="n.color + '15'" [style.color]="n.color">
                 <i class="bi {{ n.icon }}"></i>
             </div>
@@ -40,7 +40,7 @@
                 <p class="item-message">{{ n.message }}</p>
             </div>
             <div class="item-actions">
-                <button class="btn-delete" (click)="deleteNotification(n.id)" title="Remove">
+                <button class="btn-delete" (click)="$event.stopPropagation(); deleteNotification(n.id)" title="Remove">
                     <i class="bi bi-x-lg"></i>
                 </button>
             </div>

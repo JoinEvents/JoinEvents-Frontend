@@ -1,4 +1,7 @@
-import { Injectable, signal, computed, inject } from '@angular/core';
+import { Injectable, signal, computed, inject, effect } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Router } from '@angular/router';
+import { environment } from '../../../environments/environment';
 import { AuthService } from './auth.service';
 
 export interface NotificationItem {
@@ -15,6 +18,9 @@ export interface NotificationItem {
 @Injectable({ providedIn: 'root' })
 export class NotificationService {
   private auth = inject(AuthService);
+  private http = inject(HttpClient);
+  private router = inject(Router);
+  private apiUrl = environment.apiUrl;
 
   private notificationsList = signal<NotificationItem[]>([
     { id: 'notif-init-1', title: 'Booking Confirmed', message: 'Your booking for Wedding Reception has been confirmed.', type: 'booking', isRead: false, createdAt: '2026-05-07T21:00:00.000Z', targetRole: 'customer', targetUserId: 'c1' },
@@ -46,6 +52,52 @@ export class NotificationService {
     if (user) {
       this.loadPendingSessionNotifications(user.id);
     }
+
+    // Automatically fetch notifications from backend whenever the current user changes
+    effect(() => {
+      const currentUser = this.auth.currentUser();
+      if (currentUser) {
+        this.fetchNotifications();
+      }
+    }, { allowSignalWrites: true });
+  }
+
+  fetchNotifications() {
+    const user = this.auth.currentUser();
+    if (!user) return;
+
+    this.http.get<any[]>(`${this.apiUrl}/notifications`).subscribe({
+      next: (list) => {
+        const items: NotificationItem[] = list.map(n => {
+          const rawType = (n.type || n.Type || 'system').toLowerCase();
+          const allowedTypes = ['booking', 'message', 'payment', 'verification', 'system'];
+          const type = allowedTypes.includes(rawType) ? (rawType as any) : 'system';
+          
+          return {
+            id: n.id || n.Id,
+            title: n.title || n.Title,
+            message: n.message || n.Message,
+            type,
+            isRead: n.isRead !== undefined ? n.isRead : n.IsRead,
+            createdAt: n.createdAt || n.CreatedAt || new Date().toISOString(),
+            targetRole: user.role,
+            targetUserId: user.id
+          };
+        });
+
+        // Merge with existing notifications to keep local ones, avoiding duplicates
+        this.notificationsList.update(curr => {
+          const merged = [...curr];
+          items.forEach(item => {
+            if (!merged.some(m => m.id === item.id)) {
+              merged.push(item);
+            }
+          });
+          return merged;
+        });
+      },
+      error: (err) => console.error('Failed to fetch notifications from backend', err)
+    });
   }
 
   addNotification(n: Omit<NotificationItem, 'id' | 'isRead' | 'createdAt'>) {
@@ -84,6 +136,38 @@ export class NotificationService {
     );
   }
 
+  onNotificationClick(n: NotificationItem) {
+    this.markAsRead(n.id);
+    const role = this.auth.currentUser()?.role || 'customer';
+    
+    if (role === 'vendor') {
+      if (n.type === 'booking') {
+        this.router.navigate(['/vendor/bookings']);
+      } else if (n.type === 'message') {
+        this.router.navigate(['/vendor/messages']);
+      } else if (n.type === 'payment') {
+        this.router.navigate(['/vendor/finance']);
+      } else if (n.type === 'verification') {
+        this.router.navigate(['/vendor/verification']);
+      } else {
+        this.router.navigate(['/vendor/notifications']);
+      }
+    } else {
+      // Customer
+      if (n.type === 'booking') {
+        this.router.navigate(['/bookings']);
+      } else if (n.type === 'message') {
+        this.router.navigate(['/messages']);
+      } else if (n.type === 'payment') {
+        this.router.navigate(['/payments']);
+      } else if (n.type === 'system' || n.title.toLowerCase().includes('referral') || n.message.toLowerCase().includes('referral') || n.message.toLowerCase().includes('points')) {
+        this.router.navigate(['/rewards']);
+      } else {
+        this.router.navigate(['/notifications']);
+      }
+    }
+  }
+
   markAllAsRead() {
     const user = this.auth.currentUser();
     if (!user) return;
@@ -95,10 +179,35 @@ export class NotificationService {
         return n;
       })
     );
+
+    // Call backend API
+    this.http.put(`${this.apiUrl}/notifications/read-all`, {}).subscribe({
+      error: (err) => console.error('Failed to mark all as read in backend', err)
+    });
   }
 
   deleteNotification(id: string) {
     this.notificationsList.update(list => list.filter(n => n.id !== id));
+    
+    // Call backend API to delete from DB
+    this.http.delete(`${this.apiUrl}/notifications/${id}`).subscribe({
+      error: (err) => console.error(`Failed to delete notification ${id} in backend`, err)
+    });
+  }
+
+  clearAllNotifications() {
+    const user = this.auth.currentUser();
+    if (!user) return;
+    
+    // Update local state
+    this.notificationsList.update(list =>
+      list.filter(n => !(n.targetRole === user.role && (!n.targetUserId || n.targetUserId === user.id)))
+    );
+    
+    // Call backend API to clear all from DB
+    this.http.delete(`${this.apiUrl}/notifications/clear-all`).subscribe({
+      error: (err) => console.error('Failed to clear all notifications in backend', err)
+    });
   }
 
   loadPendingSessionNotifications(userId: string) {

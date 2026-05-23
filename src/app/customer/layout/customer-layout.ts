@@ -87,7 +87,6 @@ export class CustomerLayout {
   readonly navItems: NavItem[] = [
     { path: '/dashboard', icon: 'bi-grid-1x2',      label: 'Dashboard' },
     { path: '/events',    icon: 'bi-calendar-heart', label: 'Browse Events' },
-    { path: '/packages',  icon: 'bi-gift',           label: 'Packages' },
     { path: '/planner',   icon: 'bi-pencil-square',  label: 'Event Planner', protected: true },
     { path: '/rfp',       icon: 'bi-megaphone',      label: 'RFP Board', badge: 0, protected: true },
     { path: '/bookings',  icon: 'bi-journal-check',  label: 'My Bookings', protected: true },

@@ -1,5 +1,5 @@
 import { Component, signal } from '@angular/core';
-import { RouterLink, Router } from '@angular/router';
+import { RouterLink, Router, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { inject } from '@angular/core';
 import { UserRole } from '../../core/models/user.model';
@@ -16,6 +16,7 @@ export class Register {
   private auth = inject(AuthService);
   private toast = inject(ToastService);
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
   step = signal(1);
   role = signal<UserRole>('customer');
   isLoading = false;
@@ -24,6 +25,14 @@ export class Register {
   showCongregation = false;
 
   form = { name: '', email: '', phone: '', password: '', confirmPassword: '', businessName: '', city: '', agreeTerms: false, referralCode: '' };
+
+  constructor() {
+    this.route.queryParams.subscribe(params => {
+      if (params['ref']) {
+        this.form.referralCode = params['ref'];
+      }
+    });
+  }
 
   selectRole(r: UserRole) { this.role.set(r); }
   nextStep() { this.step.update(s => s + 1); }

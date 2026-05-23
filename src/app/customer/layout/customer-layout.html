@@ -111,7 +111,7 @@
           </div>
           <div class="notif-list">
             @for (n of notifications(); track n.id) {
-            <div class="notif-item" [class.unread]="!n.isRead">
+            <div class="notif-item" [class.unread]="!n.isRead" (click)="notifService.onNotificationClick(n); showNotifications.set(false)" style="cursor: pointer;">
               <div class="notif-icon" [style.background]="n.color + '20'" [style.color]="n.color">
                 <i class="bi {{ n.icon }}"></i>
               </div>

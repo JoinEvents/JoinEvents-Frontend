@@ -1,6 +1,4 @@
 .notifications-container {
-    max-width: 900px;
-    margin: 0 auto;
     padding: 20px 0;
 }
 
@@ -57,6 +55,13 @@
     border-bottom: 1px solid var(--border-color);
     transition: all 0.2s;
     position: relative;
+    cursor: pointer;
+}
+.notification-item:hover {
+    background: rgba(0, 0, 0, 0.015);
+}
+.notification-item.unread:hover {
+    background: rgba(255,107,53,0.06);
 }
 .notification-item:last-child { border-bottom: none; }
 .notification-item.unread { background: rgba(255,107,53,0.03); }
@@ -117,16 +122,19 @@
 :host-context(.dark-theme) .notifications-list.card {
     background: var(--bg-card) !important;
 }
-
 :host-context(.dark-theme) .notification-item {
     background: var(--bg-card) !important;
     border-bottom-color: rgba(255, 255, 255, 0.05);
 }
-
-:host-context(.dark-theme) .notification-item.unread {
-    background: rgba(255, 107, 53, 0.15) !important; /* Brighter highlight for visibility */
+:host-context(.dark-theme) .notification-item:hover {
+    background: rgba(255, 255, 255, 0.02) !important;
 }
-
+:host-context(.dark-theme) .notification-item.unread {
+    background: rgba(255, 107, 53, 0.15) !important;
+}
+:host-context(.dark-theme) .notification-item.unread:hover {
+    background: rgba(255, 107, 53, 0.22) !important;
+}
 :host-context(.dark-theme) .item-title {
     color: #F8FAFC !important;
 }

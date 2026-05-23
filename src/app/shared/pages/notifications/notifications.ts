@@ -70,6 +70,10 @@ export class NotificationsPage implements OnInit {
     this.notificationService.deleteNotification(id);
   }
 
+  onNotificationClick(n: any) {
+    this.notificationService.onNotificationClick(n);
+  }
+
   async clearAll() {
     const confirmed = await this.confirmService.ask({ 
       title: 'Clear Notifications',
@@ -79,9 +83,7 @@ export class NotificationsPage implements OnInit {
     });
 
     if (confirmed) {
-      this.notificationService.markAllAsRead();
-      const active = this.notificationService.activeNotifications();
-      active.forEach(n => this.notificationService.deleteNotification(n.id));
+      this.notificationService.clearAllNotifications();
     }
   }
 

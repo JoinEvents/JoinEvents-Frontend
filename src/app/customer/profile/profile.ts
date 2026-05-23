@@ -2,6 +2,7 @@ import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../core/services/auth.service';
+import { DashboardService } from '../../core/services/dashboard.service';
 import { MockApiService } from '../../core/services/mock-api.service';
 import { ChangePasswordComponent } from '../../shared/components/change-password/change-password';
 
@@ -14,6 +15,7 @@ import { ChangePasswordComponent } from '../../shared/components/change-password
 export class CustomerProfile implements OnInit {
   private auth = inject(AuthService);
   private api = inject(MockApiService);
+  private dashboardService = inject(DashboardService);
 
   user = this.auth.currentUser;
   showPasswordModal = signal(false);
@@ -33,6 +35,23 @@ export class CustomerProfile implements OnInit {
     const user = this.auth.currentUser();
     const userId = user?.id ?? 'c1';
 
+    if (userId && userId !== 'c1') {
+      this.dashboardService.getCustomerProfile().subscribe(profile => {
+        if (profile) {
+          this.loyaltyPoints.set(profile.loyaltyPoints);
+          this.profileData.phone = profile.phone || '';
+          this.profileData.name = profile.name;
+          this.profileData.email = profile.email;
+        } else {
+          this.loadMockProfile(userId);
+        }
+      });
+    } else {
+      this.loadMockProfile(userId);
+    }
+  }
+
+  private loadMockProfile(userId: string) {
     this.api.getCustomers().subscribe(customers => {
       const customer = customers.find(c => c.id === userId);
       if (customer) {
