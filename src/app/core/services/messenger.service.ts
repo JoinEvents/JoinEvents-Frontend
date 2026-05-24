@@ -48,13 +48,15 @@ export class MessengerService extends BaseApiService {
           lastMessageTime: t.UpdatedAt,
           unreadCount: t.UnreadCount,
           status: t.Status,
+          avatar: t.RecipientAvatar,
+          eventTitle: t.EventTitle,
           participants: [
             { id: userId, name: 'Me', role: role },
             { id: t.RecipientId, name: t.RecipientName, role: otherRole }
           ]
         } as ChatThread));
 
-        const totalUnread = mapped.filter(t => t.unreadCount > 0).length;
+        const totalUnread = mapped.reduce((sum, t) => sum + (t.unreadCount || 0), 0);
         this.unreadThreadsCount.set(totalUnread);
 
         mapped.forEach(t => {

@@ -19,6 +19,8 @@ export interface ChatThread {
   unreadCount: number;
   subject: string;
   status?: 'Pending' | 'Accepted' | 'Rejected' | 'Active' | 'Closed';
+  avatar?: string;
+  eventTitle?: string;
 }
 
 export interface SupportTicket {

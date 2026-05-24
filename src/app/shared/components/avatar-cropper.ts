@@ -33,13 +33,15 @@ import { ToastService } from '../../core/services/toast.service';
               <button class="btn-close-custom" (click)="cancelCrop()"><i class="bi bi-x-lg"></i></button>
             </div>
             
-            <div class="cropper-body">
+            <div class="cropper-body modal-body">
               <div class="crop-viewport-wrapper">
                 <div class="crop-viewport"
                      (mousedown)="startDrag($event)"
                      (touchstart)="startDrag($event)">
                   <img #cropImage
                        [src]="imageSrc() || ''"
+                       [style.width.px]="imageWidth()"
+                       [style.height.px]="imageHeight()"
                        [style.transform]="'translate(' + translateX() + 'px, ' + translateY() + 'px) scale(' + zoom() + ')'"
                        class="crop-image"
                        (load)="onImageLoaded($event)"
@@ -263,9 +265,10 @@ export class AvatarCropperComponent {
   private prevZoom = 1.0;
   translateX = signal<number>(0);
   translateY = signal<number>(0);
+  imageWidth = signal<number>(0);
+  imageHeight = signal<number>(0);
 
   private dragStartPos = { x: 0, y: 0 };
-  private imageOffset = { x: 0, y: 0 };
   private isDragging = false;
 
   // Image meta
@@ -312,15 +315,39 @@ export class AvatarCropperComponent {
 
     const reader = new FileReader();
     reader.onload = (e: any) => {
-      this.imageSrc.set(e.target.result);
-      this.zoom.set(1.0);
-      this.zoomValue = 1.0;
-      this.prevZoom = 1.0;
-      this.translateX.set(0);
-      this.translateY.set(0);
-      this.imageOffset = { x: 0, y: 0 };
-      this.showCropModal.set(true);
-      document.body.classList.add('modal-open');
+      const dataUrl = e.target.result;
+
+      const tempImg = new Image();
+      tempImg.onload = () => {
+        this.imgOriginalWidth = tempImg.naturalWidth;
+        this.imgOriginalHeight = tempImg.naturalHeight;
+
+        if (!this.imgOriginalWidth || !this.imgOriginalHeight) {
+          this.toast.error('Failed to load image properties.');
+          return;
+        }
+
+        const minSide = Math.min(this.imgOriginalWidth, this.imgOriginalHeight);
+        this.fittedScale = 250 / minSide;
+
+        this.imageSrc.set(dataUrl);
+        this.zoom.set(1.0);
+        this.zoomValue = 1.0;
+        this.prevZoom = 1.0;
+
+        const startX = (250 - this.imgOriginalWidth * this.fittedScale) / 2;
+        const startY = (250 - this.imgOriginalHeight * this.fittedScale) / 2;
+        
+        this.imageWidth.set(this.imgOriginalWidth * this.fittedScale);
+        this.imageHeight.set(this.imgOriginalHeight * this.fittedScale);
+        this.translateX.set(startX);
+        this.translateY.set(startY);
+        
+        this.showCropModal.set(true);
+        document.body.classList.add('modal-open');
+        this.boundPosition();
+      };
+      tempImg.src = dataUrl;
     };
     reader.readAsDataURL(file);
     event.target.value = '';
@@ -331,17 +358,19 @@ export class AvatarCropperComponent {
     this.imgOriginalWidth = img.naturalWidth;
     this.imgOriginalHeight = img.naturalHeight;
 
+    if (!this.imgOriginalWidth || !this.imgOriginalHeight) return;
+
     const minSide = Math.min(this.imgOriginalWidth, this.imgOriginalHeight);
     this.fittedScale = 250 / minSide;
 
-    img.style.width = `${this.imgOriginalWidth * this.fittedScale}px`;
-    img.style.height = `${this.imgOriginalHeight * this.fittedScale}px`;
+    this.imageWidth.set(this.imgOriginalWidth * this.fittedScale);
+    this.imageHeight.set(this.imgOriginalHeight * this.fittedScale);
 
     const startX = (250 - this.imgOriginalWidth * this.fittedScale) / 2;
     const startY = (250 - this.imgOriginalHeight * this.fittedScale) / 2;
     this.translateX.set(startX);
     this.translateY.set(startY);
-    this.imageOffset = { x: startX, y: startY };
+    this.boundPosition();
   }
 
   onZoomChange(): void {
@@ -383,14 +412,16 @@ export class AvatarCropperComponent {
     const deltaX = clientX - this.dragStartPos.x;
     const deltaY = clientY - this.dragStartPos.y;
 
-    this.translateX.set(this.imageOffset.x + deltaX);
-    this.translateY.set(this.imageOffset.y + deltaY);
+    this.translateX.set(this.translateX() + deltaX);
+    this.translateY.set(this.translateY() + deltaY);
+    this.boundPosition();
+
+    this.dragStartPos = { x: clientX, y: clientY };
   }
 
   private endDrag(): void {
     if (!this.isDragging) return;
     this.isDragging = false;
-    this.imageOffset = { x: this.translateX(), y: this.translateY() };
     this.boundPosition();
   }
 
@@ -418,12 +449,14 @@ export class AvatarCropperComponent {
 
     this.translateX.set(tx);
     this.translateY.set(ty);
-    this.imageOffset = { x: tx, y: ty };
   }
 
   cancelCrop(): void {
     this.showCropModal.set(false);
     this.imageSrc.set(null);
+    this.fittedScale = 1.0;
+    this.imgOriginalWidth = 0;
+    this.imgOriginalHeight = 0;
     document.body.classList.remove('modal-open');
   }
 

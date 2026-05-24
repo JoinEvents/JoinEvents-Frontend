@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { BookingService } from '../../core/services/booking.service';
+import { PaymentService } from '../../core/services/payment.service';
 import { AuthService } from '../../core/services/auth.service';
 import { PackageService } from '../../core/services/package.service';
 import { ToastService } from '../../core/services/toast.service';
@@ -19,6 +20,7 @@ export class Checkout implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private bookingService = inject(BookingService);
+  private paymentService = inject(PaymentService);
   private auth = inject(AuthService);
   private packageService = inject(PackageService);
   private toast = inject(ToastService);
@@ -80,6 +82,7 @@ export class Checkout implements OnInit {
   insurancePrice = computed(() => this.bookingDetails()?.includeInsurance ? (this.bookingDetails()?.insurancePrice || 0) : 0);
   
   discountAmount = computed(() => {
+    if (this.bookingDetails()?.isBalancePayment) return 0;
     let discount = 0;
     if (this.appliedCoupon().toUpperCase() === 'WELCOME10') {
       discount += Math.round(this.basePrice() * 0.1);
@@ -89,19 +92,35 @@ export class Checkout implements OnInit {
   });
 
   gstAmount = computed(() => {
+    const details = this.bookingDetails();
+    if (details?.isBalancePayment) {
+      return details.gstAmount || 0;
+    }
     const netBase = this.basePrice() + this.addonsTotal() - this.discountAmount();
     return Math.round(netBase * 0.18);
   });
 
   totalAmount = computed(() => {
+    const details = this.bookingDetails();
+    if (details?.isBalancePayment) {
+      return details.totalAmount || 0;
+    }
     return this.basePrice() + this.addonsTotal() + this.gstAmount() + this.insurancePrice() - this.discountAmount();
   });
 
   advanceAmount = computed(() => {
+    const details = this.bookingDetails();
+    if (details?.isBalancePayment) {
+      return details.advanceAmount || 0;
+    }
     return Math.round(this.totalAmount() * 0.2);
   });
 
   payableAmount = computed(() => {
+    const details = this.bookingDetails();
+    if (details?.isBalancePayment) {
+      return details.payableAmount || 0;
+    }
     return this.paymentType() === 'advance' ? this.advanceAmount() : this.totalAmount();
   });
 
@@ -363,6 +382,55 @@ export class Checkout implements OnInit {
     if (!details) return;
 
     this.isProcessing.set(true);
+
+    // If this is an existing booking balance payment, skip booking creation!
+    if (details.isBalancePayment && (details.id || details.bookingId)) {
+      const bookingId = details.id || details.bookingId;
+      this.processingStep.set('initiating');
+
+      const paymentPayload = {
+        bookingId: this.cleanGuid(bookingId),
+        paymentMethod: this.paymentMethod().toUpperCase(),
+        couponCode: undefined
+      };
+
+      this.paymentService.initiatePayment(paymentPayload).subscribe({
+        next: (paymentRes) => {
+          const providerRef = paymentRes.providerRef || paymentRes.ProviderRef;
+          this.paymentProviderRef.set(providerRef);
+          this.transactionId.set(paymentRes.paymentId || paymentRes.PaymentId);
+          
+          this.processingStep.set('verifying');
+          setTimeout(() => {
+            const confirmPayload = {
+              providerRef: providerRef,
+              status: 'success'
+            };
+
+            this.paymentService.confirmPayment(confirmPayload).subscribe({
+              next: () => {
+                this.processingStep.set('done');
+                this.checkoutSuccess.set(true);
+                this.isProcessing.set(false);
+                sessionStorage.removeItem('joinevents_booking_pending');
+              },
+              error: (err) => {
+                console.error('Payment confirmation error', err);
+                this.setErrorMessage(err.error?.error || 'Failed to confirm payment on server.');
+                this.isProcessing.set(false);
+              }
+            });
+          }, 2000);
+        },
+        error: (err) => {
+          console.error('Payment initiation error', err);
+          this.setErrorMessage(err.error?.error || 'Failed to initiate payment.');
+          this.isProcessing.set(false);
+        }
+      });
+      return;
+    }
+
     this.processingStep.set('creating');
 
     // 1. Create Booking in database (Pending Status)
@@ -394,7 +462,7 @@ export class Checkout implements OnInit {
           couponCode: this.appliedCoupon() || undefined
         };
 
-        this.bookingService.initiatePayment(paymentPayload).subscribe({
+        this.paymentService.initiatePayment(paymentPayload).subscribe({
           next: (paymentRes) => {
             const providerRef = paymentRes.providerRef || paymentRes.ProviderRef;
             this.paymentProviderRef.set(providerRef);
@@ -410,7 +478,7 @@ export class Checkout implements OnInit {
                 status: 'success'
               };
 
-              this.bookingService.confirmPayment(confirmPayload).subscribe({
+              this.paymentService.confirmPayment(confirmPayload).subscribe({
                 next: (confirmRes) => {
                   this.processingStep.set('done');
                   this.checkoutSuccess.set(true);

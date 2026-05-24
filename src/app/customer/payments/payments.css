@@ -24,3 +24,53 @@
 .br-row.balance-due { padding-top:12px;border-bottom:none;font-size:1rem; }
 .pay-note { font-size:0.75rem;color:var(--text-soft);text-align:center;margin-top:12px; }
 .settled-banner { background:rgba(22,163,74,0.1);border:1px solid rgba(22,163,74,0.25);border-radius:var(--radius-md);padding:14px 20px;color:var(--success);font-weight:600;text-align:center;margin-top:16px; }
+
+.payment-form-section { animation: fadeIn 0.35s cubic-bezier(0.4, 0, 0.2, 1); }
+.payment-tabs button {
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  color: var(--text-soft);
+  font-weight: 500;
+  border-radius: var(--radius-md);
+  transition: all var(--transition);
+}
+.payment-tabs button:hover {
+  background: var(--bg-light);
+  color: var(--text-main);
+  border-color: var(--text-muted);
+}
+.payment-tabs button.active {
+  background: rgba(255, 107, 53, 0.08);
+  border-color: var(--primary) !important;
+  color: var(--primary) !important;
+  font-weight: 600;
+}
+.btn-xs {
+  font-size: 0.75rem;
+  padding: 2px 6px;
+}
+.form-label-sm {
+  font-weight: 500;
+}
+.form-control-sm, .form-select-sm {
+  background-color: var(--bg-light) !important;
+  border: 1px solid var(--border-color) !important;
+  color: var(--text-main) !important;
+  border-radius: var(--radius-md) !important;
+  padding: 8px 12px !important;
+  font-size: 0.85rem !important;
+}
+.form-control-sm::placeholder {
+  color: var(--text-muted) !important;
+  opacity: 0.7;
+}
+.form-control-sm:focus, .form-select-sm:focus {
+  background-color: var(--bg-card) !important;
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 2px rgba(255, 107, 53, 0.15) !important;
+  color: var(--text-main) !important;
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}

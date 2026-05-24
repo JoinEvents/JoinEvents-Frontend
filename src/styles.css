@@ -1120,7 +1120,6 @@ h1,h2,h3,h4,h5,h6 {
 }
 .btn-close-custom:hover { background: var(--danger); color: white; transform: rotate(90deg); }
 
-/* Prevent background scrolling when modals/dialogs are open */
 body.modal-open,
 body:has(.modal-overlay),
 body:has(.confirm-overlay),
@@ -1129,6 +1128,17 @@ body:has(.planner-modal-overlay),
 body:has(.success-overlay),
 body:has(.sheet-overlay) {
   overflow: hidden !important;
+}
+
+/* Prevent containing block and clipping issues on modal parents */
+body:has(.modal-overlay) .ee-card,
+body:has(.modal-overlay) .avatar-uploader-container,
+body:has(.modal-overlay) .avatar-container,
+body.modal-open .ee-card,
+body.modal-open .avatar-uploader-container,
+body.modal-open .avatar-container {
+  transform: none !important;
+  overflow: visible !important;
 }
 
 /* Ensure all popups fit the screen height (max 90vh) and have scroll behavior */

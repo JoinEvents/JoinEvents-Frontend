@@ -13,30 +13,32 @@
         <div class="checkout-main-content">
           
           <!-- Section 1: Choose Payment Split -->
-          <div class="checkout-card">
-            <h3 class="card-section-title"><i class="bi bi-cash-stack text-purple me-2"></i> 1. Select Payment Split</h3>
-            <p class="section-desc">Choose whether to secure your booking with a 20% advance deposit or pay the full amount upfront.</p>
-            
-            <div class="payment-split-options">
-              <label class="split-option-card" [class.active]="paymentType() === 'advance'" (click)="paymentType.set('advance')">
-                <input type="radio" name="paymentSplit" value="advance" [checked]="paymentType() === 'advance'" class="d-none">
-                <div class="split-info">
-                  <span class="split-title">Pay 20% Advance Deposit</span>
-                  <span class="split-amount">₹{{ advanceAmount() | number }}</span>
-                </div>
-                <div class="split-badge">Secures Booking</div>
-              </label>
+          @if (!bookingDetails()?.isBalancePayment) {
+            <div class="checkout-card">
+              <h3 class="card-section-title"><i class="bi bi-cash-stack text-purple me-2"></i> 1. Select Payment Split</h3>
+              <p class="section-desc">Choose whether to secure your booking with a 20% advance deposit or pay the full amount upfront.</p>
+              
+              <div class="payment-split-options">
+                <label class="split-option-card" [class.active]="paymentType() === 'advance'" (click)="paymentType.set('advance')">
+                  <input type="radio" name="paymentSplit" value="advance" [checked]="paymentType() === 'advance'" class="d-none">
+                  <div class="split-info">
+                    <span class="split-title">Pay 20% Advance Deposit</span>
+                    <span class="split-amount">₹{{ advanceAmount() | number }}</span>
+                  </div>
+                  <div class="split-badge">Secures Booking</div>
+                </label>
 
-              <label class="split-option-card" [class.active]="paymentType() === 'full'" (click)="paymentType.set('full')">
-                <input type="radio" name="paymentSplit" value="full" [checked]="paymentType() === 'full'" class="d-none">
-                <div class="split-info">
-                  <span class="split-title">Pay Full & Final Amount</span>
-                  <span class="split-amount">₹{{ totalAmount() | number }}</span>
-                </div>
-                <div class="split-badge success">Zero Balance Due</div>
-              </label>
+                <label class="split-option-card" [class.active]="paymentType() === 'full'" (click)="paymentType.set('full')">
+                  <input type="radio" name="paymentSplit" value="full" [checked]="paymentType() === 'full'" class="d-none">
+                  <div class="split-info">
+                    <span class="split-title">Pay Full & Final Amount</span>
+                    <span class="split-amount">₹{{ totalAmount() | number }}</span>
+                  </div>
+                  <div class="split-badge success">Zero Balance Due</div>
+                </label>
+              </div>
             </div>
-          </div>
+          }
 
           <!-- Section 2: Choose Payment Method -->
           <div class="checkout-card mt-4">
@@ -270,69 +272,80 @@
               }
 
               <!-- Coupon Code Area -->
-              <div class="coupon-section mt-3 mb-3">
-                @if (appliedCoupon()) {
-                  <div class="applied-coupon-row">
-                    <div class="d-flex align-items-center gap-2">
-                      <i class="bi bi-tag-fill text-purple"></i>
-                      <span class="coupon-tag">{{ appliedCoupon() }}</span>
+              @if (!bookingDetails()?.isBalancePayment) {
+                <div class="coupon-section mt-3 mb-3">
+                  @if (appliedCoupon()) {
+                    <div class="applied-coupon-row">
+                      <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-tag-fill text-purple"></i>
+                        <span class="coupon-tag">{{ appliedCoupon() }}</span>
+                      </div>
+                      <button class="btn-remove-coupon" (click)="removeCoupon()"><i class="bi bi-x"></i></button>
                     </div>
-                    <button class="btn-remove-coupon" (click)="removeCoupon()"><i class="bi bi-x"></i></button>
-                  </div>
-                  @if (discountAmount() > 0) {
-                    <div class="price-row discount-row animation-fade-in">
-                      <span>Discount (10%)</span>
-                      <span class="text-success">- ₹{{ discountAmount() | number }}</span>
+                    @if (discountAmount() > 0) {
+                      <div class="price-row discount-row animation-fade-in">
+                        <span>Discount (10%)</span>
+                        <span class="text-success">- ₹{{ discountAmount() | number }}</span>
+                      </div>
+                    }
+                  } @else {
+                    <div class="coupon-input-group">
+                      <input type="text" class="coupon-input" [ngModel]="couponCode()" (ngModelChange)="couponCode.set($event)" placeholder="Promo code (e.g. WELCOME10)">
+                      <button class="btn-coupon-apply" (click)="applyCoupon()">Apply</button>
                     </div>
+                    @if (couponError()) {
+                      <span class="coupon-msg-err">{{ couponError() }}</span>
+                    }
+                    @if (couponSuccess()) {
+                      <span class="coupon-msg-ok">{{ couponSuccess() }}</span>
+                    }
                   }
-                } @else {
-                  <div class="coupon-input-group">
-                    <input type="text" class="coupon-input" [ngModel]="couponCode()" (ngModelChange)="couponCode.set($event)" placeholder="Promo code (e.g. WELCOME10)">
-                    <button class="btn-coupon-apply" (click)="applyCoupon()">Apply</button>
-                  </div>
-                  @if (couponError()) {
-                    <span class="coupon-msg-err">{{ couponError() }}</span>
-                  }
-                  @if (couponSuccess()) {
-                    <span class="coupon-msg-ok">{{ couponSuccess() }}</span>
-                  }
-                }
-              </div>
+                </div>
+              }
 
               <!-- Loyalty Points Area -->
-              <div class="loyalty-section mt-3 mb-3 p-3 bg-light rounded border border-light">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                  <span class="fw-bold"><i class="bi bi-award text-primary me-2"></i>Use Loyalty Points</span>
-                  <span class="badge bg-primary text-white">Avail: {{ availablePoints() }} pts</span>
-                </div>
-                @if (pointsToRedeem() > 0) {
-                  <div class="applied-coupon-row">
-                    <div class="d-flex align-items-center gap-2">
-                      <i class="bi bi-check-circle-fill text-success"></i>
-                      <span class="coupon-tag">{{ pointsToRedeem() }} Points Applied</span>
+              @if (!bookingDetails()?.isBalancePayment) {
+                <div class="loyalty-section mt-3 mb-3 p-3 bg-light rounded border border-light">
+                  <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="fw-bold"><i class="bi bi-award text-primary me-2"></i>Use Loyalty Points</span>
+                    <span class="badge bg-primary text-white">Avail: {{ availablePoints() }} pts</span>
+                  </div>
+                  @if (pointsToRedeem() > 0) {
+                    <div class="applied-coupon-row">
+                      <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-check-circle-fill text-success"></i>
+                        <span class="coupon-tag">{{ pointsToRedeem() }} Points Applied</span>
+                      </div>
+                      <button class="btn-remove-coupon" (click)="removePoints()"><i class="bi bi-x"></i></button>
                     </div>
-                    <button class="btn-remove-coupon" (click)="removePoints()"><i class="bi bi-x"></i></button>
-                  </div>
-                  <div class="price-row discount-row animation-fade-in mt-2">
-                    <span>Points Discount</span>
-                    <span class="text-success">- ₹{{ pointsToRedeem() * 5 }}</span>
-                  </div>
-                } @else {
-                  <div class="coupon-input-group">
-                    <input type="number" class="coupon-input" [ngModel]="pointsToRedeem()" (ngModelChange)="pointsToRedeem.set($event)" placeholder="Points to redeem (mult of 100)">
-                    <button class="btn-coupon-apply bg-primary" (click)="applyPoints()">Apply</button>
-                  </div>
-                  <small class="text-muted">100 points = ₹500 discount</small>
-                  @if (pointsError()) {
-                    <span class="coupon-msg-err d-block mt-1">{{ pointsError() }}</span>
+                    <div class="price-row discount-row animation-fade-in mt-2">
+                      <span>Points Discount</span>
+                      <span class="text-success">- ₹{{ pointsToRedeem() * 5 }}</span>
+                    </div>
+                  } @else {
+                    <div class="coupon-input-group">
+                      <input type="number" class="coupon-input" [ngModel]="pointsToRedeem()" (ngModelChange)="pointsToRedeem.set($event)" placeholder="Points to redeem (mult of 100)">
+                      <button class="btn-coupon-apply bg-primary" (click)="applyPoints()">Apply</button>
+                    </div>
+                    <small class="text-muted">100 points = ₹500 discount</small>
+                    @if (pointsError()) {
+                      <span class="coupon-msg-err d-block mt-1">{{ pointsError() }}</span>
+                    }
                   }
-                }
-              </div>
+                </div>
+              }
 
               <div class="price-row">
                 <span>GST (18%)</span>
                 <span>₹{{ gstAmount() | number }}</span>
               </div>
+
+              @if (bookingDetails()?.isBalancePayment) {
+                <div class="price-row paid-row text-success">
+                  <span>Advance Deposit Paid</span>
+                  <span>- ₹{{ advanceAmount() | number }}</span>
+                </div>
+              }
 
               <hr class="summary-divider">
 
@@ -346,7 +359,7 @@
                 <span class="payable-today-value">₹{{ payableAmount() | number }}</span>
               </div>
 
-              @if (paymentType() === 'advance') {
+              @if (paymentType() === 'advance' && !bookingDetails()?.isBalancePayment) {
                 <div class="price-row balance-due-hint mt-1 text-end small-text text-muted">
                   <span>Balance of 80% (₹{{ (totalAmount() - advanceAmount()) | number }}) due post-event</span>
                 </div>

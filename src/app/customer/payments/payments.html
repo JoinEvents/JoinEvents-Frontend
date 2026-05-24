@@ -55,8 +55,8 @@
         </div>
 
         @if (b.status !== 'settled' && b.status !== 'cancelled') {
-          <button class="btn-ee-primary w-100 justify-content-center py-3 mt-4">
-            <i class="bi bi-lock"></i> Pay Balance — ₹{{ balance(b).toLocaleString('en-IN') }}
+          <button class="btn-ee-primary w-100 justify-content-center py-3 mt-4" (click)="payBalance(b)">
+            <i class="bi bi-credit-card me-2"></i> Pay Balance — ₹{{ balance(b).toLocaleString('en-IN') }}
           </button>
           <p class="pay-note">Payments are 100% secure. GST invoice will be shared after final payment.</p>
         } @else if (b.status === 'settled') {

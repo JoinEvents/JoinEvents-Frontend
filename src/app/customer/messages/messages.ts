@@ -106,7 +106,7 @@ export class CustomerMessages implements OnInit, AfterViewChecked {
       }
     });
 
-    // Background polling for messages: restart polling instantly when selectedThread changes
+    // Background polling for messages every 3 seconds
     this.selectedThread$.pipe(
       takeUntilDestroyed(this.destroyRef),
       switchMap(active => {
@@ -129,18 +129,13 @@ export class CustomerMessages implements OnInit, AfterViewChecked {
         );
       })
     ).subscribe(newMsgs => {
-      const currentIds = this.messages().filter(m => typeof m.id === 'string' && !m.id.startsWith('temp-')).map(m => m.id || '').join(',');
-      const newIds = newMsgs.map(m => m.id || '').join(',');
-      if (newIds !== currentIds) {
-        this.messages.set(newMsgs);
-        setTimeout(() => this.scrollToBottom(), 50);
-        
-        // Refresh threads list to update navigation counts immediately
-        const userId = this.user()?.id || 'c1';
-        this.messenger.getChatThreads(userId).subscribe(updated => {
-          this.threads.set(updated);
-        });
-      }
+      this.messages.set(newMsgs);
+      setTimeout(() => this.scrollToBottom(), 50);
+
+      const userId = this.user()?.id || 'c1';
+      this.messenger.getChatThreads(userId).subscribe(updated => {
+        this.threads.set(updated);
+      });
     });
 
     // Background polling for threads/status every 5 seconds
@@ -185,6 +180,17 @@ export class CustomerMessages implements OnInit, AfterViewChecked {
     this.selectedThread.set(t);
     this.messenger.activeThreadId.set(t.id);
     this.messages.set([]);
+
+    if (t.unreadCount > 0) {
+      t.unreadCount = 0;
+      this.threads.update(list => list.map(item => item.id === t.id ? { ...item, unreadCount: 0 } : item));
+      this.messenger.markAsRead(t.id).subscribe(() => {
+        const currentThreads = this.threads();
+        const totalUnread = currentThreads.reduce((sum, item) => sum + (item.unreadCount || 0), 0);
+        this.messenger.unreadThreadsCount.set(totalUnread);
+      });
+    }
+
     setTimeout(() => this.scrollToBottom(), 50);
   }
 
@@ -235,7 +241,11 @@ export class CustomerMessages implements OnInit, AfterViewChecked {
   }
   formatTime(ts?: string): string {
     if (!ts) return '';
-    const date = new Date(ts);
+    let dateStr = ts;
+    if (typeof dateStr === 'string' && !dateStr.endsWith('Z') && !dateStr.includes('+') && !dateStr.includes('-')) {
+      dateStr += 'Z';
+    }
+    const date = new Date(dateStr);
     if (isNaN(date.getTime())) return '';
     
     const now = new Date();

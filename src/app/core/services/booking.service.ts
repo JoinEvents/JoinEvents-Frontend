@@ -39,12 +39,4 @@ export class BookingService extends BaseApiService {
   createBooking(booking: any): Observable<any> {
     return this.post<any>('/booking', booking, false);
   }
-
-  initiatePayment(req: { bookingId: string; paymentMethod: string; couponCode?: string }): Observable<any> {
-    return this.post<any>('/payment/initiate', req, false);
-  }
-
-  confirmPayment(payload: { providerRef: string; status: string }): Observable<any> {
-    return this.post<any>('/payment/confirm', payload, false);
-  }
 }
