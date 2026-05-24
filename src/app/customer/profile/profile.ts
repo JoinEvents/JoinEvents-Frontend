@@ -1,73 +1,106 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, OnInit, OnDestroy, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../core/services/auth.service';
-import { DashboardService } from '../../core/services/dashboard.service';
-import { MockApiService } from '../../core/services/mock-api.service';
+import { ProfileService } from '../../core/services/profile.service';
+import { ToastService } from '../../core/services/toast.service';
 import { ChangePasswordComponent } from '../../shared/components/change-password/change-password';
+import { AvatarCropperComponent } from '../../shared/components/avatar-cropper';
 
 @Component({
   selector: 'app-customer-profile',
   standalone: true,
-  imports: [CommonModule, FormsModule, ChangePasswordComponent],
+  imports: [CommonModule, FormsModule, ChangePasswordComponent, AvatarCropperComponent],
   templateUrl: './profile.html'
 })
-export class CustomerProfile implements OnInit {
+export class CustomerProfile implements OnInit, OnDestroy {
   private auth = inject(AuthService);
-  private api = inject(MockApiService);
-  private dashboardService = inject(DashboardService);
+  private profileService = inject(ProfileService);
+  private toast = inject(ToastService);
 
   user = this.auth.currentUser;
   showPasswordModal = signal(false);
-  loyaltyPoints = signal<number>(450);
+  showDeleteModal = signal(false);
+  loyaltyPoints = signal<number>(0);
+
+  constructor() {
+    effect(() => {
+      document.body.classList.toggle('modal-open', this.showDeleteModal());
+    });
+  }
+
+  ngOnDestroy() {
+    document.body.classList.remove('modal-open');
+  }
 
   profileData = {
     name: this.user()?.name || '',
     email: this.user()?.email || '',
-    phone: '+91 98765 43210',
-    address: '123, Jubilee Hills, Hyderabad, Telangana',
-    bio: 'Looking for the best event planners for my family functions.'
+    phone: '',
+    address: '',
+    bio: '',
+    emailNotifications: true,
+    inAppNotifications: true,
+    smsNotifications: false
   };
 
   isEditing = signal(false);
 
   ngOnInit() {
-    const user = this.auth.currentUser();
-    const userId = user?.id ?? 'c1';
-
-    if (userId && userId !== 'c1') {
-      this.dashboardService.getCustomerProfile().subscribe(profile => {
-        if (profile) {
-          this.loyaltyPoints.set(profile.loyaltyPoints);
-          this.profileData.phone = profile.phone || '';
-          this.profileData.name = profile.name;
-          this.profileData.email = profile.email;
-        } else {
-          this.loadMockProfile(userId);
-        }
-      });
-    } else {
-      this.loadMockProfile(userId);
-    }
+    this.profileService.getProfile().subscribe(profile => {
+      if (profile) {
+        this.loyaltyPoints.set(profile.loyaltyPoints || 0);
+        this.profileData.phone = profile.phone || '';
+        this.profileData.name = profile.name || this.user()?.name || '';
+        this.profileData.email = profile.email || this.user()?.email || '';
+        this.profileData.address = profile.address || '';
+        this.profileData.bio = profile.bio || '';
+        this.profileData.emailNotifications = profile.emailNotifications ?? true;
+        this.profileData.inAppNotifications = profile.inAppNotifications ?? true;
+        this.profileData.smsNotifications = profile.smsNotifications ?? false;
+      }
+    });
   }
 
-  private loadMockProfile(userId: string) {
-    this.api.getCustomers().subscribe(customers => {
-      const customer = customers.find(c => c.id === userId);
-      if (customer) {
-        this.loyaltyPoints.set(customer.loyaltyPoints);
-        this.profileData.phone = customer.phone || '+91 98765 43210';
-        this.profileData.name = customer.name;
-        this.profileData.email = customer.email;
+  updateNotificationSetting(key: 'emailNotifications' | 'inAppNotifications' | 'smsNotifications', event: any) {
+    const value = event.target.checked;
+    this.profileData[key] = value;
+    this.profileService.updateProfile({ [key]: value }).subscribe({
+      next: (res) => {
+        if (res) {
+          this.toast.success('Notification settings updated! 🔔');
+        } else {
+          this.toast.error('Failed to update notification settings.');
+          event.target.checked = !value;
+          this.profileData[key] = !value;
+        }
+      },
+      error: () => {
+        this.toast.error('An error occurred while updating settings.');
+        event.target.checked = !value;
+        this.profileData[key] = !value;
       }
     });
   }
 
   saveProfile() {
-    this.isEditing.set(false);
+    this.profileService.updateProfile(this.profileData).subscribe({
+      next: (res) => {
+        if (res) {
+          this.isEditing.set(false);
+          this.toast.success('Profile updated successfully! ✨');
+        } else {
+          this.toast.error('Failed to update profile. Please try again.');
+        }
+      },
+      error: () => {
+        this.toast.error('An error occurred while saving your profile.');
+      }
+    });
   }
 
   getInitials(name: string) {
+    if (!name) return '';
     return name.split(' ').map(n => n[0]).join('').toUpperCase();
   }
 
@@ -90,5 +123,26 @@ export class CustomerProfile implements OnInit {
     if (pts >= 1000) return '#E2E8F0';
     if (pts >= 400) return '#F59E0B';
     return '#94A3B8';
+  }
+
+  deleteAccount() {
+    this.showDeleteModal.set(true);
+  }
+
+  confirmDeleteAccount() {
+    this.showDeleteModal.set(false);
+    this.profileService.deleteAccount().subscribe({
+      next: (res) => {
+        if (res?.success) {
+          this.toast.success('Your account has been successfully deleted.');
+          this.auth.logout();
+        } else {
+          this.toast.error(res?.error || 'Failed to delete account. Please try again.');
+        }
+      },
+      error: () => {
+        this.toast.error('An error occurred while deleting your account.');
+      }
+    });
   }
 }

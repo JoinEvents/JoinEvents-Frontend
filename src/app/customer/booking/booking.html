@@ -636,8 +636,8 @@
 
   <!-- Mobile Booking Sheet -->
   @if (showMobileBooking()) {
-    <div class="sheet-overlay" (click)="showMobileBooking.set(false)">
-      <div class="sheet-content" (click)="$event.stopPropagation()">
+    <div class="sheet-overlay">
+      <div class="sheet-content">
         <div class="sheet-handle-bar">
           <div class="sheet-handle"></div>
         </div>
@@ -708,8 +708,8 @@
 
   <!-- Service Detail Modal -->
   @if (selectedServiceDetail()) {
-    <div class="success-overlay service-modal-overlay" (click)="selectedServiceDetail.set(null)">
-      <div class="service-modal-card fade-in-up" (click)="$event.stopPropagation()">
+    <div class="success-overlay service-modal-overlay">
+      <div class="service-modal-card fade-in-up">
         <button class="modal-close-btn" (click)="selectedServiceDetail.set(null)">
           <i class="bi bi-x-lg"></i>
         </button>

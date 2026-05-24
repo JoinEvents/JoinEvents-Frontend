@@ -1,4 +1,4 @@
-import { Component, signal, OnInit, inject, computed, ViewChild, ElementRef, NgZone, AfterViewInit } from '@angular/core';
+import { Component, signal, OnInit, OnDestroy, inject, computed, ViewChild, ElementRef, NgZone, AfterViewInit, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
@@ -15,12 +15,22 @@ declare var google: any;
   templateUrl: './add-service.html',
   styleUrl: './add-service.css'
 })
-export class VendorAddService implements OnInit {
+export class VendorAddService implements OnInit, OnDestroy {
   private api = inject(VendorPackageService);
   private eventCategoryService = inject(EventCategoryService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private ngZone = inject(NgZone);
+
+  constructor() {
+    effect(() => {
+      document.body.classList.toggle('modal-open', this.showVerificationModal());
+    });
+  }
+
+  ngOnDestroy() {
+    document.body.classList.remove('modal-open');
+  }
 
   @ViewChild('addressSearch') set addressSearch(content: ElementRef) {
     if (content) {

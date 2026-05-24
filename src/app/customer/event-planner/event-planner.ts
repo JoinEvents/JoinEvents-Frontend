@@ -1,4 +1,4 @@
-import { Component, signal, inject, OnInit } from '@angular/core';
+import { Component, signal, inject, OnInit, OnDestroy, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -17,12 +17,22 @@ interface PlannerService { category: string; name: string; price: number; qty: n
   templateUrl: './event-planner.html', 
   styleUrl: './event-planner.css' 
 })
-export class EventPlanner implements OnInit {
+export class EventPlanner implements OnInit, OnDestroy {
   private api = inject(MockApiService);
   private auth = inject(AuthService);
   private rfpService = inject(RfpService);
   private notifService = inject(NotificationService);
   private router = inject(Router);
+
+  constructor() {
+    effect(() => {
+      document.body.classList.toggle('modal-open', this.showSuccessModal());
+    });
+  }
+
+  ngOnDestroy() {
+    document.body.classList.remove('modal-open');
+  }
 
   categories = signal<ServiceCategoryDef[]>([]);
   selectedServices = signal<PlannerService[]>([]);

@@ -52,6 +52,23 @@ export class CustomerLayout {
     this.checkScreenSize();
   }
 
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent) {
+    const target = event.target as HTMLElement;
+    
+    if (this.showProfileDropdown() && !target.closest('.position-relative:has(.topbar-avatar)')) {
+      this.showProfileDropdown.set(false);
+    }
+    
+    if (this.showNotifications() && !target.closest('.position-relative:has(i.bi-bell)')) {
+      this.showNotifications.set(false);
+    }
+    
+    if (this.showFavorites() && !target.closest('.position-relative:has(i.bi-heart)')) {
+      this.showFavorites.set(false);
+    }
+  }
+
   private checkScreenSize() {
     // Automatically unpin if screen width is less than 1200px (standard XL breakpoint)
     if (window.innerWidth < 1200) {

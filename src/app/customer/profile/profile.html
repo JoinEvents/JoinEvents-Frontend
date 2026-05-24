@@ -6,8 +6,10 @@
 <div class="row g-4">
   <div class="col-12 col-lg-4">
     <div class="ee-card text-center p-4">
-      <div class="profile-avatar-lg mx-auto mb-3">
-        {{ getInitials(user()?.name || '') }}
+      <div class="mb-3">
+        <app-avatar-cropper 
+          [currentAvatar]="user()?.avatar" 
+          [initials]="getInitials(user()?.name || '')" />
       </div>
       <h4 class="mb-1">{{ user()?.name }}</h4>
       <div class="ee-badge ee-badge-primary mb-3">Customer</div>
@@ -27,6 +29,17 @@
       </div>
     </div>
 
+    <!-- Danger Zone: Delete Account -->
+    <div class="ee-card mt-4" style="background: rgba(220, 38, 38, 0.03); border: 1.5px solid rgba(220, 38, 38, 0.15) !important;">
+      <div class="p-4 text-center">
+        <h6 class="fw-800 text-danger mb-2"><i class="bi bi-exclamation-triangle-fill me-2"></i>Danger Zone</h6>
+        <p class="text-muted small mb-3">Permanently delete your account and all associated data. This action is irreversible.</p>
+        <button class="btn btn-danger btn-sm rounded-pill fw-800 w-100 py-2" (click)="deleteAccount()">
+          <i class="bi bi-trash3 me-1"></i>Delete Account
+        </button>
+      </div>
+    </div>
+
   </div>
 
   <div class="col-12 col-lg-8">
@@ -40,7 +53,7 @@
       </div>
       
       <div class="p-4">
-        <form (submit)="saveProfile()">
+        <form (ngSubmit)="saveProfile()">
           <div class="row g-3">
             <div class="col-md-6">
               <label class="ee-form-label">Full Name</label>
@@ -75,6 +88,49 @@
 
     <div class="ee-card mt-4">
       <div class="card-header-custom">
+        <h6 class="card-header-title"><i class="bi bi-bell me-2 text-primary"></i>Notification Settings</h6>
+      </div>
+      <div class="p-4">
+        <!-- Email Notifications -->
+        <div class="d-flex align-items-center justify-content-between py-3 border-bottom">
+          <div>
+            <h6 class="fw-bold mb-1">Email Notifications</h6>
+            <div class="text-muted small">Booking updates and promotions</div>
+          </div>
+          <label class="ee-switch">
+            <input type="checkbox" [checked]="profileData.emailNotifications" (change)="updateNotificationSetting('emailNotifications', $event)">
+            <span class="ee-slider"></span>
+          </label>
+        </div>
+        
+        <!-- In-App Notifications -->
+        <div class="d-flex align-items-center justify-content-between py-3 border-bottom">
+          <div>
+            <h6 class="fw-bold mb-1">In-App Notifications</h6>
+            <div class="text-muted small">Real-time alerts and messages</div>
+          </div>
+          <label class="ee-switch">
+            <input type="checkbox" [checked]="profileData.inAppNotifications" (change)="updateNotificationSetting('inAppNotifications', $event)">
+            <span class="ee-slider"></span>
+          </label>
+        </div>
+
+        <!-- SMS Notifications -->
+        <div class="d-flex align-items-center justify-content-between py-3">
+          <div>
+            <h6 class="fw-bold mb-1">SMS Notifications</h6>
+            <div class="text-muted small">Urgent updates and reminders</div>
+          </div>
+          <label class="ee-switch">
+            <input type="checkbox" [checked]="profileData.smsNotifications" (change)="updateNotificationSetting('smsNotifications', $event)">
+            <span class="ee-slider"></span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <div class="ee-card mt-4">
+      <div class="card-header-custom">
         <h6 class="card-header-title"><i class="bi bi-shield-lock me-2 text-primary"></i>Security & Access</h6>
       </div>
       <div class="p-4">
@@ -92,4 +148,29 @@
 
 @if (showPasswordModal()) {
   <app-change-password (close)="showPasswordModal.set(false)" />
+}
+
+@if (showDeleteModal()) {
+  <div class="modal-overlay">
+    <div class="modal-custom-width" style="border: 1px solid rgba(220, 38, 38, 0.2);">
+      <div class="modal-header border-0 pb-0 justify-content-end p-3" style="display: flex;">
+        <button type="button" class="btn-close-custom" (click)="showDeleteModal.set(false)">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+      <div class="modal-body text-center pt-0 px-4 pb-4">
+        <div class="mx-auto mb-3 d-flex align-items-center justify-content-center" style="width: 60px; height: 60px; border-radius: 50%; background: rgba(220, 38, 38, 0.08); color: var(--danger);">
+          <i class="bi bi-exclamation-triangle-fill" style="font-size: 1.8rem;"></i>
+        </div>
+        <h4 class="fw-900 mb-2" style="color: var(--text-main);">Delete Account?</h4>
+        <p class="text-muted small mb-4">
+          Are you absolutely sure you want to delete your account? This action is permanent, cannot be undone, and you will lose all bookings, loyalty points, and profile details.
+        </p>
+        <div class="d-flex gap-2" style="display: flex;">
+          <button type="button" class="btn btn-ee-light w-100 py-2 rounded-pill fw-800" (click)="showDeleteModal.set(false)">Cancel</button>
+          <button type="button" class="btn btn-danger w-100 py-2 rounded-pill fw-800" (click)="confirmDeleteAccount()">Delete Account</button>
+        </div>
+      </div>
+    </div>
+  </div>
 }

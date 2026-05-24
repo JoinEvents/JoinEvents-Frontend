@@ -23,7 +23,13 @@
 
     <div class="sidebar-footer">
       <div class="sidebar-user">
-        <div class="avatar" style="background:linear-gradient(135deg,#F59E0B,#D97706)">{{ getInitials(user()?.name || 'S') }}</div>
+        @if (user()?.avatar) {
+          <div class="avatar" style="background: transparent;">
+            <img [src]="user()?.avatar" alt="Avatar" class="avatar-img" />
+          </div>
+        } @else {
+          <div class="avatar" style="background:linear-gradient(135deg,#F59E0B,#D97706)">{{ getInitials(user()?.name || 'S') }}</div>
+        }
         <div class="user-info" style="flex:1">
           <div class="name">{{ user()?.name }}</div>
           <div class="role">Support Agent</div>
@@ -70,13 +76,23 @@
 
       <div class="position-relative">
         <div class="topbar-avatar support-avatar" (click)="toggleProfileDropdown()" title="Account">
-          {{ getInitials(user()?.name||'') }}
+          @if (user()?.avatar) {
+            <img [src]="user()?.avatar" alt="Avatar" class="avatar-img" />
+          } @else {
+            {{ getInitials(user()?.name||'') }}
+          }
         </div>
 
         @if (showProfileDropdown()) {
           <div class="profile-dropdown" (click)="$event.stopPropagation()">
             <div class="profile-dropdown-header">
-              <div class="avatar-small" style="background:linear-gradient(135deg,#F59E0B,#D97706)">{{ getInitials(user()?.name||'') }}</div>
+              @if (user()?.avatar) {
+                <div class="avatar-small" style="background: transparent;">
+                  <img [src]="user()?.avatar" alt="Avatar" class="avatar-img" />
+                </div>
+              } @else {
+                <div class="avatar-small" style="background:linear-gradient(135deg,#F59E0B,#D97706)">{{ getInitials(user()?.name||'') }}</div>
+              }
               <div class="user-meta">
                 <span class="user-name">{{ user()?.name }}</span>
                 <span class="user-role">Support Agent</span>

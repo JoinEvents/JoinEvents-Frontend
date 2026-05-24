@@ -1,4 +1,4 @@
-import { Component, inject, signal, Injectable } from '@angular/core';
+import { Component, inject, signal, Injectable, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 export interface ConfirmOptions {
@@ -36,8 +36,8 @@ export class ConfirmService {
   imports: [CommonModule],
   template: `
     @if (options()) {
-    <div class="confirm-overlay" (click)="cancel()">
-      <div class="confirm-modal slide-in-bottom" (click)="$event.stopPropagation()">
+    <div class="confirm-overlay">
+      <div class="confirm-modal slide-in-bottom">
         <div class="confirm-icon" [class]="options()?.type">
           <i class="bi" [class.bi-question-circle]="options()?.type !== 'danger'" [class.bi-exclamation-triangle]="options()?.type === 'danger'"></i>
         </div>
@@ -96,6 +96,12 @@ export class ConfirmService {
 export class GlobalConfirmComponent {
   confirmService = inject(ConfirmService);
   options = this.confirmService.options;
+
+  constructor() {
+    effect(() => {
+      document.body.classList.toggle('modal-open', !!this.options());
+    });
+  }
 
   confirm() { this.confirmService.resolve(true); }
   cancel() { this.confirmService.resolve(false); }

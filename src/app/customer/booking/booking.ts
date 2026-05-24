@@ -120,12 +120,8 @@ export class CustomerBooking implements OnInit, OnDestroy, OnChanges {
 
   constructor() {
     effect(() => {
-      const isModalOpen = !!this.selectedServiceDetail();
-      if (isModalOpen) {
-        document.body.style.overflow = 'hidden';
-      } else {
-        document.body.style.overflow = 'auto';
-      }
+      const isModalOpen = !!this.selectedServiceDetail() || this.showMobileBooking() || this.bookingSuccess();
+      document.body.classList.toggle('modal-open', isModalOpen);
     });
   }
 
@@ -164,7 +160,7 @@ export class CustomerBooking implements OnInit, OnDestroy, OnChanges {
 
   ngOnDestroy() {
     this.stopSlideshow();
-    document.body.style.overflow = 'auto'; // Ensure scroll is restored when leaving page
+    document.body.classList.remove('modal-open');
   }
 
   loadPackage(pkgId: string) {

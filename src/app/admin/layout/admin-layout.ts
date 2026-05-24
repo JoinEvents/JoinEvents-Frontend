@@ -1,4 +1,4 @@
-import { Component, signal, inject, computed } from '@angular/core';
+import { Component, signal, inject, computed, HostListener } from '@angular/core';
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { ThemeService } from '../../core/services/theme.service';
@@ -30,6 +30,19 @@ export class AdminLayout {
   sidebarOpen = signal(false);
   showNotifications = signal(false);
   showProfileDropdown = signal(false);
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent) {
+    const target = event.target as HTMLElement;
+    
+    if (this.showProfileDropdown() && !target.closest('.position-relative:has(.topbar-avatar)')) {
+      this.showProfileDropdown.set(false);
+    }
+    
+    if (this.showNotifications() && !target.closest('.position-relative:has(i.bi-bell)')) {
+      this.showNotifications.set(false);
+    }
+  }
 
   getTypeMeta(type: string) {
     const meta: Record<string, { color: string; icon: string }> = {

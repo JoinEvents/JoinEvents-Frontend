@@ -1,4 +1,4 @@
-import { Component, signal, computed, inject, OnInit } from '@angular/core';
+import { Component, signal, computed, inject, OnInit, OnDestroy, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
@@ -14,11 +14,21 @@ import {
   templateUrl: './admin-categories.html',
   styleUrl: './admin-categories.css'
 })
-export class AdminCategories implements OnInit {
+export class AdminCategories implements OnInit, OnDestroy {
   private svc = inject(AdminCategoryService);
 
   categories   = signal<EventCategory[]>([]);
   isModalOpen  = signal(false);
+
+  constructor() {
+    effect(() => {
+      document.body.classList.toggle('modal-open', this.isModalOpen());
+    });
+  }
+
+  ngOnDestroy() {
+    document.body.classList.remove('modal-open');
+  }
   editing      = signal<EventCategory | null>(null);
   isSubmitting = signal(false);
   isLoading    = signal(false);

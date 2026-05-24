@@ -66,13 +66,23 @@
 
       <div class="position-relative">
         <div class="topbar-avatar vendor-avatar" (click)="toggleProfileDropdown()" title="Account">
-          {{ getInitials(user()?.name||'') }}
+          @if (user()?.avatar) {
+            <img [src]="user()?.avatar" alt="Avatar" class="avatar-img" />
+          } @else {
+            {{ getInitials(user()?.name||'') }}
+          }
         </div>
 
         @if (showProfileDropdown()) {
           <div class="profile-dropdown" (click)="$event.stopPropagation()">
             <div class="profile-dropdown-header">
-              <div class="avatar-small" style="background:var(--gradient-secondary)">{{ getInitials(user()?.name||'') }}</div>
+              @if (user()?.avatar) {
+                <div class="avatar-small" style="background: transparent;">
+                  <img [src]="user()?.avatar" alt="Avatar" class="avatar-img" />
+                </div>
+              } @else {
+                <div class="avatar-small" style="background:var(--gradient-secondary)">{{ getInitials(user()?.name||'') }}</div>
+              }
               <div class="user-meta">
                 <span class="user-name">{{ user()?.name }}</span>
                 <span class="user-role">Vendor</span>

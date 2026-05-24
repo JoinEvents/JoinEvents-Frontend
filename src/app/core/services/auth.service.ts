@@ -58,6 +58,7 @@ export class AuthService {
             name: response.user.name,
             email: response.user.email,
             role: response.user?.role || role,
+            avatar: response.user?.avatar,
             token: response.token || response.AccessToken || response.accessToken
           };
           localStorage.setItem('joinevents_user', JSON.stringify(user));
@@ -94,6 +95,7 @@ export class AuthService {
             name: response.user.name,
             email: response.user.email,
             role: response.user?.role || role,
+            avatar: response.user?.avatar,
             token: response.token || response.AccessToken || response.accessToken
           };
           localStorage.setItem('joinevents_user', JSON.stringify(user));

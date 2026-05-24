@@ -1,4 +1,4 @@
-import { Component, signal, inject } from '@angular/core';
+import { Component, signal, inject, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
@@ -22,6 +22,19 @@ export class SupportLayout {
   showNotifications = signal(false);
   showProfileDropdown = signal(false);
   notifications = signal<any[]>([]);
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent) {
+    const target = event.target as HTMLElement;
+    
+    if (this.showProfileDropdown() && !target.closest('.position-relative:has(.topbar-avatar)')) {
+      this.showProfileDropdown.set(false);
+    }
+    
+    if (this.showNotifications() && !target.closest('.position-relative:has(i.bi-bell)')) {
+      this.showNotifications.set(false);
+    }
+  }
 
   constructor() {
     this.api.getNotifications().subscribe(data => this.notifications.set(data));
