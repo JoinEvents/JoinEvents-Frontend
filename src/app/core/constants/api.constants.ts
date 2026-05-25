@@ -39,5 +39,23 @@ export const API_ROUTES = {
   NOTIFICATIONS: {
     BASE: '/notifications',
     READ_ALL: '/notifications/read-all',
+  },
+  SUPPORT: {
+    DASHBOARD_STATS: '/support/stats',
+    TICKETS_BASE: '/support/tickets',
+    CREATE_TICKET: '/support/ticket',
+    TICKET_BY_ID: (id: string) => `/support/tickets/${id}`,
+    TICKET_REPLY: (id: string) => `/support/tickets/${id}/reply`,
+    TICKET_STATUS: (id: string) => `/support/tickets/${id}/status`,
+    PENDING_VENDORS: '/support/vendors/pending',
+    VERIFY_VENDOR: (id: string) => `/support/vendors/${id}/verify`,
+    PENDING_PACKAGES: '/support/packages/pending',
+    VERIFY_PACKAGE: (id: string) => `/support/packages/${id}/verify`,
+    BOOKINGS: '/support/bookings',
+    BOOKING_NOTE: (id: string) => `/support/bookings/${id}/note`,
+    BOOKING_USER_UPDATE: (id: string) => `/support/bookings/${id}/user-update`,
+    BOOKING_VENDOR_REMINDER: (id: string) => `/support/bookings/${id}/vendor-reminder`,
+    FLAGGED_REVIEWS: '/support/reviews/flagged',
+    MODERATE_REVIEW: (id: string) => `/support/reviews/${id}/moderate`,
   }
 };

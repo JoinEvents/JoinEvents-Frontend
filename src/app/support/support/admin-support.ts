@@ -1,16 +1,22 @@
 import { Component, signal, computed, OnInit, inject } from '@angular/core';
+import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { TitleCasePipe, SlicePipe } from '@angular/common';
-import { MockApiService } from '../../core/services/mock-api.service';
+import { CommonModule, TitleCasePipe, SlicePipe, DatePipe } from '@angular/common';
+import { SupportService } from '../../core/services/support.service';
 import { SupportTicket } from '../../core/models/message.model';
 
-@Component({ selector: 'app-admin-support', standalone: true, imports: [FormsModule, TitleCasePipe, SlicePipe], templateUrl: './admin-support.html', styleUrl: './admin-support.css' })
+@Component({
+  selector: 'app-admin-support',
+  standalone: true,
+  imports: [CommonModule, FormsModule, TitleCasePipe, SlicePipe, DatePipe],
+  templateUrl: './admin-support.html',
+  styleUrl: './admin-support.css'
+})
 export class AdminSupport implements OnInit {
-  // REBUILD TRIGGER: 1777721313
-  private api = inject(MockApiService);
+  private api = inject(SupportService);
+  private router = inject(Router);
+
   tickets = signal<SupportTicket[]>([]);
-  selected = signal<SupportTicket | null>(null);
-  reply = '';
 
   // Filters
   searchQuery = signal('');
@@ -36,23 +42,59 @@ export class AdminSupport implements OnInit {
   });
 
   ngOnInit() { 
-    this.api.getSupportTickets().subscribe(t => { 
+    this.api.getTickets().subscribe(t => { 
       this.tickets.set(t); 
-      if (t.length) this.selected.set(t[0]); 
     }); 
   }
 
-  selectTicket(t: SupportTicket) { this.selected.set(t); }
-  
-  closeTicket(id: string) { 
-    this.tickets.update(ts => ts.map(t => t.id === id ? { ...t, status: 'resolved' as any } : t)); 
-    if (this.selected()?.id === id) {
-      this.selected.update(t => t ? { ...t, status: 'resolved' as any } : t);
-    }
+  selectTicket(t: SupportTicket) {
+    this.router.navigate(['/support/tickets', t.id]);
   }
 
-  sendReply() { if (!this.reply.trim()) return; this.reply = ''; }
+  priorityColor(p: string): string {
+    const m: Record<string, string> = { 
+      low: 'ee-badge-info', 
+      medium: 'ee-badge-warning', 
+      high: 'ee-badge-primary', 
+      urgent: 'ee-badge-danger' 
+    };
+    return m[p?.toLowerCase()] || 'ee-badge-info';
+  }
 
-  priorityColor(p: string): string { const m: Record<string,string> = { low:'ee-badge-info', medium:'ee-badge-warning', high:'ee-badge-primary', urgent:'ee-badge-danger' }; return m[p] || 'ee-badge-info'; }
-  statusColor(s: string): string { const m: Record<string,string> = { open:'ee-badge-danger', in_progress:'ee-badge-warning', resolved:'ee-badge-success', closed:'ee-badge-secondary' }; return m[s] || 'ee-badge-primary'; }
+  statusColor(s: string): string {
+    const m: Record<string, string> = { 
+      open: 'ee-badge-danger', 
+      in_progress: 'ee-badge-warning', 
+      resolved: 'ee-badge-success', 
+      closed: 'ee-badge-secondary' 
+    };
+    return m[s?.toLowerCase()] || 'ee-badge-primary';
+  }
+
+  priorityClass(p: string): string {
+    return `priority-${(p || 'medium').toLowerCase()}`;
+  }
+
+  statusClass(s: string): string {
+    return `status-${(s || 'open').toLowerCase()}`;
+  }
+
+  getCustomerColor(name: string): string {
+    const gradients = [
+      'linear-gradient(135deg, #FF6B35, #FF8C5A)',
+      'linear-gradient(135deg, #6B21A8, #8B5CF6)',
+      'linear-gradient(135deg, #0EA5E9, #38BDF8)',
+      'linear-gradient(135deg, #10B981, #34D399)',
+      'linear-gradient(135deg, #EF4444, #F87171)',
+      'linear-gradient(135deg, #F59E0B, #FBBF24)',
+    ];
+    let hash = 0;
+    if (name) {
+      for (let i = 0; i < name.length; i++) {
+        hash = name.charCodeAt(i) + ((hash << 5) - hash);
+      }
+    }
+    const index = Math.abs(hash) % gradients.length;
+    return gradients[index];
+  }
 }

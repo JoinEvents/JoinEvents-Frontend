@@ -1,7 +1,7 @@
 import { Component, signal, computed, OnInit, inject } from '@angular/core';
 import { CommonModule, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { MockApiService } from '../../core/services/mock-api.service';
+import { SupportService } from '../../core/services/support.service';
 import { ToastService } from '../../core/services/toast.service';
 import { Booking } from '../../core/models/booking.model';
 
@@ -13,7 +13,7 @@ import { Booking } from '../../core/models/booking.model';
   styleUrl: './support-bookings.css'
 })
 export class SupportBookings implements OnInit {
-  private api = inject(MockApiService);
+  private support = inject(SupportService);
   private toast = inject(ToastService);
 
   bookings = signal<Booking[]>([]);
@@ -64,7 +64,7 @@ export class SupportBookings implements OnInit {
   }
 
   loadBookings() {
-    this.api.getAdminBookings().subscribe(b => {
+    this.support.getSupportBookings().subscribe(b => {
       this.bookings.set(b);
       if (b.length && !this.selectedBooking()) this.selectedBooking.set(b[0]);
     });
@@ -88,11 +88,11 @@ export class SupportBookings implements OnInit {
     if (!b || !note) return;
 
     this.isUpdating.set(true);
-    this.api.addSupportLog(b.id, `Internal Note: ${note}`, 'Support').subscribe(() => {
+    this.support.addBookingNote(b.id, note).subscribe((updatedBooking) => {
       this.toast.success('Internal note added');
-      // In mock we just manually update for UI
-      const updatedLogs = [...(b.supportLogs || []), { date: new Date().toISOString().split('T')[0], message: note, actor: 'Support' }];
-      this.selectedBooking.set({ ...b, supportLogs: updatedLogs });
+      // If backend returns the fully updated booking with logs
+      this.selectedBooking.set(updatedBooking);
+      this.bookings.update(bs => bs.map(xb => xb.id === updatedBooking.id ? updatedBooking : xb));
       this.newInternalNote.set('');
       this.isUpdating.set(false);
     });
@@ -103,10 +103,12 @@ export class SupportBookings implements OnInit {
     if (!b) return;
 
     this.isUpdating.set(true);
-    this.api.remindVendor(vendorId, b.id).subscribe(() => {
+    this.support.remindVendor(b.id, vendorId).subscribe((updatedBooking) => {
       this.toast.success(`Reminder sent to ${vendorName}`);
-      const updatedLogs = [...(b.supportLogs || []), { date: new Date().toISOString().split('T')[0], message: `Sent reminder to vendor: ${vendorName}`, actor: 'Support' }];
-      this.selectedBooking.set({ ...b, supportLogs: updatedLogs });
+      if (updatedBooking) {
+         this.selectedBooking.set(updatedBooking);
+         this.bookings.update(bs => bs.map(xb => xb.id === updatedBooking.id ? updatedBooking : xb));
+      }
       this.isUpdating.set(false);
     });
   }
@@ -117,10 +119,10 @@ export class SupportBookings implements OnInit {
     if (!b || !msg) return;
 
     this.isUpdating.set(true);
-    this.api.addSupportLog(b.id, `Update to User: ${msg}`, 'Support').subscribe(() => {
+    this.support.updateUser(b.id, msg).subscribe((updatedBooking) => {
       this.toast.success('Update sent to user');
-      const updatedLogs = [...(b.supportLogs || []), { date: new Date().toISOString().split('T')[0], message: `User Update: ${msg}`, actor: 'Support' }];
-      this.selectedBooking.set({ ...b, supportLogs: updatedLogs });
+      this.selectedBooking.set(updatedBooking);
+      this.bookings.update(bs => bs.map(xb => xb.id === updatedBooking.id ? updatedBooking : xb));
       this.newUpdateMessage.set('');
       this.isUpdating.set(false);
     });

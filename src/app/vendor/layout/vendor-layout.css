@@ -3,3 +3,58 @@
 .btn-icon-sm:hover{background:rgba(255,255,255,0.1);color:white;}
 .topbar-avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-weight:600;font-size:0.82rem;cursor:pointer;}
 .vendor-avatar{background:var(--gradient-secondary);}
+
+/* Pin Button Styles */
+.pin-btn {
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  background: var(--bg-light);
+  border: 1px solid var(--border-color);
+  color: var(--text-soft);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  margin-left: auto;
+}
+.pin-btn:hover { background: var(--secondary); color: white; border-color: var(--secondary); transform: scale(1.05); }
+.pin-btn.active { color: var(--secondary); background: rgba(107,33,168,0.1); border-color: rgba(107,33,168,0.2); }
+.pin-btn i { font-size: 0.9rem; }
+
+/* Brand Layout adjustment for Pin Button */
+.sidebar-brand { display: flex; align-items: center; gap: 12px; }
+.brand-info { flex: 1; min-width: 0; }
+
+/* Sidebar States & Desktop Behavior */
+@media (min-width: 1200px) {
+  /* Default state when NOT pinned: No margins, full width */
+  .app-shell:not(.sidebar-pinned) .topbar {
+    left: 0 !important;
+  }
+  
+  .app-shell:not(.sidebar-pinned) .main-content {
+    margin-left: 0 !important;
+  }
+
+  .app-shell.sidebar-collapsed .sidebar {
+    transform: translateX(-100%);
+  }
+
+  /* When unpinned but open (drawer behavior on desktop) */
+  .app-shell:not(.sidebar-pinned) .sidebar.open {
+    transform: translateX(0) !important;
+    box-shadow: 20px 0 50px rgba(0,0,0,0.15);
+  }
+
+  /* Transition smoothness */
+  .sidebar, .topbar, .main-content {
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  }
+}
+
+/* Mobile Adjustments */
+@media (max-width: 1199px) {
+  .sidebar { transform: translateX(-100%); }
+  .sidebar.open { transform: translateX(0); }
+  .topbar { left: 0 !important; }
+  .main-content { margin-left: 0 !important; }
+}

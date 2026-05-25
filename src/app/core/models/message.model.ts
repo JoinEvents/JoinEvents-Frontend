@@ -3,11 +3,12 @@ export interface ChatMessage {
   threadId: string;
   senderId: string;
   senderName: string;
-  senderRole: 'customer' | 'vendor' | 'admin';
+  senderRole: 'customer' | 'vendor' | 'admin' | 'support';
   content: string;
   timestamp: string;
   isRead: boolean;
   type: 'text' | 'image' | 'doc';
+  isInternal?: boolean;
 }
 
 export interface ChatThread {
@@ -23,6 +24,24 @@ export interface ChatThread {
   eventTitle?: string;
 }
 
+export interface VendorContact {
+  businessName: string;
+  contactName: string;
+  email: string;
+  phone: string;
+}
+
+export interface BookingDetails {
+  id: string;
+  eventName: string;
+  eventDate: string;
+  status: string;
+  totalAmount: number;
+  venue: string;
+  city: string;
+  guestCount: number;
+}
+
 export interface SupportTicket {
   id: string;
   customerId: string;
@@ -32,4 +51,9 @@ export interface SupportTicket {
   priority: 'low' | 'medium' | 'high' | 'urgent';
   createdAt: string;
   messages: ChatMessage[];
+  eventName?: string;
+  vendorContact?: VendorContact;
+  attachmentUrl?: string;
+  bookingId?: string;
+  bookingDetails?: BookingDetails;
 }

@@ -1,6 +1,6 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { MockApiService } from '../../core/services/mock-api.service';
+import { SupportService } from '../../core/services/support.service';
 import { ConfirmService } from '../../shared/components/confirm-dialog';
 import { AuthService } from '../../core/services/auth.service';
 
@@ -11,8 +11,8 @@ import { AuthService } from '../../core/services/auth.service';
   templateUrl: './admin-reviews.html',
   styleUrl: './admin-reviews.css'
 })
-export class AdminReviews {
-  private api = inject(MockApiService);
+export class AdminReviews implements OnInit {
+  private support = inject(SupportService);
   private confirm = inject(ConfirmService);
   private auth = inject(AuthService);
 
@@ -23,13 +23,25 @@ export class AdminReviews {
 
   activeTab = signal<'pending' | 'history'>('pending');
 
+  reviews = signal<any[]>([]);
+
   flaggedReviews = computed(() => {
-    return this.api.globalReviews().filter(r => r.status === 'flagged');
+    return this.reviews().filter(r => r.status === 'flagged');
   });
 
   disputeHistory = computed(() => {
-    return this.api.globalReviews().filter(r => r.resolution);
+    return this.reviews().filter(r => r.resolution);
   });
+
+  ngOnInit() {
+    this.loadReviews();
+  }
+
+  loadReviews() {
+    this.support.getFlaggedReviews().subscribe(r => {
+      if (r) this.reviews.set(r);
+    });
+  }
 
   async resolve(id: string, action: 'keep' | 'remove') {
     const isKeep = action === 'keep';
@@ -43,7 +55,9 @@ export class AdminReviews {
     });
 
     if (confirmed) {
-      this.api.resolveDispute(id, action).subscribe();
+      this.support.moderateReview(id, action).subscribe(() => {
+        this.loadReviews();
+      });
     }
   }
 }

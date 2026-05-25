@@ -1,18 +1,21 @@
-<div class="app-shell" (touchstart)="onTouchStart($event)" (touchend)="onTouchEnd($event)">
+<div class="app-shell" [class.sidebar-pinned]="sidebarPinned()" [class.sidebar-collapsed]="!sidebarPinned() && !sidebarOpen()" (touchstart)="onTouchStart($event)" (touchend)="onTouchEnd($event)">
   <a href="#main-content" class="skip-to-content-link">Skip to main content</a>
-  @if (sidebarOpen()) { <div class="sidebar-overlay" (click)="toggleSidebar()"></div> }
-  <aside class="sidebar vendor-sidebar" [class.open]="sidebarOpen()">
+  @if (sidebarOpen() && !sidebarPinned()) { <div class="sidebar-overlay" (click)="toggleSidebar()"></div> }
+  <aside class="sidebar vendor-sidebar" [class.open]="sidebarOpen()" [class.pinned]="sidebarPinned()">
     <div class="sidebar-brand">
       <div class="brand-logo">
         <img src="src/img/JoinEvents.png" alt="Logo" style="width:100%; height:100%; object-fit:contain;" (error)="handleImageError($event)">
         <i class="bi bi-stars" style="display:none"></i>
       </div>
-      <div>
+      <div class="brand-info">
         <div class="brand-name">
           <span class="brand-join">Join</span><span class="brand-events">Events</span>
         </div>
         <div class="brand-tagline">Vendor Portal</div>
       </div>
+      <button class="pin-btn d-none d-xl-flex" (click)="togglePin()" [class.active]="sidebarPinned()" [title]="sidebarPinned() ? 'Unpin Sidebar' : 'Pin Sidebar'">
+        <i class="bi" [class.bi-pin-fill]="sidebarPinned()" [class.bi-pin]="!sidebarPinned()"></i>
+      </button>
     </div>
     <nav class="sidebar-nav">
       <div class="nav-section-label">Vendor Menu</div>
@@ -26,7 +29,16 @@
 
   </aside>
   <header class="topbar">
-    <button class="topbar-icon-btn d-xl-none" (click)="toggleSidebar()"><i class="bi bi-list"></i></button>
+    <div class="d-flex align-items-center gap-3">
+      <button class="topbar-icon-btn" [class.d-xl-none]="sidebarPinned()" (click)="toggleSidebar()">
+        <i class="bi bi-list"></i>
+      </button>
+      <div class="topbar-brand-mobile" [class.d-xl-none]="sidebarPinned()">
+        <span style="font-family:var(--font-heading);font-weight:900;font-size:1.25rem;">
+          <span class="brand-join">Join</span><span class="brand-events">Events</span>
+        </span>
+      </div>
+    </div>
     <div class="topbar-actions">
       <!-- Theme Switcher -->
       <button class="topbar-icon-btn theme-switcher" (click)="theme.toggleTheme()" [title]="theme.isDarkMode() ? 'Switch to Light Mode' : 'Switch to Dark Mode'">

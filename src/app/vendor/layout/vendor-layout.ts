@@ -30,8 +30,18 @@ export class VendorLayout {
 
   user = this.auth.currentUser;
   sidebarOpen = signal(false);
+  sidebarPinned = signal(false);
   showNotifications = signal(false);
   showProfileDropdown = signal(false);
+
+  constructor() {
+    this.checkScreenSize();
+  }
+
+  @HostListener('window:resize')
+  onResize() {
+    this.checkScreenSize();
+  }
 
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent) {
@@ -44,6 +54,16 @@ export class VendorLayout {
     if (this.showNotifications() && !target.closest('.position-relative:has(i.bi-bell)')) {
       this.showNotifications.set(false);
     }
+  }
+
+  private checkScreenSize() {
+    if (window.innerWidth < 1200) {
+      this.sidebarPinned.set(false);
+    }
+  }
+
+  togglePin() {
+    this.sidebarPinned.update(v => !v);
   }
 
   getTypeMeta(type: string) {

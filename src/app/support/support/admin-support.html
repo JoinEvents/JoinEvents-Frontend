@@ -1,80 +1,118 @@
-<div class="page-header"><h1>Support Tickets</h1><p>Manage customer and vendor support requests</p></div>
+<div class="support-dashboard-container">
+  <!-- Header Section -->
+  <div class="dashboard-header-block">
+    <div class="header-titles">
+      <h1>Active Helpdesk Tickets</h1>
+      <p>Monitor, assign, and resolve customer and vendor inquiries</p>
+    </div>
+    <div class="ticket-counter-badge">
+      <i class="bi bi-ticket-detailed"></i>
+      <span>{{ filteredTickets().length }} Inquiries Found</span>
+    </div>
+  </div>
 
-<div class="support-layout">
-  <!-- Ticket List Sidebar -->
-  <div class="ticket-sidebar">
-    <div class="filter-bar">
-      <div class="search-box">
-        <i class="bi bi-search"></i>
-        <input type="text" class="ee-form-control" placeholder="Search tickets..." (input)="searchQuery.set(search.value)" #search>
-      </div>
-      <div class="d-flex gap-2">
-        <select class="ee-form-control form-select-sm" (change)="statusFilter.set($any($event.target).value)">
-          <option value="all">All Status</option>
+  <!-- Search & Filtering Bar -->
+  <div class="dashboard-filter-bar">
+    <div class="search-box">
+      <i class="bi bi-search"></i>
+      <input 
+        type="text" 
+        class="ee-form-control search-input" 
+        placeholder="Search by subject or customer name..." 
+        (input)="searchQuery.set(search.value)" 
+        #search>
+    </div>
+    <div class="filters-group">
+      <div class="filter-select-wrapper">
+        <i class="bi bi-filter-circle"></i>
+        <select class="ee-form-control filter-select" (change)="statusFilter.set($any($event.target).value)">
+          <option value="all">All Statuses</option>
           <option value="open">Open</option>
           <option value="in_progress">In Progress</option>
           <option value="resolved">Resolved</option>
           <option value="closed">Closed</option>
         </select>
-        <select class="ee-form-control form-select-sm" (change)="priorityFilter.set($any($event.target).value)">
-          <option value="all">All Priority</option>
-          <option value="low">Low</option>
-          <option value="medium">Medium</option>
-          <option value="high">High</option>
-          <option value="urgent">Urgent</option>
+      </div>
+      <div class="filter-select-wrapper">
+        <i class="bi bi-lightning-charge"></i>
+        <select class="ee-form-control filter-select" (change)="priorityFilter.set($any($event.target).value)">
+          <option value="all">All Priorities</option>
+          <option value="low">Low Priority</option>
+          <option value="medium">Medium Priority</option>
+          <option value="high">High Priority</option>
+          <option value="urgent">Urgent Priority</option>
         </select>
       </div>
     </div>
-
-    <div class="ticket-list">
-      @for (t of filteredTickets(); track t.id) {
-        <div class="ticket-item" [class.active]="selected()?.id === t.id" (click)="selectTicket(t)">
-          <div class="d-flex align-items-start justify-content-between gap-2 mb-2">
-            <div class="ticket-subject">{{ t.subject }}</div>
-            <span class="ee-badge {{ statusColor(t.status) }}">{{ t.status | titlecase }}</span>
-          </div>
-          <div class="ticket-meta">
-            <span><i class="bi bi-person me-1"></i>{{ t.customerName }}</span>
-            <span class="ee-badge {{ priorityColor(t.priority) }}">{{ t.priority | titlecase }}</span>
-          </div>
-          <div class="ticket-time"><i class="bi bi-clock me-1"></i>{{ t.createdAt | slice:0:10 }}</div>
-        </div>
-      } @empty {
-        <div class="text-center p-5 text-muted">
-          <i class="bi bi-search" style="font-size: 2rem; opacity: 0.5;"></i>
-          <p class="mt-2">No tickets match your filters.</p>
-        </div>
-      }
-    </div>
   </div>
 
-  <!-- Ticket Detail -->
-  @if (selected(); as t) {
-    <div class="ticket-detail ee-card p-0">
-      <div class="ticket-detail-header">
-        <div>
-          <div class="tdc-subject">{{ t.subject }}</div>
-          <div class="tdc-meta">
-            {{ t.customerName }} &nbsp;·&nbsp;
-            <span class="ee-badge {{ priorityColor(t.priority) }}">{{ t.priority | titlecase }} Priority</span>
-            &nbsp;·&nbsp;
-            <span class="ee-badge {{ statusColor(t.status) }}">{{ t.status | titlecase }}</span>
+  <!-- Tickets Cards Grid -->
+  <div class="tickets-grid">
+    @for (t of filteredTickets(); track t.id) {
+      <div class="ticket-card" (click)="selectTicket(t)">
+        <!-- Card Header: ID and Priority -->
+        <div class="ticket-card-header">
+          <span class="ticket-id">#TKT-{{ t.id.slice(0, 8).toUpperCase() }}</span>
+          <span class="priority-pill" [class]="priorityClass(t.priority)">{{ t.priority | titlecase }}</span>
+        </div>
+        
+        <!-- Card Body: Subject & Message Preview -->
+        <div class="ticket-card-body">
+          <h3 class="ticket-title">{{ t.subject }}</h3>
+          @if (t.messages && t.messages.length > 0) {
+            <p class="ticket-message-preview">
+              {{ t.messages[0].content }}
+            </p>
+          }
+        </div>
+        
+        <!-- Customer & Event Meta -->
+        <div class="ticket-card-meta">
+          <div class="customer-info-block">
+            <div class="customer-avatar" [style.background]="getCustomerColor(t.customerName)">
+              {{ t.customerName.charAt(0).toUpperCase() }}
+            </div>
+            <div class="customer-text">
+              <span class="customer-name">{{ t.customerName }}</span>
+              <span class="customer-label">Customer</span>
+            </div>
+          </div>
+          
+          @if (t.eventName) {
+            <div class="associated-event-badge">
+              <i class="bi bi-calendar-event"></i>
+              <span class="event-name">{{ t.eventName }}</span>
+            </div>
+          }
+        </div>
+
+        <!-- Card Footer: Time, Messages and Status Indicator -->
+        <div class="ticket-card-footer">
+          <div class="footer-left">
+            <span class="meta-detail time">
+              <i class="bi bi-clock"></i>
+              <span>{{ t.createdAt | date:'mediumDate' }}</span>
+            </span>
+            <span class="meta-detail messages-count" title="Replies count">
+              <i class="bi bi-chat-left-text"></i>
+              <span>{{ t.messages ? t.messages.length : 0 }}</span>
+            </span>
+          </div>
+          <div class="status-indicator-pill" [class]="statusClass(t.status)">
+            <span class="status-dot"></span>
+            <span class="status-text">{{ t.status === 'in_progress' ? 'In Progress' : (t.status | titlecase) }}</span>
+            <i class="bi bi-arrow-right-short footer-arrow"></i>
           </div>
         </div>
-        @if (t.status !== 'resolved' && t.status !== 'closed') {
-          <button class="close-ticket-btn" (click)="closeTicket(t.id)"><i class="bi bi-check-circle me-1"></i>Mark Resolved</button>
-        }
       </div>
-      <div class="ticket-messages">
-        <div class="msg-empty"><i class="bi bi-chat-square-dots" style="font-size:2.5rem;color:var(--slate-light)"></i><p>No messages yet in this ticket.</p><p class="msg-hint">Use the reply box below to respond to the customer.</p></div>
-      </div>
-      <div class="reply-box">
-        <textarea class="ee-form-control" rows="3" [(ngModel)]="reply" placeholder="Type your reply to the customer..."></textarea>
-        <div class="d-flex justify-content-end mt-2 gap-2">
-          <button class="btn-ee-outline">Close Ticket</button>
-          <button class="btn-ee-primary" (click)="sendReply()" [disabled]="!reply.trim()"><i class="bi bi-send"></i> Send Reply</button>
+    } @empty {
+      <div class="empty-dashboard-state">
+        <div class="empty-icon-wrapper">
+          <i class="bi bi-search"></i>
         </div>
+        <h3>No inquiries matched your criteria</h3>
+        <p>Try resetting the search terms or change status/priority filter settings.</p>
       </div>
-    </div>
-  }
+    }
+  </div>
 </div>

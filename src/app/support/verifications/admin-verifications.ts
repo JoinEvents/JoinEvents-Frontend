@@ -1,7 +1,7 @@
 import { Component, signal, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { TitleCasePipe, DecimalPipe } from '@angular/common';
-import { MockApiService } from '../../core/services/mock-api.service';
+import { SupportService } from '../../core/services/support.service';
 import { PackageService } from '../../core/services/package.service';
 import { Vendor } from '../../core/models/vendor.model';
 import { ActivatedRoute } from '@angular/router';
@@ -14,7 +14,7 @@ import { ActivatedRoute } from '@angular/router';
   styleUrl: './admin-verifications.css'
 })
 export class AdminVerifications implements OnInit {
-  private api = inject(MockApiService);
+  private support = inject(SupportService);
   private packageService = inject(PackageService);
   private route = inject(ActivatedRoute);
 
@@ -42,7 +42,7 @@ export class AdminVerifications implements OnInit {
   }
 
   loadVendors() {
-    this.api.getVendors().subscribe(v => {
+    this.support.getPendingVendors().subscribe(v => {
       this.vendors.set(v.filter(x => x.verificationStatus !== 'verified'));
       if (this.activeTab() === 'vendors' && this.vendors().length > 0 && !this.selectedVendor()) {
         this.selectVendor(this.vendors()[0]);
@@ -51,7 +51,7 @@ export class AdminVerifications implements OnInit {
   }
 
   loadPendingPackages() {
-    this.packageService.getPendingPackages().subscribe(packages => {
+    this.support.getPendingPackages().subscribe(packages => {
       this.pendingPackages.set(packages);
       if (this.activeTab() === 'packages') {
         if (packages.length > 0) {
@@ -101,23 +101,37 @@ export class AdminVerifications implements OnInit {
   }
 
   approve(id: string) {
-    this.actionDone.set('approved');
-    if (this.selectedVendor()?.id === id) {
-      this.selectedVendor.update(v => v ? { ...v, verificationStatus: 'verified' } : v);
-    }
-    this.vendors.update(vs => vs.filter(v => v.id !== id));
+    this.support.verifyVendor(id, 'verified', this.remarks).subscribe({
+      next: () => {
+        this.actionDone.set('approved');
+        if (this.selectedVendor()?.id === id) {
+          this.selectedVendor.update(v => v ? { ...v, verificationStatus: 'verified' } : v);
+        }
+        this.vendors.update(vs => vs.filter(v => v.id !== id));
+      },
+      error: (err) => console.error('Error approving vendor:', err)
+    });
   }
 
   reject(id: string) {
-    this.vendors.update(vs => vs.map(v => v.id === id ? { ...v, verificationStatus: 'rejected' } : v));
-    this.actionDone.set('rejected');
-    if (this.selectedVendor()?.id === id) {
-      this.selectedVendor.update(v => v ? { ...v, verificationStatus: 'rejected' } : v);
+    if (!this.remarks.trim()) {
+      alert('Please provide rejection remarks/comments before rejecting the vendor.');
+      return;
     }
+    this.support.verifyVendor(id, 'rejected', this.remarks).subscribe({
+      next: () => {
+        this.actionDone.set('rejected');
+        if (this.selectedVendor()?.id === id) {
+          this.selectedVendor.update(v => v ? { ...v, verificationStatus: 'rejected' } : v);
+        }
+        this.vendors.update(vs => vs.map(v => v.id === id ? { ...v, verificationStatus: 'rejected' } : v));
+      },
+      error: (err) => console.error('Error rejecting vendor:', err)
+    });
   }
 
   approvePkg(id: string) {
-    this.packageService.verifyPackage(id, 'Approved', this.remarks).subscribe({
+    this.support.verifyPackage(id, 'Approved', this.remarks).subscribe({
       next: () => {
         this.actionDone.set('approved');
         this.loadPendingPackages();
@@ -133,7 +147,7 @@ export class AdminVerifications implements OnInit {
       alert('Please provide rejection remarks/comments before rejecting the service.');
       return;
     }
-    this.packageService.verifyPackage(id, 'Rejected', this.remarks).subscribe({
+    this.support.verifyPackage(id, 'Rejected', this.remarks).subscribe({
       next: () => {
         this.actionDone.set('rejected');
         this.loadPendingPackages();

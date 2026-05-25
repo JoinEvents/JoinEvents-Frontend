@@ -1,0 +1,306 @@
+<div class="ticket-detail-page">
+  <!-- Top Navigation & Title Bar -->
+  <div class="ticket-detail-topbar">
+    <a routerLink="/support/tickets" class="back-link">
+      <i class="bi bi-arrow-left-short"></i> Back to Tickets
+    </a>
+    @if (ticket(); as t) {
+      <div class="topbar-actions">
+        @if (t.status !== 'resolved' && t.status !== 'closed') {
+          <button class="btn-resolve" (click)="closeTicket(t.id)">
+            <i class="bi bi-check2-circle"></i> Mark as Resolved
+          </button>
+        }
+      </div>
+    }
+  </div>
+
+  @if (ticket(); as t) {
+    <div class="ticket-detail-content">
+      <!-- Left Panel: Booking, Vendor & Attachment Details -->
+      <aside class="ticket-side-panel">
+        
+        <!-- Booking Details Card -->
+        <div class="detail-card booking-card">
+          <div class="card-header">
+            <i class="bi bi-calendar3 header-icon"></i>
+            <h3>Booking Details</h3>
+          </div>
+          <div class="card-body">
+            @if (t.bookingDetails) {
+              <div class="info-group">
+                <label>Event Name</label>
+                <div class="value highlight">{{ t.bookingDetails.eventName }}</div>
+              </div>
+              <div class="info-grid">
+                <div class="info-group">
+                  <label>Venue</label>
+                  <div class="value">{{ t.bookingDetails.venue || 'Not specified' }}</div>
+                </div>
+                <div class="info-group">
+                  <label>City</label>
+                  <div class="value">{{ t.bookingDetails.city || 'Not specified' }}</div>
+                </div>
+                <div class="info-group">
+                  <label>Date</label>
+                  <div class="value">{{ t.bookingDetails.eventDate | date:'mediumDate' }}</div>
+                </div>
+                <div class="info-group">
+                  <label>Guest Count</label>
+                  <div class="value">{{ t.bookingDetails.guestCount || 0 }} Guests</div>
+                </div>
+              </div>
+              <div class="price-status-row">
+                <div class="info-group">
+                  <label>Total Amount</label>
+                  <div class="value price">{{ t.bookingDetails.totalAmount | currency:'INR':'symbol':'1.0-0' }}</div>
+                </div>
+                <div class="info-group">
+                  <label>Booking Status</label>
+                  <span class="booking-status-badge" [attr.data-status]="t.bookingDetails.status">
+                    {{ t.bookingDetails.status | titlecase }}
+                  </span>
+                </div>
+              </div>
+            } @else {
+              <div class="empty-detail-state">
+                <i class="bi bi-calendar-x"></i>
+                <p>No booking linked to this ticket</p>
+                @if (t.eventName) {
+                  <span class="fallback-event">Event Name: <strong>{{ t.eventName }}</strong></span>
+                }
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- Vendor Contact Details Card -->
+        <div class="detail-card vendor-card">
+          <div class="card-header">
+            <i class="bi bi-shop header-icon"></i>
+            <h3>Vendor Details</h3>
+          </div>
+          <div class="card-body">
+            @if (t.vendorContact) {
+              <div class="info-group">
+                <label>Business Name</label>
+                <div class="value business-title">{{ t.vendorContact.businessName }}</div>
+              </div>
+              <div class="info-group">
+                <label>Contact Name</label>
+                <div class="value">{{ t.vendorContact.contactName }}</div>
+              </div>
+              <div class="info-group">
+                <label>Phone Number</label>
+                <div class="value">{{ t.vendorContact.phone || 'Not specified' }}</div>
+              </div>
+              <div class="info-group mb-4">
+                <label>Email Address</label>
+                <div class="value">{{ t.vendorContact.email || 'Not specified' }}</div>
+              </div>
+
+              <!-- Vendor quick action contact panel -->
+              <div class="contact-actions">
+                <a href="tel:{{ t.vendorContact.phone }}" class="action-btn call" title="Call Vendor">
+                  <i class="bi bi-telephone-fill"></i>
+                  <span>Call</span>
+                </a>
+                <a href="sms:{{ t.vendorContact.phone }}" class="action-btn message" title="SMS/Message Vendor">
+                  <i class="bi bi-chat-left-text-fill"></i>
+                  <span>Message</span>
+                </a>
+                <a href="mailto:{{ t.vendorContact.email }}" class="action-btn email" title="Email Vendor">
+                  <i class="bi bi-envelope-fill"></i>
+                  <span>Email</span>
+                </a>
+              </div>
+            } @else {
+              <div class="empty-detail-state">
+                <i class="bi bi-shop-window"></i>
+                <p>No vendor contact details available</p>
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- Customer Attachments Card -->
+        <div class="detail-card attachment-card">
+          <div class="card-header">
+            <i class="bi bi-paperclip header-icon"></i>
+            <h3>Customer Attachments</h3>
+          </div>
+          <div class="card-body">
+            @if (t.attachmentUrl) {
+              <div class="attachment-preview-box">
+                <div class="preview-info">
+                  <i class="bi bi-file-earmark-arrow-down file-icon"></i>
+                  <div class="file-details">
+                    <span class="file-name">Customer Uploaded Asset</span>
+                    <span class="file-action-links">
+                      <a [href]="resolveAttachmentUrl(t.attachmentUrl)" target="_blank">View File</a>
+                    </span>
+                  </div>
+                </div>
+                <a [href]="resolveAttachmentUrl(t.attachmentUrl)" target="_blank" download class="btn-download-attachment">
+                  <i class="bi bi-download"></i> Download
+                </a>
+              </div>
+            } @else {
+              <div class="empty-detail-state">
+                <i class="bi bi-slash-circle"></i>
+                <p>No attachments uploaded by customer</p>
+              </div>
+            }
+          </div>
+        </div>
+
+      </aside>
+
+      <!-- Right Panel: Ticket Header, Message Thread & Fixed Reply Area -->
+      <main class="ticket-chat-panel">
+        <!-- Ticket Header Details -->
+        <header class="chat-header">
+          <div class="header-main-info">
+            <div class="subject-row">
+              <h2>{{ t.subject }}</h2>
+              <div class="header-selectors">
+                <!-- Priority Selector -->
+                <div class="selector-container">
+                  <label>Priority</label>
+                  <select 
+                    [ngModel]="t.priority" 
+                    (change)="onPriorityChange($any($event.target).value)" 
+                    class="property-select priority-select-input {{ priorityColor(t.priority) }}">
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                    <option value="urgent">Urgent</option>
+                  </select>
+                </div>
+
+                <!-- Status Selector -->
+                <div class="selector-container">
+                  <label>Status</label>
+                  <select 
+                    [ngModel]="t.status" 
+                    (change)="onStatusChange($any($event.target).value)" 
+                    class="property-select status-select-input {{ statusColor(t.status) }}">
+                    <option value="open">Open</option>
+                    <option value="in_progress">In Progress</option>
+                    <option value="resolved">Resolved</option>
+                    <option value="closed">Closed</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="meta-row">
+              <span class="customer-name">
+                <i class="bi bi-person-fill"></i> Raised by {{ t.customerName }}
+              </span>
+              <span class="bullet-dot">·</span>
+              <span class="ticket-date">
+                <i class="bi bi-clock-history"></i> {{ t.createdAt | date:'medium' }}
+              </span>
+            </div>
+          </div>
+        </header>
+
+        <!-- Message Thread Scroller -->
+        <div class="chat-messages-container">
+          @for (msg of t.messages; track msg.id) {
+            <div class="message-wrapper" 
+                 [class.outgoing]="msg.senderRole === 'support' || msg.senderRole === 'admin'" 
+                 [class.incoming]="msg.senderRole !== 'support' && msg.senderRole !== 'admin'"
+                 [class.internal]="msg.isInternal">
+              <div class="message-bubble-outer">
+                <div class="message-info">
+                  <span class="sender-name">{{ msg.senderName }}</span>
+                  <span class="sender-role">({{ msg.senderRole | titlecase }})</span>
+                  @if (msg.isInternal) {
+                    <span class="internal-tag">
+                      <i class="bi bi-lock-fill"></i> Internal Note
+                    </span>
+                  }
+                  <span class="message-time">{{ msg.timestamp | date:'shortTime' }}</span>
+                </div>
+                <div class="message-bubble-content" [class.internal-bubble]="msg.isInternal">
+                  {{ msg.content }}
+                </div>
+              </div>
+            </div>
+          } @empty {
+            <div class="empty-chat-state">
+              <i class="bi bi-chat-dots"></i>
+              <p>No messages yet in this ticket thread</p>
+              <span>Compose a reply below to initiate communication</span>
+            </div>
+          }
+        </div>
+
+        <!-- Chat Reply Area -->
+        <footer class="chat-footer">
+          @if (t.status === 'resolved' || t.status === 'closed') {
+            <div class="chat-locked-message">
+              <i class="bi bi-lock-fill"></i>
+              <span>This ticket is <strong>{{ t.status | titlecase }}</strong>. The session is closed and replies are disabled.</span>
+            </div>
+          } @else {
+            <div class="chat-reply-input-box">
+              <!-- Segmented Tabs Toggle -->
+              <div class="reply-mode-tabs">
+                <button 
+                  type="button" 
+                  class="mode-tab" 
+                  [class.active]="!isInternalNote()" 
+                  (click)="isInternalNote.set(false)">
+                  <i class="bi bi-chat-left-dots"></i> Public Reply
+                </button>
+                <button 
+                  type="button" 
+                  class="mode-tab private" 
+                  [class.active]="isInternalNote()" 
+                  (click)="isInternalNote.set(true)">
+                  <i class="bi bi-lock-fill"></i> Internal Team Note
+                </button>
+              </div>
+
+              <textarea 
+                class="reply-textarea" 
+                [class.internal-textarea]="isInternalNote()"
+                rows="3" 
+                [(ngModel)]="reply" 
+                [placeholder]="isInternalNote() ? 'Type a private team note (customers cannot see this)...' : 'Type your message to the customer...'"
+                (keydown.enter)="$event.preventDefault(); sendReply()"></textarea>
+              
+              <div class="reply-actions-row">
+                <span class="shortcut-tip">Press Enter to send</span>
+                <div class="actions">
+                  <button class="btn-secondary-action" (click)="closeTicket(t.id)">Close Ticket</button>
+                  <button 
+                    class="btn-send-reply" 
+                    [class.internal-btn]="isInternalNote()" 
+                    (click)="sendReply()" 
+                    [disabled]="!reply.trim() || isSending()">
+                    @if (isSending()) {
+                      <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                      Sending...
+                    } @else {
+                      <i class="bi" [class.bi-send-fill]="!isInternalNote()" [class.bi-lock-fill]="isInternalNote()"></i> 
+                      {{ isInternalNote() ? 'Post Note' : 'Send Message' }}
+                    }
+                  </button>
+                </div>
+              </div>
+            </div>
+          }
+        </footer>
+      </main>
+    </div>
+  } @else {
+    <!-- Loading State -->
+    <div class="ticket-loading-state">
+      <div class="spinner-border text-primary" role="status"></div>
+      <p>Loading ticket details...</p>
+    </div>
+  }
+</div>

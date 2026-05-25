@@ -43,6 +43,9 @@
                   <span class="badge {{ priorityColor(t.priority) }}">{{ t.priority }}</span>
                 </div>
                 <div class="ticket-subject">{{ t.subject }}</div>
+                @if (t.eventName) {
+                  <div class="ticket-event-tag" style="font-size: 0.8rem; color: var(--accent); margin: 4px 0;"><i class="bi bi-calendar-event me-1"></i>{{ t.eventName }}</div>
+                }
                 <div class="ticket-item-footer">
                   <span class="badge {{ statusColor(t.status) }}">{{ t.status | titlecase }}</span>
                   <span class="ticket-time"><i class="bi bi-clock me-1"></i>{{ t.createdAt | date:'shortDate' }}</span>
@@ -78,39 +81,80 @@
               <span class="meta-label">Created At</span>
               <span class="meta-value">{{ selectedTicket()?.createdAt | date:'medium' }}</span>
             </div>
+            @if (selectedTicket()?.eventName) {
+              <div class="meta-item">
+                <span class="meta-label">Tagged Event</span>
+                <span class="meta-value text-accent fw-bold"><i class="bi bi-calendar-event me-1"></i>{{ selectedTicket()?.eventName }}</span>
+              </div>
+            }
           </div>
+
+          @if (selectedTicket()?.attachmentUrl) {
+            <div class="attachment-box p-3 mb-3 bg-light border rounded d-flex align-items-center justify-content-between" style="border-radius: 8px; margin: 15px 0;">
+              <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-paperclip text-primary fs-5"></i>
+                <div>
+                  <div class="fw-bold small text-muted">Uploaded Attachment</div>
+                  <a [href]="resolveAttachmentUrl(selectedTicket()?.attachmentUrl)" target="_blank" class="text-decoration-none text-primary fw-semibold">
+                    View Attachment
+                  </a>
+                </div>
+              </div>
+              <a [href]="resolveAttachmentUrl(selectedTicket()?.attachmentUrl)" target="_blank" download class="btn btn-sm btn-outline-primary px-3">
+                <i class="bi bi-download me-1"></i>Download
+              </a>
+            </div>
+          }
 
           <!-- Timeline view / Thread -->
           <div class="ticket-thread-box">
-            <div class="thread-message system">
-              <div class="message-avatar bg-primary text-white"><i class="bi bi-robot"></i></div>
-              <div class="message-body">
-                <div class="message-header">
-                  <strong>System Bot</strong>
-                  <span class="message-time">Just Now</span>
+            @for (msg of selectedTicket()?.messages; track msg.id) {
+              <div class="thread-message" [class.support]="$any(msg.senderRole) === 'support' || $any(msg.senderRole) === 'admin'" [class.customer]="msg.senderRole === 'customer'">
+                <div class="message-avatar" [class.bg-primary]="msg.senderRole === 'customer'" [class.bg-success]="$any(msg.senderRole) === 'support' || $any(msg.senderRole) === 'admin'">
+                  <i class="bi" [class.bi-person]="msg.senderRole === 'customer'" [class.bi-headset]="$any(msg.senderRole) === 'support' || $any(msg.senderRole) === 'admin'"></i>
                 </div>
-                <p>Hello Rajesh Kumar! Your ticket has been registered successfully. A dedicated Customer Satisfaction officer is reviewing the details and will contact you shortly.</p>
-              </div>
-            </div>
-
-            @if (selectedTicket()?.status === 'resolved' || selectedTicket()?.status === 'closed') {
-              <div class="thread-message support">
-                <div class="message-avatar bg-success text-white"><i class="bi bi-shield-check"></i></div>
                 <div class="message-body">
                   <div class="message-header">
-                    <strong>Rahul Support (Agent)</strong>
-                    <span class="message-time">Yesterday</span>
+                    <strong>{{ msg.senderName }}</strong>
+                    <span class="message-time">{{ msg.timestamp | date:'shortTime' }}</span>
                   </div>
-                  <p>Dear Customer, we have investigated this issue and resolved it successfully with your catering vendor. Thank you for using our premium services!</p>
+                  <p>{{ msg.content }}</p>
+                </div>
+              </div>
+            } @empty {
+              <div class="thread-message system">
+                <div class="message-avatar bg-primary text-white"><i class="bi bi-robot"></i></div>
+                <div class="message-body">
+                  <div class="message-header">
+                    <strong>System Bot</strong>
+                    <span class="message-time">Just Now</span>
+                  </div>
+                  <p>Hello Rajesh Kumar! Your ticket has been registered successfully. A support agent will contact you shortly.</p>
                 </div>
               </div>
             }
           </div>
 
-          <div class="detail-actions">
-            <button class="btn btn-outline-secondary w-100 py-3" disabled>
-              <i class="bi bi-chat-text me-2"></i>Reply to Support Agent (Coming Soon)
-            </button>
+          <div class="detail-actions mt-3">
+            @if (selectedTicket()?.status === 'resolved' || selectedTicket()?.status === 'closed') {
+              <div class="d-flex flex-column align-items-center gap-3 p-4 bg-light border rounded-3 text-center">
+                <div class="text-muted"><i class="bi bi-info-circle me-1"></i>This ticket has been marked as <strong>{{ selectedTicket()?.status | titlecase }}</strong>.</div>
+                <button class="btn btn-ee-primary px-4 py-2" (click)="reopenTicket(selectedTicket()!.id)">
+                  <i class="bi bi-arrow-counterclockwise me-1"></i> Reopen Ticket
+                </button>
+              </div>
+            } @else {
+              <div class="input-group">
+                <input type="text" class="form-control py-3" placeholder="Type a reply to the support agent..." [(ngModel)]="replyText" (keyup.enter)="sendReply()" [disabled]="replying()">
+                <button class="btn btn-ee-primary px-4" (click)="sendReply()" [disabled]="!replyText.trim() || replying()">
+                  @if (replying()) {
+                    <span class="spinner-border spinner-border-sm"></span>
+                  } @else {
+                    <i class="bi bi-send-fill"></i>
+                  }
+                </button>
+              </div>
+            }
           </div>
         </div>
       } @else {
@@ -138,6 +182,15 @@
           <div class="mb-3">
             <label class="form-label fw-bold">Issue Subject / Description</label>
             <textarea class="form-control" rows="4" placeholder="Briefly describe what issue you are facing or what changes you want to make..." [(ngModel)]="newSubject"></textarea>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-bold">Associate Event / Booking (Optional)</label>
+            <select class="form-select" [(ngModel)]="selectedBookingId">
+              <option value="">-- No Event Associated --</option>
+              @for (b of bookings(); track b.id) {
+                <option [value]="b.id">{{ b.eventName }} ({{ b.eventDate | date:'shortDate' }})</option>
+              }
+            </select>
           </div>
           <div class="mb-3">
             <label class="form-label fw-bold">Issue Priority</label>
