@@ -91,11 +91,11 @@ export class AdminLayout {
 
   readonly navItemsBase: NavItem[] = [
     { path: '/admin/dashboard',     icon: 'bi-grid-1x2',       label: 'Dashboard' },
-    { path: '/admin/users',         icon: 'bi-people',         label: 'Manage Users' },
+    { path: '/admin/customers',     icon: 'bi-people',         label: 'Customer Directory' },
     { path: '/admin/vendors',       icon: 'bi-patch-check',    label: 'Vendor Verification' },
     { path: '/admin/categories',    icon: 'bi-tag',            label: 'Event Categories' },
     { path: '/admin/bookings',      icon: 'bi-journal-check',  label: 'Bookings' },
-    { path: '/admin/disputes',      icon: 'bi-exclamation-triangle', label: 'Disputes' },
+    { path: '/admin/reviews',      icon: 'bi-exclamation-triangle', label: 'Disputes' },
     { path: '/admin/rfp',           icon: 'bi-megaphone',      label: 'Global RFPs' },
     { path: '/admin/audit',         icon: 'bi-receipt',        label: 'Audit Trail' },
     { path: '/admin/messages',      icon: 'bi-chat-dots',      label: 'Admin Inbox' },

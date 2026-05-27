@@ -63,6 +63,7 @@ export const routes: Routes = [
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
       { path: 'dashboard', loadComponent: () => import('./admin/dashboard/admin-dashboard').then(m => m.AdminDashboard) },
       { path: 'bookings', loadComponent: () => import('./admin/bookings/admin-bookings').then(m => m.AdminBookings) },
+      { path: 'reviews', loadComponent: () => import('./support/reviews/admin-reviews').then(m => m.AdminReviews) },
       { path: 'customers', loadComponent: () => import('./admin/customers/admin-customers').then(m => m.AdminCustomers) },
       { path: 'vendors', loadComponent: () => import('./admin/vendors/admin-vendors').then(m => m.AdminVendors) },
       { path: 'employees', loadComponent: () => import('./admin/employees/admin-employees').then(m => m.AdminEmployees) },

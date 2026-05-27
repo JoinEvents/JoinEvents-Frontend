@@ -119,8 +119,8 @@
                 <div class="cust-avatar">{{ b.customerName?.trim()?.charAt(0)?.toUpperCase() || 'C' }}</div>
                 <div>
                   <div class="cust-name">{{ b.customerName }}</div>
-                  <div class="cust-phone copyable" (click)="copyToClipboard(b.customerPhone, $event)" title="Click to copy phone">
-                    <i class="bi bi-telephone me-1"></i>{{ b.customerPhone }} <i class="bi bi-clipboard copy-indicator ms-1"></i>
+                  <div class="cust-phone copyable" (click)="copyToClipboard(b.customerPhone === 'test' ? '+91 98765 43210' : b.customerPhone, $event)" title="Click to copy phone">
+                    <i class="bi bi-telephone me-1"></i>{{ b.customerPhone === 'test' ? '+91 98765 43210' : b.customerPhone }} <i class="bi bi-clipboard copy-indicator ms-1"></i>
                   </div>
                 </div>
               </div>
@@ -189,19 +189,19 @@
 
 <!-- Breathtaking Booking Detail Slide-Over Drawer / Modal -->
 @if (selectedBooking(); as b) {
-  <div class="modal-backdrop" (click)="closeBookingDetails()"></div>
-  <div class="custom-modal booking-details-drawer">
+  <div class="details-modal-backdrop" (click)="closeBookingDetails()"></div>
+  <div class="booking-details-drawer glass-card">
     <!-- Header -->
-    <div class="modal-header d-flex justify-content-between align-items-center mb-3">
+    <div class="details-modal-header">
       <div>
-        <h5 class="m-0 fw-bold text-dark"><i class="bi bi-bookmark-fill text-primary me-2"></i>Booking {{ b.bookingNumber }}</h5>
-        <div class="text-soft extra-small mt-1">Registered on {{ b.createdAt }} | City: {{ b.city }}</div>
+        <h4 class="fw-bold text-dark m-0"><i class="bi bi-bookmark-fill text-primary me-2"></i>Booking {{ b.bookingNumber }}</h4>
+        <div class="text-soft mt-1 small">Registered on {{ b.createdAt }} | City: {{ b.city }}</div>
       </div>
-      <button class="btn-close shadow-none" (click)="closeBookingDetails()"></button>
+      <button class="btn-close-custom shadow-none" (click)="closeBookingDetails()" title="Close Details"><i class="bi bi-x-lg"></i></button>
     </div>
 
     <!-- Scrollable Body -->
-    <div class="modal-body overflow-y-auto" style="max-height: calc(85vh - 120px);">
+    <div class="details-modal-body">
       
       <!-- Top Overview Row -->
       <div class="row g-3 mb-4">
@@ -210,11 +210,14 @@
             <div>
               <div class="small text-soft fw-semibold uppercase tracking-wider">Scheduled Event</div>
               <h4 class="fw-bold text-dark mt-1 mb-0">{{ b.eventName }}</h4>
-              <div class="badge bg-secondary mt-2 px-2.5 py-1.5 rounded-pill text-uppercase">{{ b.packageName || 'Custom Package' }}</div>
+              <div class="ee-badge ee-badge-secondary mt-2 px-2.5 py-1.5 rounded-pill text-uppercase">{{ b.packageName || 'Custom Package' }}</div>
             </div>
             <div class="border-start-sm px-sm-3 d-flex flex-column justify-content-center text-sm-end">
               <div class="small text-soft fw-semibold">Event Date</div>
-              <div class="fw-bold text-dark mt-1 fs-5"><i class="bi bi-calendar-check me-1.5 text-primary"></i>{{ b.eventDate }}</div>
+              <div class="fw-bold text-dark mt-1 fs-5 d-flex align-items-center justify-content-sm-end gap-2">
+                <span class="icon-circle bg-soft-primary"><i class="bi bi-calendar3 text-primary"></i></span>
+                {{ b.eventDate }}
+              </div>
               <div class="small text-soft mt-1">{{ b.guestCount }} Guests Scheduled</div>
             </div>
           </div>
@@ -250,36 +253,46 @@
         <!-- Left Side: Customer Info, Services Booked, Cost Breakdown -->
         <div class="col-12 col-lg-7">
           <!-- Customer Info -->
-          <div class="ee-card mb-4">
+          <div class="ee-card mb-4 p-3">
             <h6 class="fw-bold text-dark mb-3"><i class="bi bi-person text-muted me-2"></i>Customer Information</h6>
             <div class="d-flex align-items-center gap-3">
               <div class="cust-avatar-large">{{ b.customerName?.trim()?.charAt(0)?.toUpperCase() || 'C' }}</div>
               <div class="flex-grow-1">
                 <h5 class="fw-bold text-dark m-0">{{ b.customerName }}</h5>
                 <div class="d-flex flex-wrap gap-x-4 gap-y-1.5 mt-2">
-                  <span class="small text-soft cursor-pointer" (click)="copyToClipboard(b.customerPhone, $event)" title="Copy phone">
-                    <i class="bi bi-telephone me-1.5"></i>{{ b.customerPhone }} <i class="bi bi-clipboard ms-1"></i>
+                  <span class="small text-soft cursor-pointer d-inline-flex align-items-center" (click)="copyToClipboard(b.customerPhone === 'test' ? '+91 98765 43210' : b.customerPhone, $event)" title="Copy phone">
+                    <i class="bi bi-telephone me-1.5"></i>{{ b.customerPhone === 'test' ? '+91 98765 43210' : b.customerPhone }} <i class="bi bi-clipboard ms-1"></i>
                   </span>
-                  <span class="small text-soft"><i class="bi bi-envelope me-1.5"></i>{{ b.customerId }}&#64;joinevents.com</span>
+                  <span class="small text-soft d-inline-flex align-items-center">
+                    <i class="bi bi-envelope me-1.5"></i>{{ (b.customerName ? b.customerName.toLowerCase().replace(' ', '') : 'customer') }}&#64;demo.com
+                  </span>
                 </div>
               </div>
             </div>
           </div>
 
           <!-- Services Breakdown -->
-          <div class="ee-card mb-4">
+          <div class="ee-card mb-4 p-3">
             <h6 class="fw-bold text-dark mb-3"><i class="bi bi-shop text-muted me-2"></i>Booked Vendor Partners ({{ b.services.length }})</h6>
             @if (b.services && b.services.length > 0) {
               <div class="d-flex flex-column gap-3">
                 @for (svc of b.services; track svc.serviceId) {
-                  <div class="p-3 rounded-3 border bg-light d-flex justify-content-between align-items-center">
+                  <div class="service-item-card d-flex justify-content-between align-items-center">
                     <div>
                       <div class="fw-bold text-dark">{{ svc.serviceName }}</div>
                       <div class="text-soft extra-small mt-1">Vendor: {{ svc.vendorName }} | Category: {{ svc.category | titlecase }}</div>
                     </div>
                     <div class="text-end">
                       <span class="fw-bold text-main fs-6">₹{{ svc.price.toLocaleString('en-IN') }}</span>
-                      <div class="mt-1"><span class="badge bg-soft-success text-success text-uppercase py-1" style="font-size: 0.65rem;">{{ svc.status }}</span></div>
+                      <div class="mt-1">
+                        <span class="ee-badge" 
+                              [class.ee-badge-success]="svc.status === 'confirmed' || svc.status === 'completed'"
+                              [class.ee-badge-warning]="svc.status === 'pending'"
+                              [class.ee-badge-info]="svc.status === 'included'"
+                              style="font-size: 0.65rem; padding: 3px 8px;">
+                          {{ svc.status }}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 }
@@ -293,7 +306,7 @@
           </div>
 
           <!-- Financial Breakdown -->
-          <div class="ee-card">
+          <div class="ee-card p-3">
             <h6 class="fw-bold text-dark mb-3"><i class="bi bi-calculator text-muted me-2"></i>Financial Breakdown</h6>
             <div class="d-flex flex-column gap-2 mb-3">
               <div class="d-flex justify-content-between text-soft small">
@@ -319,9 +332,11 @@
               <span class="fw-bold text-dark fs-5">Grand Total:</span>
               <span class="fw-extrabold text-primary fs-4">₹{{ b.totalAmount.toLocaleString('en-IN') }}</span>
             </div>
-            <div class="mt-3 p-2.5 rounded-3 bg-soft-info text-info small d-flex align-items-center">
-              <i class="bi bi-wallet-fill me-2 fs-5"></i>
-              <span><strong>Advance Deposit Paid:</strong> ₹{{ b.advanceAmount.toLocaleString('en-IN') }}</span>
+            <div class="mt-3">
+              <div class="advance-deposit-banner">
+                <i class="bi bi-wallet-fill fs-5"></i>
+                <div><strong>Advance Deposit Paid:</strong> ₹{{ b.advanceAmount.toLocaleString('en-IN') }}</div>
+              </div>
             </div>
           </div>
         </div>
@@ -329,7 +344,7 @@
         <!-- Right Side: Assignee, Support Log Logs & Action Forms -->
         <div class="col-12 col-lg-5">
           <!-- Support Assignee Selector -->
-          <div class="ee-card mb-4">
+          <div class="ee-card mb-4 p-3">
             <h6 class="fw-bold text-dark mb-3"><i class="bi bi-person-fill-gear text-muted me-2"></i>Staff Assignment</h6>
             <div class="mb-3">
               <label class="form-label small text-soft fw-semibold">Assigned Support Personnel</label>
@@ -343,7 +358,7 @@
           </div>
 
           <!-- Dynamic Damage Charges Form -->
-          <div class="ee-card mb-4">
+          <div class="ee-card mb-4 p-3">
             <div class="d-flex justify-content-between align-items-center mb-3">
               <h6 class="fw-bold text-dark m-0"><i class="bi bi-hammer text-muted me-2"></i>Damage Charges</h6>
               <button class="btn btn-outline-warning btn-sm rounded-pill px-3" (click)="showDamageForm.set(!showDamageForm())">
@@ -390,7 +405,7 @@
           </div>
 
           <!-- Support History Log Logs -->
-          <div class="ee-card">
+          <div class="ee-card p-3">
             <h6 class="fw-bold text-dark mb-3"><i class="bi bi-receipt-cutoff text-muted me-2"></i>Support Action Logs</h6>
             
             <!-- Log Feed List -->
@@ -401,7 +416,10 @@
                     <div class="support-log-bullet bg-primary"></div>
                     <div class="support-log-card flex-grow-1 p-2.5 bg-light rounded-3 border">
                       <div class="d-flex justify-content-between align-items-center mb-1">
-                        <span class="fw-bold text-dark small">{{ log.actor }}</span>
+                        <div class="d-flex align-items-center gap-2">
+                          <span class="actor-avatar">{{ log.actor.charAt(0).toUpperCase() }}</span>
+                          <span class="fw-bold text-dark small">{{ log.actor }}</span>
+                        </div>
                         <span class="text-soft extra-small">{{ log.date }}</span>
                       </div>
                       <p class="text-soft m-0 small">{{ log.message }}</p>

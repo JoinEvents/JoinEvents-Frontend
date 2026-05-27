@@ -1,4 +1,4 @@
-<div class="app-shell" [class.sidebar-pinned]="sidebarPinned()" [class.sidebar-collapsed]="!sidebarPinned() && !sidebarOpen()" (touchstart)="onTouchStart($event)" (touchend)="onTouchEnd($event)">
+<div class="app-shell support-shell" [class.sidebar-pinned]="sidebarPinned()" [class.sidebar-collapsed]="!sidebarPinned() && !sidebarOpen()" (touchstart)="onTouchStart($event)" (touchend)="onTouchEnd($event)">
   <a href="#main-content" class="skip-to-content-link">Skip to main content</a>
   @if (sidebarOpen() && !sidebarPinned()) { <div class="sidebar-overlay" (click)="toggleSidebar()"></div> }
   <aside class="sidebar support-sidebar" [class.open]="sidebarOpen()" [class.pinned]="sidebarPinned()">
