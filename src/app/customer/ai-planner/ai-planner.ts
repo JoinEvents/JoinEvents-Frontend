@@ -2,7 +2,7 @@ import { Component, signal, inject, ViewChild, ElementRef, AfterViewChecked } fr
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { MockApiService } from '../../core/services/mock-api.service';
+import { PackageService } from '../../core/services/package.service';
 import { AiService } from '../../core/services/ai.service';
 
 interface ChatMessage {
@@ -22,7 +22,7 @@ interface ChatMessage {
   styleUrl: './ai-planner.css'
 })
 export class AiPlanner implements AfterViewChecked {
-  private api = inject(MockApiService);
+  private packageService = inject(PackageService);
   private aiService = inject(AiService);
 
   @ViewChild('chatContainer') private chatContainer!: ElementRef;
@@ -80,7 +80,7 @@ export class AiPlanner implements AfterViewChecked {
     
     const needsEco = p.includes('eco') || p.includes('sustainable') || p.includes('green');
 
-    this.api.getPackages(eventTypeMatch || undefined).subscribe(packages => {
+    this.packageService.getPackages(eventTypeMatch || undefined).subscribe(packages => {
       let filtered = packages;
       
       if (needsEco) {

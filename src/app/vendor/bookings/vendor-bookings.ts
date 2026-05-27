@@ -1,7 +1,10 @@
 import { Component, signal, computed, OnInit, inject } from '@angular/core';
 import { TitleCasePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { MockApiService } from '../../core/services/mock-api.service';
+import { of, Observable } from 'rxjs';
+import { delay } from 'rxjs/operators';
+import { BookingService } from '../../core/services/booking.service';
+import { VendorDashboardService } from '../../core/services/vendor-dashboard.service';
 import { BookingStatus } from '../../core/models/booking.model';
 import { ToastService } from '../../core/services/toast.service';
 import { FormsModule } from '@angular/forms';
@@ -10,13 +13,42 @@ interface VendorBookingReq { id: string; bookingId: string; customerName: string
 
 @Component({ selector: 'app-vendor-bookings', standalone: true, imports: [TitleCasePipe, RouterLink, FormsModule], templateUrl: './vendor-bookings.html', styleUrl: './vendor-bookings.css' })
 export class VendorBookings implements OnInit {
-  private api = inject(MockApiService);
+  private bookingService = inject(BookingService);
+  private vendorDashboard = inject(VendorDashboardService);
   private toast = inject(ToastService);
   requestsData = signal<VendorBookingReq[]>([]);
   filter = signal('all');
 
+  // TODO: Replace with real ReviewService when backend GET reviews endpoints exist
+  reviewsList = signal<any[]>([
+    { 
+      id: 'rev1', 
+      bookingId: 'bk002', 
+      vendorId: 'v1', 
+      customerName: 'Rajesh Kumar', 
+      eventName: "Daughter's Birthday", 
+      rating: 5, 
+      comment: "Fantastic service! The decor was exactly as requested and the food was delicious. Highly recommend this vendor.", 
+      date: '2025-11-22',
+      status: 'published', // 'published', 'flagged', 'removed'
+      disputeReason: ''
+    },
+    { 
+      id: 'rev2', 
+      bookingId: 'bk009', 
+      vendorId: 'v1', 
+      customerName: 'Anita Singh', 
+      eventName: "Corporate Gala", 
+      rating: 1, 
+      comment: "Worst service ever. They didn't show up on time and the food was cold. Completely ruined the event.", 
+      date: '2026-02-14',
+      status: 'flagged', 
+      disputeReason: 'Fake review. This customer cancelled the booking 2 days prior and we never provided service.'
+    }
+  ]);
+
   requests = computed(() => {
-    const globalRevs = this.api.globalReviews();
+    const globalRevs = this.reviewsList();
     return this.requestsData().map(req => {
       const rev = globalRevs.find(r => r.bookingId === req.bookingId && r.vendorId === 'v1');
       return { ...req, review: rev };
@@ -24,7 +56,7 @@ export class VendorBookings implements OnInit {
   });
 
   ngOnInit() {
-    this.api.getVendorDashboard('v1').subscribe(d => {
+    this.vendorDashboard.getDashboardData().subscribe(d => {
       const allReqs: VendorBookingReq[] = [...d.recentRequests, 
         { id: 'br3', bookingId: 'bk005', customerName: 'Anand Reddy', eventDate: '2026-07-15', eventName: 'Upanayanam Ceremony', amount: 35000, status: 'in_progress' }, 
         { id: 'br4', bookingId: 'bk002', customerName: 'Rajesh Kumar', eventDate: '2025-11-20', eventName: "Daughter's Birthday", amount: 18000, status: 'completed' },
@@ -44,13 +76,13 @@ export class VendorBookings implements OnInit {
   }
 
   acceptRequest(id: string) { 
-    this.api.updateBookingStatus(id, 'advance_paid').subscribe(() => {
+    this.bookingService.updateBookingStatus(id, 'advance_paid').subscribe(() => {
       this.requestsData.update(rs => rs.map(r => r.id === id ? { ...r, status: 'advance_paid' as any } : r));
       this.toast.success('Request accepted! Waiting for customer advance payment.');
     });
   }
   declineRequest(id: string) { 
-    this.api.updateBookingStatus(id, 'rejected').subscribe(() => {
+    this.bookingService.updateBookingStatus(id, 'rejected').subscribe(() => {
       this.requestsData.update(rs => rs.map(r => r.id === id ? { ...r, status: 'rejected' as any } : r));
       this.toast.info('Request declined.');
     });
@@ -61,21 +93,21 @@ export class VendorBookings implements OnInit {
       this.toast.error('Please provide a reason for cancellation.');
       return;
     }
-    this.api.cancelBooking(id, reason, 'vendor').subscribe(() => {
+    this.bookingService.cancelBooking(id, reason, 'vendor').subscribe(() => {
       this.requestsData.update(rs => rs.map(r => r.id === id ? { ...r, status: 'cancelled' as any } : r));
       this.toast.warning('Booking cancelled.');
     });
   }
 
   startExecution(id: string) {
-    this.api.updateBookingStatus(id, 'in_progress').subscribe(() => {
+    this.bookingService.updateBookingStatus(id, 'in_progress').subscribe(() => {
       this.requestsData.update(rs => rs.map(r => r.id === id ? { ...r, status: 'in_progress' as any } : r));
       this.toast.success('Event execution started!');
     });
   }
 
   completeBooking(id: string) {
-    this.api.updateBookingStatus(id, 'completed').subscribe(() => {
+    this.bookingService.updateBookingStatus(id, 'completed').subscribe(() => {
       this.requestsData.update(rs => rs.map(r => r.id === id ? { ...r, status: 'completed' as any } : r));
       this.toast.success('Event marked as completed.');
     });
@@ -89,7 +121,7 @@ export class VendorBookings implements OnInit {
       this.toast.error('Please enter a valid damage amount.');
       return;
     }
-    this.api.addDamageCharges(id, this.damageForm.amount, this.damageForm.notes).subscribe(() => {
+    this.bookingService.addDamageCharges(id, this.damageForm.amount, this.damageForm.notes).subscribe(() => {
       this.showDamageModal.set(null);
       this.toast.success('Damage charges reported to customer for approval.');
     });
@@ -98,13 +130,21 @@ export class VendorBookings implements OnInit {
   disputingReviewId = signal<string | null>(null);
   isSubmittingDispute = signal(false);
 
+  flagReview(reviewId: string, reason: string): Observable<boolean> {
+    this.reviewsList.update(reviews => 
+      reviews.map(r => r.id === reviewId ? { ...r, status: 'flagged', disputeReason: reason } : r)
+    );
+    return of(true).pipe(delay(200));
+  }
+
   submitDispute(reviewId: string, reason: string) {
     if (!reason.trim()) {
       alert('Please provide a reason for the dispute.');
       return;
     }
     this.isSubmittingDispute.set(true);
-    this.api.flagReview(reviewId, reason).subscribe(() => {
+    // TODO: Replace with real ReviewService.flagReview() or BookingService.raiseDispute() when backend endpoints exist
+    this.flagReview(reviewId, reason).subscribe(() => {
       this.isSubmittingDispute.set(false);
       this.disputingReviewId.set(null);
     });

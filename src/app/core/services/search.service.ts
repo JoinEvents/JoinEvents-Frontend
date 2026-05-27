@@ -1,5 +1,4 @@
-import { Injectable, signal, inject } from '@angular/core';
-import { MockApiService } from './mock-api.service';
+import { Injectable, signal } from '@angular/core';
 import { Observable, of, forkJoin } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { VendorService } from '../models/service.model';
@@ -16,8 +15,6 @@ export interface SearchFilters {
 
 @Injectable({ providedIn: 'root' })
 export class SearchService {
-  private api = inject(MockApiService);
-
   filters = signal<SearchFilters>({});
   validationError = signal<string | null>(null);
 
@@ -48,29 +45,23 @@ export class SearchService {
     return packages.filter(p => {
       if (f.query) {
         const q = f.query.toLowerCase();
-        const matchesName = p.name?.toLowerCase().includes(q);
-        const matchesVendor = p.vendorName?.toLowerCase().includes(q);
-        const matchesLoc = p.location?.toLowerCase().includes(q);
-        const matchesCat = p.eventTypeId?.toLowerCase().includes(q);
-        if (!matchesName && !matchesVendor && !matchesLoc && !matchesCat) return false;
+        const matchesName = p.name.toLowerCase().includes(q);
+        const matchesDesc = p.description.toLowerCase().includes(q);
+        if (!matchesName && !matchesDesc) return false;
       }
 
-      if (f.category && p.eventTypeId !== f.category) return false;
-      if (f.minPrice !== undefined && p.price < f.minPrice) return false;
-      if (f.maxPrice !== undefined && p.price > f.maxPrice) return false;
-      if (f.location && !p.location?.toLowerCase().includes(f.location.toLowerCase())) return false;
+      if (f.category && p.category !== f.category) return false;
+      if (p.price !== undefined && f.minPrice !== undefined && p.price < f.minPrice) return false;
+      if (p.price !== undefined && f.maxPrice !== undefined && p.price > f.maxPrice) return false;
+      if (f.location && p.city && !p.city.toLowerCase().includes(f.location.toLowerCase())) return false;
       if (f.minRating !== undefined && p.rating !== undefined && p.rating < f.minRating) return false;
 
       return true;
     });
   }
 
-  filterVendorServices(services: VendorService[]): Observable<VendorService[]> {
+  searchServices(services: VendorService[]): Observable<VendorService[]> {
     const f = this.filters();
-    if (f.minPrice !== undefined && f.maxPrice !== undefined && f.minPrice > f.maxPrice) {
-      return of(services);
-    }
-
     const firstFiltered = services.filter(s => {
       if (f.query) {
         const q = f.query.toLowerCase();
@@ -99,13 +90,22 @@ export class SearchService {
     const month = parseInt(parts[1], 10);
 
     const checks = firstFiltered.map(s => {
-      return this.api.getVendorCalendar(s.vendorId, month, year).pipe(
-        map(calendar => {
-          const matchedDay = calendar.find(d => d.date === f.availableDate);
-          const isUnavailable = matchedDay && (matchedDay.status === 'booked' || matchedDay.status === 'blocked');
-          return { service: s, keep: !isUnavailable };
-        })
-      );
+      // Generate mock calendar inline for availability checks
+      const daysInMonth = new Date(year, month, 0).getDate();
+      const bookedDays = [3, 7, 12, 18, 24, 28];
+      const blockedDays = [1, 15];
+      const calendar = [];
+      for (let d = 1; d <= daysInMonth; d++) {
+        const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        let status = 'available';
+        if (bookedDays.includes(d)) status = 'booked';
+        else if (blockedDays.includes(d)) status = 'blocked';
+        calendar.push({ date: dateStr, status });
+      }
+
+      const matchedDay = calendar.find(d => d.date === f.availableDate);
+      const isUnavailable = matchedDay && (matchedDay.status === 'booked' || matchedDay.status === 'blocked');
+      return of({ service: s, keep: !isUnavailable });
     });
 
     if (checks.length === 0) {

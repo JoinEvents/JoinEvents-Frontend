@@ -27,7 +27,7 @@
         <h5 class="fw-900 mb-2"><i class="bi bi-shield-lock-fill me-2"></i> JoinEvents Trust Center: Get Verified</h5>
         <p class="mb-0">Earn the Blue Checkmark and boost your bookings by up to 40%. Upload your business registration or KYC documents today to build trust with customers.</p>
       </div>
-      <button class="btn btn-light fw-800 px-4 rounded-pill text-primary shadow-sm" routerLink="/vendor/profile">Upload KYC</button>
+      <button class="btn btn-light fw-800 px-4 rounded-pill text-primary shadow-sm" routerLink="/vendor/verification">Upload KYC</button>
     </div>
   </div>
   }
@@ -56,7 +56,7 @@
 
   <!-- Key Performance Stats -->
   <div class="row g-4 mb-5">
-    @for (stat of stats; track stat.label) {
+    @for (stat of stats(); track stat.label) {
     <div class="col-6 col-lg-3">
       <div class="stat-card-premium">
         <div class="stat-icon" [style.background]="stat.bg">
@@ -102,6 +102,83 @@
         </div>
       </div>
 
+      <!-- Analytics Charts -->
+      @if (analyticsData() && analyticsData()?.monthlyEarnings && analyticsData()?.averageRatingTrend) {
+        <div class="row g-4 mb-5">
+          <!-- Monthly Earnings SVG -->
+          <div class="col-12 col-lg-8">
+            <div class="card border-0 shadow-sm p-4 rounded-4 bg-glass h-100">
+              <h6 class="fw-800 text-navy mb-4"><i class="bi bi-bar-chart-line text-success me-2"></i> Monthly Earnings Overview (INR)</h6>
+              <div class="svg-container" style="height: 220px; width: 100%;">
+                <svg viewBox="0 0 500 180" style="width: 100%; height: 100%; overflow: visible;">
+                  <defs>
+                    <linearGradient id="barGradVendor" x1="0" y1="1" x2="0" y2="0">
+                      <stop offset="0%" stop-color="#10b981" />
+                      <stop offset="100%" stop-color="#059669" />
+                    </linearGradient>
+                  </defs>
+                  <line x1="20" y1="20" x2="480" y2="20" stroke="rgba(0,0,0,0.05)" stroke-width="1" />
+                  <line x1="20" y1="80" x2="480" y2="80" stroke="rgba(0,0,0,0.05)" stroke-width="1" />
+                  <line x1="20" y1="140" x2="480" y2="140" stroke="rgba(0,0,0,0.1)" stroke-width="1.5" />
+
+                  @for (v of analyticsData()!.monthlyEarnings; track $index) {
+                    <rect 
+                      [attr.x]="$index * 38 + 25" 
+                      [attr.y]="140 - (v / maxEarnings() * 110)" 
+                      width="18" 
+                      [attr.height]="(v / maxEarnings() * 110)" 
+                      fill="url(#barGradVendor)" 
+                      rx="3">
+                      <title>{{ monthLabels[$index] }}: ₹{{ v.toLocaleString('en-IN') }}</title>
+                    </rect>
+                    <text [attr.x]="$index * 38 + 34" y="155" text-anchor="middle" font-size="9" fill="#94a3b8" font-weight="bold">{{ monthLabels[$index] }}</text>
+                  }
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <!-- Rating Trend SVG Line Chart -->
+          <div class="col-12 col-lg-4">
+            <div class="card border-0 shadow-sm p-4 rounded-4 bg-glass h-100">
+              <h6 class="fw-800 text-navy mb-4"><i class="bi bi-star-fill text-warning me-2"></i> Rating Trend (12 Months)</h6>
+              <div class="svg-container" style="height: 220px; width: 100%;">
+                <svg viewBox="0 0 250 180" style="width: 100%; height: 100%; overflow: visible;">
+                  <path 
+                    [attr.d]="'M 10,' + (140 - (analyticsData()!.averageRatingTrend[0] - 4) * 80) + 
+                              ' L 30,' + (140 - (analyticsData()!.averageRatingTrend[1] - 4) * 80) +
+                              ' L 50,' + (140 - (analyticsData()!.averageRatingTrend[2] - 4) * 80) +
+                              ' L 70,' + (140 - (analyticsData()!.averageRatingTrend[3] - 4) * 80) +
+                              ' L 90,' + (140 - (analyticsData()!.averageRatingTrend[4] - 4) * 80) +
+                              ' L 110,' + (140 - (analyticsData()!.averageRatingTrend[5] - 4) * 80) +
+                              ' L 130,' + (140 - (analyticsData()!.averageRatingTrend[6] - 4) * 80) +
+                              ' L 150,' + (140 - (analyticsData()!.averageRatingTrend[7] - 4) * 80) +
+                              ' L 170,' + (140 - (analyticsData()!.averageRatingTrend[8] - 4) * 80) +
+                              ' L 190,' + (140 - (analyticsData()!.averageRatingTrend[9] - 4) * 80) +
+                              ' L 210,' + (140 - (analyticsData()!.averageRatingTrend[10] - 4) * 80) +
+                              ' L 230,' + (140 - (analyticsData()!.averageRatingTrend[11] - 4) * 80)"
+                    fill="none" 
+                    stroke="#f59e0b" 
+                    stroke-width="3"
+                    stroke-linecap="round"/>
+                  @for (r of analyticsData()!.averageRatingTrend; track $index) {
+                    <circle 
+                      [attr.cx]="$index * 20 + 10" 
+                      [attr.cy]="140 - (r - 4) * 80" 
+                      r="3.5" 
+                      fill="#ffffff" 
+                      stroke="#f59e0b" 
+                      stroke-width="1.5">
+                      <title>{{ monthLabels[$index] }}: {{ r }} ★</title>
+                    </circle>
+                  }
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+
       <!-- Recent Booking Requests -->
       <div class="ee-card mb-5 p-0">
         <div class="p-4 border-bottom d-flex align-items-center justify-content-between">
@@ -119,14 +196,31 @@
             </div>
             <div class="req-price">₹{{ req.amount.toLocaleString('en-IN') }}</div>
             <div class="req-actions">
-              <button class="btn-req-accept" title="Accept"><i class="bi bi-check-circle-fill"></i></button>
-              <button class="btn-req-decline" title="Decline"><i class="bi bi-x-circle-fill"></i></button>
+              <button class="btn-req-accept" title="Accept" (click)="acceptRequest(req.id)"><i class="bi bi-check-circle-fill"></i></button>
+              <button class="btn-req-decline" title="Decline" (click)="declineRequest(req.id)"><i class="bi bi-x-circle-fill"></i></button>
             </div>
           </div>
           }
           }
         </div>
       </div>
+
+      <!-- Top Performing Service Details -->
+      @if (analyticsData() && analyticsData()!.topPerformingService) {
+        <div class="card border-0 shadow-sm p-4 rounded-4 bg-glass mb-5">
+          <h6 class="fw-800 text-navy mb-3"><i class="bi bi-award text-accent me-2"></i> Star Product / Package</h6>
+          <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+            <div>
+              <h6 class="fw-bold text-navy mb-1">{{ analyticsData()!.topPerformingService.name }}</h6>
+              <p class="text-muted small mb-0">{{ analyticsData()!.topPerformingService.description }}</p>
+            </div>
+            <div class="text-end">
+              <span class="badge bg-success-ee px-3 py-2 fs-6">Rating: {{ analyticsData()!.topPerformingService.rating }} ★</span>
+              <div class="text-muted small mt-1">Total Reviews: {{ analyticsData()!.topPerformingService.totalReviews }}</div>
+            </div>
+          </div>
+        </div>
+      }
     </div>
 
     <!-- Right Column -->
@@ -147,7 +241,6 @@
             <div class="fw-bold text-success"><i class="bi bi-graph-up me-1"></i> {{ esgScore().trend }}</div>
           </div>
         </div>
-        <a routerLink="/vendor/impact" class="btn btn-sm btn-success w-100 rounded-pill fw-700 shadow-sm">View Full Impact Report</a>
       </div>
 
       <!-- Pending Collaborations Card -->
@@ -162,7 +255,7 @@
               <div class="text-muted" style="font-size: 0.7rem;">{{ collab.category }} · {{ collab.time }}</div>
             </div>
             <div class="collab-actions">
-              <button class="btn btn-sm btn-outline-secondary rounded-circle p-1"><i class="bi bi-check-lg"></i></button>
+              <button class="btn btn-sm btn-outline-secondary rounded-circle p-1" (click)="acceptCollaboration(collab.id)"><i class="bi bi-check-lg"></i></button>
             </div>
           </div>
           }
@@ -198,9 +291,9 @@
             <div class="enq-service">{{ enq.service }}</div>
             <div class="enq-msg">"{{ enq.msg }}"</div>
             <div class="enq-actions-row">
-              <button class="btn-quick-reply" (click)="sendQuickReply(enq.customer, 'Available')">Available</button>
-              <button class="btn-quick-reply" (click)="sendQuickReply(enq.customer, 'Call Me')">Call Me</button>
-              <button class="btn-quick-reply" (click)="sendQuickReply(enq.customer, 'Send Quote')">Send Quote</button>
+              <button class="btn-quick-reply" (click)="sendQuickReply(enq.id, 'Available')">Available</button>
+              <button class="btn-quick-reply" (click)="sendQuickReply(enq.id, 'Call Me')">Call Me</button>
+              <button class="btn-quick-reply" (click)="sendQuickReply(enq.id, 'Send Quote')">Send Quote</button>
             </div>
           </div>
           }
@@ -210,13 +303,19 @@
       <!-- Quick Actions -->
       <div class="row g-3">
         <div class="col-6">
-          <a routerLink="/vendor/add-service" class="quick-action-btn primary">
+          <a [routerLink]="vendorProfile()?.isVerified ? '/vendor/add-service' : null" 
+             class="quick-action-btn primary"
+             [class.disabled-action]="!vendorProfile()?.isVerified"
+             (click)="!vendorProfile()?.isVerified && $event.preventDefault(); !vendorProfile()?.isVerified && toast.error('Please complete verification first.')">
             <i class="bi bi-plus-square-dotted"></i>
             <span>Add Deal</span>
           </a>
         </div>
         <div class="col-6">
-          <a routerLink="/vendor/calendar" class="quick-action-btn secondary">
+          <a [routerLink]="vendorProfile()?.isVerified ? '/vendor/calendar' : null" 
+             class="quick-action-btn secondary"
+             [class.disabled-action]="!vendorProfile()?.isVerified"
+             (click)="!vendorProfile()?.isVerified && $event.preventDefault(); !vendorProfile()?.isVerified && toast.error('Please complete verification first.')">
             <i class="bi bi-calendar-event"></i>
             <span>Schedule</span>
           </a>

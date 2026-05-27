@@ -481,3 +481,132 @@
     grid-template-columns: 1fr;
   }
 }
+
+.cust-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  display: block;
+}
+
+/* ── Ticket History Section ── */
+.history-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.history-toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  background: var(--bg-card, #ffffff);
+  border: 1.5px dashed var(--border-color, #e2e8f0);
+  border-radius: var(--radius-lg, 12px);
+  padding: 16px 20px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  text-align: left;
+}
+
+.history-toggle-btn:hover {
+  border-color: var(--primary, #ff6b35);
+  background: rgba(255, 107, 53, 0.02);
+}
+
+.history-toggle-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.history-icon-wrap {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md, 8px);
+  background: rgba(100, 116, 139, 0.08);
+  border: 1px solid rgba(100, 116, 139, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--slate, #64748b);
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.history-toggle-title {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--navy, #1e293b);
+}
+
+.history-toggle-sub {
+  font-size: 0.78rem;
+  color: var(--slate-light, #94a3b8);
+  margin-top: 2px;
+}
+
+.history-chevron {
+  font-size: 1.1rem;
+  color: var(--slate, #64748b);
+  transition: transform 0.25s ease;
+  flex-shrink: 0;
+}
+
+.history-search-bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.history-search-bar i {
+  position: absolute;
+  left: 14px;
+  color: var(--slate-light, #94a3b8);
+  font-size: 0.9rem;
+  pointer-events: none;
+}
+
+.history-search-input {
+  width: 100%;
+  padding-left: 38px !important;
+  background: var(--bg-card, #fff);
+  box-sizing: border-box;
+}
+
+.history-grid {
+  opacity: 0.82;
+}
+
+.ticket-card-closed {
+  border-style: dashed;
+  filter: saturate(0.6);
+}
+
+.ticket-card-closed:hover {
+  filter: saturate(1);
+  opacity: 1;
+  border-color: rgba(100, 116, 139, 0.3);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+}
+
+.history-empty {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 20px 24px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  color: var(--slate-light);
+  font-size: 0.88rem;
+}
+
+.history-empty i {
+  font-size: 1.2rem;
+  opacity: 0.6;
+}
+

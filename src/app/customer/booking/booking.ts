@@ -5,7 +5,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { PackageService } from '../../core/services/package.service';
 import { EventPackage } from '../../core/models/event.model';
 import { AuthService } from '../../core/services/auth.service';
-import { MockApiService } from '../../core/services/mock-api.service';
+import { ReviewService } from '../../core/services/review.service';
 import { ToastService } from '../../core/services/toast.service';
 import { BookingService } from '../../core/services/booking.service';
 import { Booking } from '../../core/models/booking.model';
@@ -24,16 +24,43 @@ export class CustomerBooking implements OnInit, OnDestroy, OnChanges {
   private router = inject(Router);
   private api = inject(PackageService);
   private auth = inject(AuthService);
-  private mockApi = inject(MockApiService);
+  private reviewService = inject(ReviewService);
   private toast = inject(ToastService);
   private bookingService = inject(BookingService);
 
   userRole = computed(() => this.auth.currentUser()?.role);
 
+  localReviews = signal<any[]>([
+    { 
+      id: 'rev1', 
+      bookingId: 'bk002', 
+      vendorId: 'v1', 
+      customerName: 'Rajesh Kumar', 
+      eventName: "Daughter's Birthday", 
+      rating: 5, 
+      comment: "Fantastic service! The decor was exactly as requested and the food was delicious. Highly recommend this vendor.", 
+      date: '2025-11-22',
+      status: 'published',
+      disputeReason: ''
+    },
+    { 
+      id: 'rev2', 
+      bookingId: 'bk009', 
+      vendorId: 'v1', 
+      customerName: 'Anita Singh', 
+      eventName: "Corporate Gala", 
+      rating: 1, 
+      comment: "Worst service ever. They didn't show up on time and the food was cold. Completely ruined the event.", 
+      date: '2026-02-14',
+      status: 'flagged', 
+      disputeReason: 'Fake review. This customer cancelled the booking 2 days prior and we never provided service.'
+    }
+  ]);
+
   vendorReviews = computed(() => {
     const pkg = this.selectedPackage();
     if (!pkg || !pkg.vendorId) return [];
-    return this.mockApi.globalReviews().filter(r => r.vendorId === pkg.vendorId && r.status === 'published');
+    return this.localReviews().filter(r => r.vendorId === pkg.vendorId && r.status === 'published');
   });
 
   showAllReviews = signal(false);
@@ -90,7 +117,7 @@ export class CustomerBooking implements OnInit, OnDestroy, OnChanges {
   existingReview = computed(() => {
     const booking = this.completedBookingForPackage();
     if (!booking) return null;
-    return this.mockApi.globalReviews().find(r => r.bookingId === booking.id) || null;
+    return this.localReviews().find(r => r.bookingId === booking.id) || null;
   });
 
   showReviewForm = signal(false);
@@ -225,17 +252,39 @@ export class CustomerBooking implements OnInit, OnDestroy, OnChanges {
     const isEdit = !!this.existingReview();
     const oldReviewRating = this.existingReview()?.rating || 0;
     
-    this.mockApi.submitReview(
-      booking.id,
-      pkg.vendorId,
-      customerName,
-      this.newReviewEventName || booking.eventName || 'Event Celebration',
-      this.newRating(),
-      this.newComment.trim()
-    ).subscribe({
+    this.reviewService.submitReview({
+      bookingId: booking.id,
+      vendorId: pkg.vendorId,
+      customerName: customerName,
+      eventName: this.newReviewEventName || booking.eventName || 'Event Celebration',
+      rating: this.newRating(),
+      comment: this.newComment.trim()
+    }).subscribe({
       next: (res) => {
         this.toast.success('Thank you! Your review has been submitted successfully.');
         
+        this.localReviews.update(reviews => {
+          const newRev = {
+            id: 'rev_' + Date.now(),
+            bookingId: booking.id,
+            vendorId: pkg.vendorId,
+            customerName: customerName,
+            eventName: this.newReviewEventName || booking.eventName || 'Event Celebration',
+            rating: this.newRating(),
+            comment: this.newComment.trim(),
+            date: new Date().toISOString().split('T')[0],
+            status: 'published',
+            disputeReason: ''
+          };
+          const existingIdx = reviews.findIndex(r => r.bookingId === booking.id);
+          if (existingIdx > -1) {
+            const updated = [...reviews];
+            updated[existingIdx] = { ...updated[existingIdx], rating: newRev.rating, comment: newRev.comment, date: newRev.date };
+            return updated;
+          }
+          return [...reviews, newRev];
+        });
+
         this.selectedPackage.update(p => {
           if (!p) return p;
           const oldTotal = p.totalReviews || 0;

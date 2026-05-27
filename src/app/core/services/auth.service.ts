@@ -83,11 +83,11 @@ export class AuthService {
     );
   }
 
-  register(name: string, email: string, phone: string, password: string, role: UserRole, referralCode?: string): Observable<{ success: boolean; message: string }> {
+  register(name: string, email: string, phone: string, password: string, role: UserRole, referralCode?: string, city?: string, businessName?: string): Observable<{ success: boolean; message: string }> {
     localStorage.removeItem('joinevents_user');
     this.currentUser.set(null);
 
-    return this.http.post<any>(`${this.apiUrl}/auth/register`, { name, email, phone, password, role, referralCode }).pipe(
+    return this.http.post<any>(`${this.apiUrl}/auth/register`, { name, email, phone, password, role, referralCode, city, businessName }).pipe(
       map(response => {
         if (response && response.token) {
           const user: AuthUser = {

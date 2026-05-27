@@ -94,7 +94,6 @@ export class VendorLayout {
   readonly navItemsBase: NavItem[] = [
     { path: '/vendor/dashboard',    icon: 'bi-grid-1x2',       label: 'Dashboard' },
     { path: '/vendor/network',      icon: 'bi-diagram-3',      label: 'B2B Network' },
-    { path: '/vendor/impact',       icon: 'bi-globe-americas', label: 'ESG Impact' },
     { path: '/vendor/my-services',  icon: 'bi-box-seam',       label: 'Package List' },
     { path: '/vendor/add-service',  icon: 'bi-plus-circle',    label: 'Add Package' },
     { path: '/vendor/calendar',     icon: 'bi-calendar3',      label: 'Calendar' },
@@ -105,7 +104,6 @@ export class VendorLayout {
     { path: '/vendor/offers',       icon: 'bi-tags',           label: 'Promotional Offers' },
     { path: '/vendor/staff',        icon: 'bi-people',         label: 'Staff Management' },
     { path: '/vendor/verification', icon: 'bi-shield-check',   label: 'Verification' },
-    { path: '/vendor/analytics',    icon: 'bi-graph-up-arrow',  label: 'Analytics' },
     { path: '/vendor/notifications', icon: 'bi-bell',          label: 'Notifications' }
   ];
 

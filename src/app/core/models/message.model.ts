@@ -46,6 +46,7 @@ export interface SupportTicket {
   id: string;
   customerId: string;
   customerName: string;
+  customerAvatar?: string;
   subject: string;
   status: 'open' | 'in_progress' | 'resolved' | 'closed';
   priority: 'low' | 'medium' | 'high' | 'urgent';

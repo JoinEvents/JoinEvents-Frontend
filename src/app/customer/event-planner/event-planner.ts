@@ -1,8 +1,7 @@
-import { Component, signal, inject, OnInit, OnDestroy, effect } from '@angular/core';
+import { Component, signal, inject, OnDestroy, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { MockApiService } from '../../core/services/mock-api.service';
 import { AuthService } from '../../core/services/auth.service';
 import { RfpService } from '../../core/services/rfp.service';
 import { NotificationService } from '../../core/services/notification.service';
@@ -17,8 +16,7 @@ interface PlannerService { category: string; name: string; price: number; qty: n
   templateUrl: './event-planner.html', 
   styleUrl: './event-planner.css' 
 })
-export class EventPlanner implements OnInit, OnDestroy {
-  private api = inject(MockApiService);
+export class EventPlanner implements OnDestroy {
   private auth = inject(AuthService);
   private rfpService = inject(RfpService);
   private notifService = inject(NotificationService);
@@ -34,7 +32,17 @@ export class EventPlanner implements OnInit, OnDestroy {
     document.body.classList.remove('modal-open');
   }
 
-  categories = signal<ServiceCategoryDef[]>([]);
+  categories = signal<ServiceCategoryDef[]>([
+    { id: 'venue', name: 'Venue', icon: 'bi-building', description: 'Banquet halls, lawns, resorts & farmhouses' },
+    { id: 'catering', name: 'Catering', icon: 'bi-egg-fried', description: 'Veg, non-veg & live food counters' },
+    { id: 'decoration', name: 'Decoration', icon: 'bi-flower1', description: 'Floral, theme & stage decoration' },
+    { id: 'transport', name: 'Transport', icon: 'bi-car-front', description: 'Buses, cars & luxury fleets' },
+    { id: 'priest', name: 'Priest', icon: 'bi-fire', description: 'Vedic priests for all rituals' },
+    { id: 'manpower', name: 'Manpower', icon: 'bi-people', description: 'Event staff, waiters & security' },
+    { id: 'photography', name: 'Photography', icon: 'bi-camera', description: 'Professional photos & videos' },
+    { id: 'music', name: 'Music & DJ', icon: 'bi-music-note-beamed', description: 'DJs, live bands & sound systems' }
+  ]);
+
   selectedServices = signal<PlannerService[]>([]);
   eventDate = '';
   eventCity = '';
@@ -42,8 +50,6 @@ export class EventPlanner implements OnInit, OnDestroy {
   eventName = '';
   saved = false;
   showSuccessModal = signal(false);
-
-  ngOnInit() { this.api.getServiceCategories().subscribe(c => this.categories.set(c)); }
 
   addService(cat: ServiceCategoryDef) {
     const exists = this.selectedServices().find(s => s.category === cat.id);

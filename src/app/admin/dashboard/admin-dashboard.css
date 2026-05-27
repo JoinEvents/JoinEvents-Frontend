@@ -392,3 +392,92 @@
     font-size: 1.8rem;
   }
 }
+
+/* ---- Analytics Section Styles ---- */
+.analytics-divider {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 2.5rem;
+}
+
+.analytics-divider .divider-line {
+  flex: 1;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--border-color), transparent);
+  border-radius: 2px;
+}
+
+.analytics-divider .divider-label {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  padding: 0 8px;
+}
+
+.bg-glass {
+  background: var(--bg-card);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-color);
+}
+
+.bg-light-ee {
+  background: rgba(0, 0, 0, 0.02);
+  border: 1px solid rgba(0, 0, 0, 0.03);
+}
+
+.filter-panel-card {
+  border: 1px solid var(--border-color) !important;
+  background: var(--bg-card) !important;
+}
+
+.stat-footer {
+  padding-top: 8px;
+  border-top: 1px solid var(--border-color);
+  margin-top: 12px;
+}
+
+.chart-bar:hover {
+  opacity: 0.85;
+}
+
+.status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.status-dot.pending        { background-color: var(--warning); }
+.status-dot.advance_paid   { background-color: var(--info); }
+.status-dot.confirmed      { background-color: var(--primary); }
+.status-dot.in_progress    { background-color: var(--accent); }
+.status-dot.completed      { background-color: var(--success); }
+.status-dot.settled        { background-color: var(--success); }
+.status-dot.cancelled      { background-color: var(--danger); }
+
+.skeleton-loader {
+  position: relative;
+  overflow: hidden;
+  background: var(--bg-card);
+}
+
+.shimmer {
+  background: linear-gradient(90deg, var(--bg-card) 25%, var(--border-color) 50%, var(--bg-card) 75%);
+  background-size: 200% 100%;
+  animation: loading-shimmer 1.5s infinite;
+}
+
+@keyframes loading-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.bg-purple { background: linear-gradient(135deg, #8b5cf6, #7c3aed) !important; }
+

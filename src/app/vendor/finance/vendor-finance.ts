@@ -1,7 +1,6 @@
 import { Component, signal, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { MockApiService } from '../../core/services/mock-api.service';
 import { ToastService } from '../../core/services/toast.service';
 
 @Component({
@@ -12,7 +11,6 @@ import { ToastService } from '../../core/services/toast.service';
   styleUrl: './vendor-finance.css'
 })
 export class VendorFinance implements OnInit {
-  private api = inject(MockApiService);
   private toast = inject(ToastService);
 
   isSaving = signal(false);

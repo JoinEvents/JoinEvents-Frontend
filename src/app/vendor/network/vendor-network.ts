@@ -1,9 +1,11 @@
 import { Component, signal, inject, OnInit, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { MockApiService } from '../../core/services/mock-api.service';
 import { Vendor } from '../../core/models/vendor.model';
 import { ToastService } from '../../core/services/toast.service';
+import { environment } from '../../../environments/environment';
+import { catchError, of } from 'rxjs';
 
 type ConnectionStatus = 'none' | 'pending' | 'active';
 
@@ -15,7 +17,7 @@ type ConnectionStatus = 'none' | 'pending' | 'active';
   styleUrl: './vendor-network.css'
 })
 export class VendorNetwork implements OnInit {
-  private api = inject(MockApiService);
+  private http = inject(HttpClient);
   private toast = inject(ToastService);
   private router = inject(Router);
 
@@ -35,7 +37,7 @@ export class VendorNetwork implements OnInit {
   );
 
   ngOnInit() {
-    this.api.getVendors().subscribe(v => {
+    this.http.get<Vendor[]>(`${environment.apiUrl}/admin/vendors`).pipe(catchError(() => of([]))).subscribe(v => {
       // Exclude current logged in vendor (mocked as v1)
       const list = v.filter(vendor => vendor.id !== 'v1');
       this.vendors.set(list);

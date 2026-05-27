@@ -1,0 +1,353 @@
+<div class="audit-wrapper">
+
+  <!-- ── Hero Header ────────────────────────────────────────────────────── -->
+  <div class="audit-hero mb-5">
+    <div class="hero-left">
+      <div class="hero-icon-wrap"><i class="bi bi-receipt-cutoff"></i></div>
+      <div>
+        <h1 class="hero-title">Audit Trail</h1>
+        <p class="hero-sub">Full chronological log of every administrative action on the platform</p>
+      </div>
+    </div>
+    <button class="btn-export" (click)="exportCSV()" title="Export filtered log as CSV">
+      <i class="bi bi-download me-2"></i>Export CSV
+    </button>
+  </div>
+
+  <!-- ── Stats Row ─────────────────────────────────────────────────────── -->
+  @if (stats()) {
+    <div class="row g-4 mb-5">
+      <div class="col-6 col-lg-3">
+        <div class="audit-stat-card">
+          <div class="asc-inner">
+            <div class="asc-info">
+              <div class="asc-label">Events Today</div>
+              <div class="asc-value">{{ stats()!.totalToday }}</div>
+            </div>
+            <div class="asc-icon" style="background:linear-gradient(135deg,#6366f1,#4f46e5)">
+              <i class="bi bi-calendar-day"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-lg-3">
+        <div class="audit-stat-card">
+          <div class="asc-inner">
+            <div class="asc-info">
+              <div class="asc-label">This Week</div>
+              <div class="asc-value">{{ stats()!.totalThisWeek }}</div>
+            </div>
+            <div class="asc-icon" style="background:linear-gradient(135deg,#0ea5e9,#2563eb)">
+              <i class="bi bi-calendar-week"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-lg-3">
+        <div class="audit-stat-card">
+          <div class="asc-inner">
+            <div class="asc-info">
+              <div class="asc-label">Critical Actions</div>
+              <div class="asc-value text-danger-ee">{{ stats()!.criticalCount }}</div>
+            </div>
+            <div class="asc-icon" style="background:linear-gradient(135deg,#ef4444,#b91c1c)">
+              <i class="bi bi-exclamation-octagon"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-lg-3">
+        <div class="audit-stat-card">
+          <div class="asc-inner">
+            <div class="asc-info">
+              <div class="asc-label">Top Actor</div>
+              <div class="asc-value" style="font-size:1rem;">{{ stats()!.mostActiveActor }}</div>
+            </div>
+            <div class="asc-icon" style="background:linear-gradient(135deg,#10b981,#059669)">
+              <i class="bi bi-person-badge"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ── Filter Toolbar ─────────────────────────────────────────────────── -->
+  <div class="filter-bar mb-4">
+    <!-- Search -->
+    <div class="search-wrap">
+      <i class="bi bi-search search-icon"></i>
+      <input
+        id="audit-search"
+        type="text"
+        class="audit-input"
+        placeholder="Search by actor, action, entity..."
+        [ngModel]="search()"
+        (ngModelChange)="search.set($event); onFilterChange()">
+    </div>
+
+    <!-- Entity Type -->
+    <div class="select-wrap">
+      <i class="bi bi-grid select-icon"></i>
+      <select id="audit-entity-filter" class="audit-select"
+        [ngModel]="entityFilter()" (ngModelChange)="entityFilter.set($event); onFilterChange()">
+        <option value="all">All Types</option>
+        <option value="booking">Booking</option>
+        <option value="vendor">Vendor</option>
+        <option value="customer">Customer</option>
+        <option value="employee">Employee</option>
+        <option value="category">Category</option>
+        <option value="payment">Payment</option>
+        <option value="auth">Auth</option>
+        <option value="system">System</option>
+      </select>
+    </div>
+
+    <!-- Severity -->
+    <div class="select-wrap">
+      <i class="bi bi-shield-exclamation select-icon"></i>
+      <select id="audit-severity-filter" class="audit-select"
+        [ngModel]="severityFilter()" (ngModelChange)="severityFilter.set($event); onFilterChange()">
+        <option value="all">All Severities</option>
+        <option value="info">Info</option>
+        <option value="warning">Warning</option>
+        <option value="critical">Critical</option>
+      </select>
+    </div>
+
+    <!-- Actor Role -->
+    <div class="select-wrap">
+      <i class="bi bi-person-circle select-icon"></i>
+      <select id="audit-actor-filter" class="audit-select"
+        [ngModel]="actorFilter()" (ngModelChange)="actorFilter.set($event); onFilterChange()">
+        <option value="all">All Actors</option>
+        <option value="admin">Admin</option>
+        <option value="support">Support</option>
+        <option value="system">System</option>
+      </select>
+    </div>
+
+    <!-- Date From -->
+    <div class="date-wrap">
+      <label class="date-label" for="audit-date-from">From</label>
+      <input id="audit-date-from" type="date" class="audit-input date-input"
+        [ngModel]="dateFrom()" (ngModelChange)="dateFrom.set($event); onFilterChange()">
+    </div>
+
+    <!-- Date To -->
+    <div class="date-wrap">
+      <label class="date-label" for="audit-date-to">To</label>
+      <input id="audit-date-to" type="date" class="audit-input date-input"
+        [ngModel]="dateTo()" (ngModelChange)="dateTo.set($event); onFilterChange()">
+    </div>
+
+    <!-- Reset -->
+    <button id="audit-reset-btn" class="btn-reset" (click)="resetFilters()" title="Reset all filters">
+      <i class="bi bi-x-circle me-1"></i> Reset
+    </button>
+  </div>
+
+  <!-- Result count -->
+  <div class="result-meta mb-3">
+    <span class="result-count">
+      <i class="bi bi-list-ul me-1"></i>
+      {{ filteredLogs().length }} event{{ filteredLogs().length !== 1 ? 's' : '' }} found
+    </span>
+    @if (filteredLogs().length > 0) {
+      <span class="page-meta">Page {{ currentPage() }} of {{ totalPages() }}</span>
+    }
+  </div>
+
+  <!-- ── Loading State ──────────────────────────────────────────────────── -->
+  @if (loading()) {
+    <div class="audit-loading">
+      @for (i of [1,2,3,4,5]; track $index) {
+        <div class="skeleton-row">
+          <div class="sk-dot shimmer"></div>
+          <div class="sk-body">
+            <div class="sk-line shimmer" style="width:35%"></div>
+            <div class="sk-line shimmer" style="width:70%; height:12px; margin-top:8px;"></div>
+          </div>
+        </div>
+      }
+    </div>
+
+  <!-- ── Error State ────────────────────────────────────────────────────── -->
+  } @else if (error()) {
+    <div class="audit-empty-state">
+      <i class="bi bi-exclamation-octagon text-danger" style="font-size:3rem;"></i>
+      <h4>Failed to load audit logs</h4>
+      <p>{{ error() }}</p>
+    </div>
+
+  <!-- ── Empty filtered state ───────────────────────────────────────────── -->
+  } @else if (filteredLogs().length === 0) {
+    <div class="audit-empty-state">
+      <i class="bi bi-search" style="font-size:3rem; opacity:0.3;"></i>
+      <h4>No events match your filters</h4>
+      <p>Try broadening your search or resetting filters.</p>
+      <button class="btn-reset mt-3" (click)="resetFilters()">
+        <i class="bi bi-x-circle me-1"></i> Reset Filters
+      </button>
+    </div>
+
+  <!-- ── Audit Timeline ─────────────────────────────────────────────────── -->
+  } @else {
+    <div class="audit-timeline">
+      @for (log of pagedLogs(); track log.id) {
+        <div class="timeline-entry" [class.is-expanded]="isExpanded(log.id)">
+
+          <!-- Severity connector dot -->
+          <div class="tl-dot-wrap">
+            <div class="tl-dot" [class]="severityClass(log.severity)"></div>
+            <div class="tl-line"></div>
+          </div>
+
+          <!-- Log card -->
+          <div class="tl-card" (click)="hasMeta(log) && toggleDetail(log.id)">
+
+            <!-- Card top row -->
+            <div class="tl-card-top">
+              <div class="tl-left">
+                <!-- Entity type badge -->
+                <span class="entity-badge" [class]="entityClass(log.entityType)">
+                  <i class="bi {{ entityIcon(log.entityType) }} me-1"></i>
+                  {{ log.entityType | titlecase }}
+                </span>
+                <!-- Severity badge -->
+                <span class="severity-badge" [class]="severityClass(log.severity)">
+                  @if (log.severity === 'critical') { <i class="bi bi-exclamation-circle me-1"></i> }
+                  @else if (log.severity === 'warning') { <i class="bi bi-exclamation-triangle me-1"></i> }
+                  @else { <i class="bi bi-check-circle me-1"></i> }
+                  {{ log.severity | titlecase }}
+                </span>
+              </div>
+              <div class="tl-right">
+                <span class="tl-time" [title]="log.timestamp | date:'medium'">
+                  <i class="bi bi-clock me-1"></i>{{ relativeTime(log.timestamp) }}
+                </span>
+                @if (hasMeta(log)) {
+                  <button class="expand-btn" [class.is-open]="isExpanded(log.id)"
+                    (click)="$event.stopPropagation(); toggleDetail(log.id)"
+                    [title]="isExpanded(log.id) ? 'Collapse details' : 'Expand details'">
+                    <i class="bi" [class.bi-chevron-down]="!isExpanded(log.id)" [class.bi-chevron-up]="isExpanded(log.id)"></i>
+                  </button>
+                }
+              </div>
+            </div>
+
+            <!-- Action title & entity reference -->
+            <div class="tl-action-row">
+              <span class="tl-action-title">{{ log.action }}</span>
+              <span class="tl-entity-ref">
+                <i class="bi bi-link-45deg me-1"></i>{{ log.entityName }}
+              </span>
+            </div>
+
+            <!-- Description -->
+            <p class="tl-description">{{ log.description }}</p>
+
+            <!-- Actor info row -->
+            <div class="tl-actor-row">
+              <div class="actor-chip" [class]="actorRoleClass(log.actorRole)">
+                @if (log.actorRole === 'system') {
+                  <i class="bi bi-cpu-fill me-1"></i>
+                } @else if (log.actorRole === 'admin') {
+                  <i class="bi bi-shield-fill me-1"></i>
+                } @else {
+                  <i class="bi bi-headset me-1"></i>
+                }
+                {{ log.actorName }}
+                <span class="actor-role-label">· {{ actorRoleLabel(log.actorRole) }}</span>
+              </div>
+              <span class="tl-date-full">
+                {{ log.timestamp | date:'dd MMM yyyy, hh:mm a' }}
+              </span>
+            </div>
+
+            <!-- ── Expandable Diff Panel ─────────────────────────────────── -->
+            @if (isExpanded(log.id) && hasMeta(log)) {
+              <div class="diff-panel" (click)="$event.stopPropagation()">
+                <div class="diff-panel-title">
+                  <i class="bi bi-code-square me-2"></i>Action Details
+                </div>
+
+                @if (log.metadata!.before || log.metadata!.after) {
+                  <div class="diff-grid">
+                    @if (log.metadata!.before) {
+                      <div class="diff-col before">
+                        <div class="diff-col-label"><i class="bi bi-dash-circle me-1"></i>Before</div>
+                        @for (key of metaKeys(log.metadata!.before!); track key) {
+                          <div class="diff-row">
+                            <span class="diff-key">{{ key }}</span>
+                            <span class="diff-val before-val">{{ formatValue(log.metadata!.before![key]) }}</span>
+                          </div>
+                        }
+                      </div>
+                    }
+                    @if (log.metadata!.after) {
+                      <div class="diff-col after">
+                        <div class="diff-col-label"><i class="bi bi-plus-circle me-1"></i>After</div>
+                        @for (key of metaKeys(log.metadata!.after!); track key) {
+                          <div class="diff-row">
+                            <span class="diff-key">{{ key }}</span>
+                            <span class="diff-val after-val">{{ formatValue(log.metadata!.after![key]) }}</span>
+                          </div>
+                        }
+                      </div>
+                    }
+                  </div>
+                }
+
+                @if (log.metadata!.reason) {
+                  <div class="diff-extra-row">
+                    <span class="diff-extra-label"><i class="bi bi-chat-quote me-1"></i>Reason</span>
+                    <span class="diff-extra-val">{{ log.metadata!.reason }}</span>
+                  </div>
+                }
+                @if (log.metadata!.amount) {
+                  <div class="diff-extra-row">
+                    <span class="diff-extra-label"><i class="bi bi-currency-rupee me-1"></i>Amount</span>
+                    <span class="diff-extra-val">₹{{ log.metadata!.amount.toLocaleString('en-IN') }}</span>
+                  </div>
+                }
+                @if (log.metadata!.duration) {
+                  <div class="diff-extra-row">
+                    <span class="diff-extra-label"><i class="bi bi-hourglass-split me-1"></i>Duration</span>
+                    <span class="diff-extra-val">{{ log.metadata!.duration }}</span>
+                  </div>
+                }
+                @if (log.metadata!.extra) {
+                  <div class="diff-extra-row">
+                    <span class="diff-extra-label"><i class="bi bi-info-circle me-1"></i>Info</span>
+                    <span class="diff-extra-val">{{ log.metadata!.extra }}</span>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        </div>
+      }
+    </div>
+
+    <!-- ── Pagination ─────────────────────────────────────────────────────── -->
+    @if (totalPages() > 1) {
+      <div class="pagination-bar mt-5">
+        <button id="audit-prev-btn" class="page-btn" [disabled]="currentPage() === 1"
+          (click)="goToPage(currentPage() - 1)">
+          <i class="bi bi-chevron-left"></i>
+        </button>
+
+        @for (p of pageNumbers(); track p) {
+          <button class="page-btn" [class.active]="p === currentPage()" (click)="goToPage(p)">{{ p }}</button>
+        }
+
+        <button id="audit-next-btn" class="page-btn" [disabled]="currentPage() === totalPages()"
+          (click)="goToPage(currentPage() + 1)">
+          <i class="bi bi-chevron-right"></i>
+        </button>
+      </div>
+    }
+  }
+
+</div>

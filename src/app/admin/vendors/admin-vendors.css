@@ -14,6 +14,27 @@
   border-color: var(--secondary);
   color: white;
 }
+.chip-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: var(--radius-full);
+  margin-left: 6px;
+  transition: all var(--transition);
+}
+.filter-chip:hover .chip-count, .filter-chip.active .chip-count {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+.filter-chip.chip-warning.active .chip-count {
+  background: rgba(0, 0, 0, 0.1);
+  color: #1c1917;
+}
 .filter-chip.chip-success:hover, .filter-chip.chip-success.active {
   background: var(--success);
   border-color: var(--success);
@@ -163,6 +184,81 @@
   max-width: 500px;
   z-index: 1050;
   border: 1px solid var(--border-color);
+}
+
+.vac-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+  display: block;
+}
+
+.filter-chip.chip-primary:hover, .filter-chip.chip-primary.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: white;
+}
+
+.filter-chip.chip-secondary:hover, .filter-chip.chip-secondary.active {
+  background: var(--text-soft);
+  border-color: var(--text-soft);
+  color: white;
+}
+
+.copyable {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  position: relative;
+  transition: color 0.2s ease;
+  width: fit-content;
+}
+.copyable:hover {
+  color: var(--primary) !important;
+}
+.copy-icon {
+  opacity: 0;
+  margin-left: 6px;
+  font-size: 0.8rem;
+  color: var(--text-soft);
+  transition: opacity 0.2s ease, color 0.2s ease;
+}
+.copyable:hover .copy-icon {
+  opacity: 1;
+}
+.copy-icon.text-success {
+  opacity: 1 !important;
+}
+
+/* INTERACTIVE BADGE FOR VERIFICATION PORTAL LINK */
+.interactive-badge {
+  cursor: pointer;
+  text-decoration: none !important;
+  transition: all 0.2s ease-in-out;
+  border: 1px dashed currentColor;
+  padding: 3px 11px;
+}
+
+.interactive-badge:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+  filter: brightness(0.92);
+}
+
+.interactive-badge i {
+  font-size: 0.65rem;
+  transition: transform 0.2s ease;
+  display: inline-block;
+}
+
+.interactive-badge:hover i {
+  transform: translate(1px, -1px);
+}
+
+.ee-badge-warning-orange {
+  background: rgba(245, 158, 11, 0.15);
+  color: #d97706;
 }
 
 

@@ -15,18 +15,52 @@
 
 <!-- VENDOR PROFILES VERIFICATIONS TAB -->
 @if (activeTab() === 'vendors') {
+  <!-- Search & Filter Bar -->
+  <div class="verif-search-bar mb-3">
+    <div class="verif-search-input-wrap">
+      <i class="bi bi-search verif-search-icon"></i>
+      <input
+        type="text"
+        class="verif-search-input"
+        placeholder="Search by business, owner, city, or email…"
+        (input)="vendorSearch.set(searchEl.value)"
+        #searchEl>
+    </div>
+    <div class="verif-filter-select-wrap">
+      <i class="bi bi-funnel verif-filter-icon"></i>
+      <select class="verif-filter-select" (change)="vendorStatusFilter.set($any($event.target).value)">
+        <option value="all">All Statuses ({{ vendors().length }})</option>
+        <option value="pending">Pending ({{ countByStatus('pending') }})</option>
+        <option value="under_review">Under Review ({{ countByStatus('under_review') }})</option>
+        <option value="action_required">Action Required ({{ countByStatus('action_required') }})</option>
+        <option value="rejected">Rejected ({{ countByStatus('rejected') }})</option>
+      </select>
+    </div>
+  </div>
+
   <div class="verif-layout">
     <!-- Vendor List -->
     <div class="verif-list" [class.d-none-mobile]="selectedVendor()">
-      @if (vendors().length === 0) {
+      @if (filteredVendors().length === 0) {
         <div class="ee-card p-4 text-center text-muted">
-          <i class="bi bi-patch-check-fill text-success fs-3 mb-2 d-block"></i>
-          No vendor profiles awaiting verification!
+          @if (vendors().length === 0) {
+            <i class="bi bi-patch-check-fill text-success fs-3 mb-2 d-block"></i>
+            No vendor profiles awaiting verification!
+          } @else {
+            <i class="bi bi-search fs-3 mb-2 d-block text-primary" style="opacity:0.5"></i>
+            No vendors match your search or filter.
+          }
         </div>
       }
-      @for (v of vendors(); track v.id) {
+      @for (v of filteredVendors(); track v.id) {
         <div class="verif-list-item" [class.active]="selectedVendor()?.id === v.id" (click)="selectVendor(v)">
-          <div class="vli-avatar">{{ v.name[0] }}</div>
+          <div class="vli-avatar" [style.background]="getAvatarUrl(v.avatar) ? 'transparent' : ''">
+            @if (getAvatarUrl(v.avatar)) {
+              <img [src]="getAvatarUrl(v.avatar)" [alt]="v.businessName" class="vli-avatar-img" />
+            } @else {
+              {{ v.name?.trim()?.charAt(0)?.toUpperCase() || 'V' }}
+            }
+          </div>
           <div class="flex-1">
             <div class="vli-name">{{ v.businessName }}</div>
             <div class="vli-owner">{{ v.name }} · {{ v.city }}</div>
@@ -45,10 +79,19 @@
         </button>
 
         <div class="ee-card p-4 mb-3">
-          <div class="d-flex align-items-start justify-content-between mb-3">
-            <div>
-              <h5 class="verif-detail-title">{{ v.businessName }}</h5>
-              <div class="verif-detail-sub">{{ v.name }} · {{ v.email }} · {{ v.phone }}</div>
+          <div class="d-flex align-items-center justify-content-between mb-3">
+            <div class="d-flex align-items-center gap-3">
+              <div class="verif-detail-avatar" [style.background]="getAvatarUrl(v.avatar) ? 'transparent' : 'var(--gradient-primary)'">
+                @if (getAvatarUrl(v.avatar)) {
+                  <img [src]="getAvatarUrl(v.avatar)" [alt]="v.businessName" class="vli-avatar-img" />
+                } @else {
+                  {{ v.name?.trim()?.charAt(0)?.toUpperCase() || 'V' }}
+                }
+              </div>
+              <div>
+                <h5 class="verif-detail-title">{{ v.businessName }}</h5>
+                <div class="verif-detail-sub">{{ v.name }} · {{ v.email }} · {{ v.phone }}</div>
+              </div>
             </div>
             <span class="ee-badge {{ statusColor(v.verificationStatus) }}">{{ statusLabel(v.verificationStatus) }}</span>
           </div>
@@ -66,7 +109,7 @@
             <div class="no-docs"><i class="bi bi-folder-x me-2"></i>No documents uploaded yet</div>
           } @else {
             <div class="docs-list">
-              @for (doc of v.verificationDocs; track doc.type) {
+              @for (doc of v.verificationDocs; track $index) {
                 <div class="doc-review-item">
                   <div class="doc-icon-adm"><i class="bi bi-file-earmark-pdf"></i></div>
                   <div class="flex-1">
@@ -74,28 +117,29 @@
                     <div class="doc-date">Uploaded {{ doc.uploadedAt }}</div>
                   </div>
                   <span class="ee-badge {{ doc.status === 'approved' ? 'ee-badge-success' : doc.status === 'rejected' ? 'ee-badge-danger' : 'ee-badge-warning' }}">{{ doc.status | titlecase }}</span>
-                  <button class="doc-download-btn"><i class="bi bi-download"></i></button>
+                  <a [href]="getDocUrl(doc.fileUrl || doc.url)" target="_blank" class="doc-download-btn"><i class="bi bi-eye"></i></a>
                 </div>
               }
             </div>
           }
         </div>
-
-        @if (v.verificationStatus !== 'verified' && v.verificationStatus !== 'rejected') {
+ 
+        @if (v.verificationStatus !== 'verified') {
           <div class="ee-card p-4">
             <h6 class="section-mini-heading">Verification Action</h6>
             <div class="mb-3">
-              <label class="ee-form-label">Remarks (optional)</label>
+              <label class="ee-form-label">Remarks / Feedback (Required for Rejection or Action Required)</label>
               <textarea class="ee-form-control" rows="2" [(ngModel)]="remarks" placeholder="Add remarks for the vendor..."></textarea>
             </div>
             @if (actionDone()) {
-              <div class="action-success" [class.approved]="actionDone() === 'approved'" [class.rejected]="actionDone() === 'rejected'">
-                <i class="bi {{ actionDone() === 'approved' ? 'bi-patch-check-fill' : 'bi-x-circle-fill' }} me-2"></i>
-                Vendor {{ actionDone() === 'approved' ? 'Approved Successfully!' : 'Rejected.' }}
+              <div class="action-success" [class.approved]="actionDone() === 'approved'" [class.rejected]="actionDone() === 'rejected'" [class.action-required]="actionDone() === 'action_required'">
+                <i class="bi {{ actionDone() === 'approved' ? 'bi-patch-check-fill' : actionDone() === 'rejected' ? 'bi-x-circle-fill' : 'bi-exclamation-triangle-fill' }} me-2"></i>
+                Vendor {{ actionDone() === 'approved' ? 'Approved Successfully!' : actionDone() === 'rejected' ? 'Rejected.' : 'Status set to Action Required.' }}
               </div>
             } @else {
               <div class="d-flex gap-3">
                 <button class="approve-btn flex-1" (click)="approve(v.id)"><i class="bi bi-patch-check me-1"></i>Approve Vendor</button>
+                <button class="btn btn-warning text-white font-weight-bold" style="padding: 12px 20px; font-family: var(--font-heading); font-weight: 600; border-radius: var(--radius-md);" (click)="requestAction(v.id)"><i class="bi bi-exclamation-triangle me-1"></i>Request Action</button>
                 <button class="reject-btn" (click)="reject(v.id)"><i class="bi bi-x-circle me-1"></i>Reject</button>
               </div>
             }
@@ -119,7 +163,7 @@
       }
       @for (pkg of pendingPackages(); track pkg.id) {
         <div class="verif-list-item" [class.active]="selectedPackage()?.id === pkg.id" (click)="selectPackage(pkg)">
-          <div class="vli-avatar" style="background: linear-gradient(135deg, #FF6B35, #F59E0B);">{{ (pkg.name || 'P')[0] }}</div>
+          <div class="vli-avatar" style="background: linear-gradient(135deg, #FF6B35, #F59E0B);">{{ (pkg.name || 'P')?.trim()?.charAt(0)?.toUpperCase() }}</div>
           <div class="flex-1">
             <div class="vli-name">{{ pkg.name || 'Unnamed Package' }}</div>
             <div class="vli-owner">{{ pkg.vendorName || 'Vendor' }} · {{ pkg.category | titlecase }}</div>

@@ -1,10 +1,9 @@
 import { Component, signal, OnInit, inject } from '@angular/core';
-import { MockApiService } from '../../core/services/mock-api.service';
+import { of, Observable } from 'rxjs';
 import { CalendarDay } from '../../core/models/vendor.model';
 
 @Component({ selector: 'app-vendor-calendar', imports: [], templateUrl: './vendor-calendar.html', styleUrl: './vendor-calendar.css' })
 export class VendorCalendar implements OnInit {
-  private api = inject(MockApiService);
   days = signal<CalendarDay[]>([]);
   currentMonth = new Date().getMonth() + 1;
   currentYear = new Date().getFullYear();
@@ -12,8 +11,25 @@ export class VendorCalendar implements OnInit {
   readonly weekdays = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   readonly months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
+  // TODO: Replace with real VendorCalendarService when a backend endpoint for vendor calendar is available
+  // Currently uses local in-memory fallback since no backend calendar endpoints exist yet
+  getVendorCalendar(vendorId: string, month: number, year: number): Observable<CalendarDay[]> {
+    const days: CalendarDay[] = [];
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const bookedDays = [3, 7, 12, 18, 24, 28];
+    const blockedDays = [1, 15];
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dateStr = `${year}-${String(month).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      let status: CalendarDay['status'] = 'available';
+      if (bookedDays.includes(d)) status = 'booked';
+      else if (blockedDays.includes(d)) status = 'blocked';
+      days.push({ date: dateStr, status });
+    }
+    return of(days);
+  }
+
   ngOnInit() { this.loadCalendar(); }
-  loadCalendar() { this.api.getVendorCalendar('v1', this.currentMonth, this.currentYear).subscribe(d => this.days.set(d)); }
+  loadCalendar() { this.getVendorCalendar('v1', this.currentMonth, this.currentYear).subscribe(d => this.days.set(d)); }
 
   prevMonth() { if (this.currentMonth === 1) { this.currentMonth = 12; this.currentYear--; } else { this.currentMonth--; } this.loadCalendar(); }
   nextMonth() { if (this.currentMonth === 12) { this.currentMonth = 1; this.currentYear++; } else { this.currentMonth++; } this.loadCalendar(); }

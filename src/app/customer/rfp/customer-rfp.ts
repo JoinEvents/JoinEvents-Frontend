@@ -5,7 +5,7 @@ import { RfpService } from '../../core/services/rfp.service';
 import { AuthService } from '../../core/services/auth.service';
 import { ToastService } from '../../core/services/toast.service';
 import { EventRfp } from '../../core/models/rfp.model';
-import { MockApiService } from '../../core/services/mock-api.service';
+import { EventCategoryService } from '../../core/services/event-category.service';
 
 @Component({
   selector: 'app-customer-rfp',
@@ -19,7 +19,7 @@ export class CustomerRfp implements OnInit {
   private rfpService = inject(RfpService);
   private auth = inject(AuthService);
   private toast = inject(ToastService);
-  private api = inject(MockApiService);
+  private eventCategoryService = inject(EventCategoryService);
 
   rfps = signal<EventRfp[]>([]);
   eventTypes = signal<any[]>([]);
@@ -51,7 +51,7 @@ export class CustomerRfp implements OnInit {
         this.loading.set(false);
       });
     }
-    this.api.getEventTypes().subscribe(types => this.eventTypes.set(types));
+    this.eventCategoryService.getAll().subscribe(types => this.eventTypes.set(types));
   }
 
   toggleService(svc: string) {

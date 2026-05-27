@@ -1,42 +1,434 @@
-<div class="page-header"><h1>All Bookings</h1><p>Monitor and manage all customer event bookings</p></div>
-
-<div class="d-flex flex-wrap gap-2 mb-4">
-  <button class="filter-chip" [class.active]="filter() === 'all'" (click)="filter.set('all')">All Bookings</button>
-  @for (s of statuses; track s) {
-    @if (s !== 'all') {
-      <button class="filter-chip" [class.active]="filter() === s" (click)="filter.set(s)">{{ statusLabels[s] }}</button>
-    }
-  }
+<div class="page-header">
+  <h1>Event Bookings</h1>
+  <p>Track, manage, and audit all customer event bookings on the platform.</p>
 </div>
 
-<div class="ee-card p-0 overflow-hidden">
+<!-- Premium Glassmorphic Stats Row -->
+<div class="row g-4 mb-4">
+  <div class="col-12 col-sm-6 col-lg-3">
+    <div class="stat-card glass-card">
+      <div class="stat-icon bg-soft-primary">
+        <i class="bi bi-calendar2-event text-primary"></i>
+      </div>
+      <div class="stat-data">
+        <div class="stat-value">{{ totalBookingsCount() }}</div>
+        <div class="stat-label">Total Bookings</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-sm-6 col-lg-3">
+    <div class="stat-card glass-card">
+      <div class="stat-icon bg-soft-success">
+        <i class="bi bi-wallet2 text-success"></i>
+      </div>
+      <div class="stat-data">
+        <div class="stat-value">₹{{ (totalPlatformRevenue() / 100000).toFixed(2) }}L</div>
+        <div class="stat-label">Total Volume</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-sm-6 col-lg-3">
+    <div class="stat-card glass-card">
+      <div class="stat-icon bg-soft-warning">
+        <i class="bi bi-clipboard-pulse text-warning"></i>
+      </div>
+      <div class="stat-data">
+        <div class="stat-value">{{ activeOperationsCount() }}</div>
+        <div class="stat-label">Active Runs</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-sm-6 col-lg-3">
+    <div class="stat-card glass-card">
+      <div class="stat-icon bg-soft-danger">
+        <i class="bi bi-shield-exclamation text-danger"></i>
+      </div>
+      <div class="stat-data">
+        <div class="stat-value">{{ actionRequiredCount() }}</div>
+        <div class="stat-label">Action Required</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Filters & Search Toolbar -->
+<div class="d-flex flex-column gap-3 mb-4">
+  <!-- Search and Assignee Filter Row -->
+  <div class="d-flex flex-column flex-md-row gap-3 justify-content-between align-items-md-center">
+    <div class="search-box px-3 py-1 rounded-pill d-flex align-items-center border shadow-sm admin-search-wrapper flex-1">
+      <i class="bi bi-search text-muted"></i>
+      <input type="text" #searchInput [value]="searchQuery()" (input)="searchQuery.set(searchInput.value)" placeholder="Search booking #, customer, event, city..." class="form-control border-0 shadow-none bg-transparent ms-2" style="font-size: 0.85rem;">
+    </div>
+    
+    <div class="d-flex align-items-center gap-2">
+      <label class="small fw-bold text-muted text-nowrap m-0"><i class="bi bi-person-badge me-1"></i> Support Assignee:</label>
+      <select class="form-select rounded-pill px-3 py-1 bg-card border shadow-sm" style="font-size: 0.85rem; min-width: 180px;" [value]="assigneeFilter()" (change)="assigneeFilter.set($any($event.target).value)">
+        <option value="all">All Assignees</option>
+        <option value="unassigned">Unassigned Only</option>
+        @for (agent of supportAgents; track agent) {
+          <option [value]="agent">{{ agent }}</option>
+        }
+      </select>
+    </div>
+  </div>
+
+  <!-- Status Filters Chips -->
+  <div class="d-flex flex-wrap gap-2 py-1">
+    <button class="filter-chip" [class.active]="filter() === 'all'" (click)="filter.set('all')">
+      All Bookings <span class="chip-count">{{ getStatusCount('all') }}</span>
+    </button>
+    @for (s of statuses; track s) {
+      @if (s !== 'all') {
+        <button class="filter-chip" [class.active]="filter() === s" (click)="filter.set(s)">
+          {{ statusLabels[s] }} <span class="chip-count">{{ getStatusCount(s) }}</span>
+        </button>
+      }
+    }
+  </div>
+</div>
+
+<!-- Interactive Bookings Table -->
+<div class="ee-card p-0 overflow-hidden shadow-sm">
   <div class="table-responsive">
     <table class="ee-table">
       <thead>
         <tr>
-          <th>Booking #</th><th>Customer</th><th>Event</th><th>Date</th><th>City</th><th>Amount</th><th>Status</th><th>Assigned To</th>
+          <th>Booking #</th>
+          <th>Customer</th>
+          <th>Event Details</th>
+          <th>Scheduled Date</th>
+          <th>City</th>
+          <th>Total Cost</th>
+          <th>Status</th>
+          <th>Assigned Agent</th>
+          <th class="text-end">Actions</th>
         </tr>
       </thead>
       <tbody>
-        @for (b of filtered; track b.id) {
-          <tr>
-            <td><span class="booking-num">{{ b.bookingNumber }}</span></td>
+        @for (b of filtered(); track b.id) {
+          <tr class="interactive-row" (click)="openBookingDetails(b)">
+            <td>
+              <span class="booking-num">{{ b.bookingNumber }}</span>
+              <div class="text-soft extra-small mt-1">{{ b.createdAt }}</div>
+            </td>
             <td>
               <div class="cust-cell">
-                <div class="cust-avatar">{{ b.customerName[0] }}</div>
-                <div><div class="cust-name">{{ b.customerName }}</div><div class="cust-phone">{{ b.customerPhone }}</div></div>
+                <div class="cust-avatar">{{ b.customerName?.trim()?.charAt(0)?.toUpperCase() || 'C' }}</div>
+                <div>
+                  <div class="cust-name">{{ b.customerName }}</div>
+                  <div class="cust-phone copyable" (click)="copyToClipboard(b.customerPhone, $event)" title="Click to copy phone">
+                    <i class="bi bi-telephone me-1"></i>{{ b.customerPhone }} <i class="bi bi-clipboard copy-indicator ms-1"></i>
+                  </div>
+                </div>
               </div>
             </td>
-            <td><div class="event-name-cell">{{ b.eventName }}</div><div class="pkg-name-cell">{{ b.packageName }}</div></td>
-            <td>{{ b.eventDate }}</td>
-            <td>{{ b.city }}</td>
-            <td><span class="amount-cell">₹{{ b.totalAmount.toLocaleString('en-IN') }}</span></td>
+            <td>
+              <div class="event-name-cell">{{ b.eventName }}</div>
+              <div class="pkg-name-cell">{{ b.packageName || 'Custom Package' }}</div>
+            </td>
+            <td>
+              <div class="fw-semibold small"><i class="bi bi-calendar-event text-muted me-1"></i>{{ b.eventDate }}</div>
+              <div class="text-soft extra-small mt-1"><i class="bi bi-people me-1"></i>{{ b.guestCount }} guests</div>
+            </td>
+            <td><span class="small fw-semibold text-main">{{ b.city }}</span></td>
+            <td><span class="amount-cell text-primary">₹{{ b.totalAmount.toLocaleString('en-IN') }}</span></td>
             <td><span class="ee-badge {{ statusColors[b.status] }}">{{ statusLabels[b.status] }}</span></td>
-            <td><span class="assigned-to">{{ b.assignedTo || '—' }}</span></td>
+            <td (click)="$event.stopPropagation()">
+              <select class="form-select table-select rounded-pill px-2 py-0" [value]="b.assignedTo || ''" (change)="assignSupportAgent(b.id, $event)">
+                <option value="">Unassigned</option>
+                @for (agent of supportAgents; track agent) {
+                  <option [value]="agent">{{ agent }}</option>
+                }
+              </select>
+            </td>
+            <td class="text-end" (click)="$event.stopPropagation()">
+              <div class="d-flex justify-content-end gap-1">
+                <button class="action-circle-btn text-primary" (click)="openBookingDetails(b)" title="View Details">
+                  <i class="bi bi-eye"></i>
+                </button>
+                <div class="dropdown d-inline-block">
+                  <button class="action-circle-btn text-muted" data-bs-toggle="dropdown" aria-expanded="false" title="Quick Status Change">
+                    <i class="bi bi-arrow-left-right"></i>
+                  </button>
+                  <ul class="dropdown-menu dropdown-menu-end shadow border-0" style="font-size: 0.82rem; border-radius: var(--radius-lg);">
+                    <li><h6 class="dropdown-header text-muted">Change Booking Status</h6></li>
+                    <li><hr class="dropdown-divider"></li>
+                    @for (statusItem of statuses; track statusItem) {
+                      @if (statusItem !== 'all' && statusItem !== b.status) {
+                        <li>
+                          <a class="dropdown-item py-2" href="javascript:void(0)" (click)="updateStatus(b.id, statusItem)">
+                            <span class="status-dot-indicator {{ statusColors[statusItem] }}"></span> {{ statusLabels[statusItem] }}
+                          </a>
+                        </li>
+                      }
+                    }
+                  </ul>
+                </div>
+              </div>
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="9" class="empty-table-cell text-center py-5">
+              <i class="bi bi-calendar-x text-muted opacity-50 mb-3 d-block" style="font-size: 3rem;"></i>
+              <h5 class="fw-bold text-dark m-0">No Bookings Found</h5>
+              <p class="text-soft small mt-1">We couldn't find any event bookings matching your filter configurations.</p>
+              <button class="btn btn-outline-secondary btn-sm mt-2 rounded-pill px-4" (click)="searchQuery.set(''); filter.set('all'); assigneeFilter.set('all')">
+                Clear Filters
+              </button>
+            </td>
           </tr>
         }
-        @empty { <tr><td colspan="8" class="empty-table-cell">No bookings found</td></tr> }
       </tbody>
     </table>
   </div>
 </div>
+
+<!-- Breathtaking Booking Detail Slide-Over Drawer / Modal -->
+@if (selectedBooking(); as b) {
+  <div class="modal-backdrop" (click)="closeBookingDetails()"></div>
+  <div class="custom-modal booking-details-drawer">
+    <!-- Header -->
+    <div class="modal-header d-flex justify-content-between align-items-center mb-3">
+      <div>
+        <h5 class="m-0 fw-bold text-dark"><i class="bi bi-bookmark-fill text-primary me-2"></i>Booking {{ b.bookingNumber }}</h5>
+        <div class="text-soft extra-small mt-1">Registered on {{ b.createdAt }} | City: {{ b.city }}</div>
+      </div>
+      <button class="btn-close shadow-none" (click)="closeBookingDetails()"></button>
+    </div>
+
+    <!-- Scrollable Body -->
+    <div class="modal-body overflow-y-auto" style="max-height: calc(85vh - 120px);">
+      
+      <!-- Top Overview Row -->
+      <div class="row g-3 mb-4">
+        <div class="col-12 col-md-8">
+          <div class="details-overview-card p-3 rounded-4 bg-light border border-opacity-10 d-flex flex-column flex-sm-row justify-content-between gap-3">
+            <div>
+              <div class="small text-soft fw-semibold uppercase tracking-wider">Scheduled Event</div>
+              <h4 class="fw-bold text-dark mt-1 mb-0">{{ b.eventName }}</h4>
+              <div class="badge bg-secondary mt-2 px-2.5 py-1.5 rounded-pill text-uppercase">{{ b.packageName || 'Custom Package' }}</div>
+            </div>
+            <div class="border-start-sm px-sm-3 d-flex flex-column justify-content-center text-sm-end">
+              <div class="small text-soft fw-semibold">Event Date</div>
+              <div class="fw-bold text-dark mt-1 fs-5"><i class="bi bi-calendar-check me-1.5 text-primary"></i>{{ b.eventDate }}</div>
+              <div class="small text-soft mt-1">{{ b.guestCount }} Guests Scheduled</div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="col-12 col-md-4">
+          <div class="status-action-card p-3 rounded-4 border bg-card shadow-sm d-flex flex-column align-items-center justify-content-center text-center h-100">
+            <div class="small text-soft fw-semibold">Current State</div>
+            <div class="ee-badge {{ statusColors[b.status] }} my-2 px-3.5 py-2 fs-7 rounded-pill text-uppercase font-heading">{{ statusLabels[b.status] }}</div>
+            
+            <div class="dropdown mt-1 w-100">
+              <button class="btn btn-outline-secondary btn-sm rounded-pill px-3 dropdown-toggle w-100" data-bs-toggle="dropdown" aria-expanded="false">
+                Quick Change Status
+              </button>
+              <ul class="dropdown-menu dropdown-menu-end shadow border-0" style="font-size: 0.8rem; max-height: 200px; overflow-y: auto;">
+                @for (statusItem of statuses; track statusItem) {
+                  @if (statusItem !== 'all' && statusItem !== b.status) {
+                    <li>
+                      <a class="dropdown-item" href="javascript:void(0)" (click)="updateStatus(b.id, statusItem)">
+                        <span class="status-dot-indicator {{ statusColors[statusItem] }}"></span> {{ statusLabels[statusItem] }}
+                      </a>
+                    </li>
+                  }
+                }
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Columns Grid -->
+      <div class="row g-4">
+        <!-- Left Side: Customer Info, Services Booked, Cost Breakdown -->
+        <div class="col-12 col-lg-7">
+          <!-- Customer Info -->
+          <div class="ee-card mb-4">
+            <h6 class="fw-bold text-dark mb-3"><i class="bi bi-person text-muted me-2"></i>Customer Information</h6>
+            <div class="d-flex align-items-center gap-3">
+              <div class="cust-avatar-large">{{ b.customerName?.trim()?.charAt(0)?.toUpperCase() || 'C' }}</div>
+              <div class="flex-grow-1">
+                <h5 class="fw-bold text-dark m-0">{{ b.customerName }}</h5>
+                <div class="d-flex flex-wrap gap-x-4 gap-y-1.5 mt-2">
+                  <span class="small text-soft cursor-pointer" (click)="copyToClipboard(b.customerPhone, $event)" title="Copy phone">
+                    <i class="bi bi-telephone me-1.5"></i>{{ b.customerPhone }} <i class="bi bi-clipboard ms-1"></i>
+                  </span>
+                  <span class="small text-soft"><i class="bi bi-envelope me-1.5"></i>{{ b.customerId }}&#64;joinevents.com</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Services Breakdown -->
+          <div class="ee-card mb-4">
+            <h6 class="fw-bold text-dark mb-3"><i class="bi bi-shop text-muted me-2"></i>Booked Vendor Partners ({{ b.services.length }})</h6>
+            @if (b.services && b.services.length > 0) {
+              <div class="d-flex flex-column gap-3">
+                @for (svc of b.services; track svc.serviceId) {
+                  <div class="p-3 rounded-3 border bg-light d-flex justify-content-between align-items-center">
+                    <div>
+                      <div class="fw-bold text-dark">{{ svc.serviceName }}</div>
+                      <div class="text-soft extra-small mt-1">Vendor: {{ svc.vendorName }} | Category: {{ svc.category | titlecase }}</div>
+                    </div>
+                    <div class="text-end">
+                      <span class="fw-bold text-main fs-6">₹{{ svc.price.toLocaleString('en-IN') }}</span>
+                      <div class="mt-1"><span class="badge bg-soft-success text-success text-uppercase py-1" style="font-size: 0.65rem;">{{ svc.status }}</span></div>
+                    </div>
+                  </div>
+                }
+              </div>
+            } @else {
+              <div class="text-center py-4 bg-light rounded-3">
+                <i class="bi bi-bag-plus text-muted fs-4"></i>
+                <div class="small text-soft mt-1">No custom vendor services booked. Standard inclusions apply.</div>
+              </div>
+            }
+          </div>
+
+          <!-- Financial Breakdown -->
+          <div class="ee-card">
+            <h6 class="fw-bold text-dark mb-3"><i class="bi bi-calculator text-muted me-2"></i>Financial Breakdown</h6>
+            <div class="d-flex flex-column gap-2 mb-3">
+              <div class="d-flex justify-content-between text-soft small">
+                <span>Base Package Amount:</span>
+                <span>₹{{ b.baseAmount.toLocaleString('en-IN') }}</span>
+              </div>
+              <div class="d-flex justify-content-between text-soft small">
+                <span>Extra Services Amount:</span>
+                <span>₹{{ b.extraServicesAmount.toLocaleString('en-IN') }}</span>
+              </div>
+              @if (b.damageCharges > 0) {
+                <div class="d-flex justify-content-between text-warning small fw-bold">
+                  <span>Damage Charges Recorded:</span>
+                  <span>+₹{{ b.damageCharges.toLocaleString('en-IN') }}</span>
+                </div>
+              }
+              <div class="d-flex justify-content-between text-soft small">
+                <span>GST Tax ({{ b.gstPercent }}%):</span>
+                <span>+₹{{ ((b.baseAmount + b.extraServicesAmount + b.damageCharges) * (b.gstPercent / 100)).toLocaleString('en-IN') }}</span>
+              </div>
+            </div>
+            <div class="border-top pt-3 d-flex justify-content-between align-items-center">
+              <span class="fw-bold text-dark fs-5">Grand Total:</span>
+              <span class="fw-extrabold text-primary fs-4">₹{{ b.totalAmount.toLocaleString('en-IN') }}</span>
+            </div>
+            <div class="mt-3 p-2.5 rounded-3 bg-soft-info text-info small d-flex align-items-center">
+              <i class="bi bi-wallet-fill me-2 fs-5"></i>
+              <span><strong>Advance Deposit Paid:</strong> ₹{{ b.advanceAmount.toLocaleString('en-IN') }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Side: Assignee, Support Log Logs & Action Forms -->
+        <div class="col-12 col-lg-5">
+          <!-- Support Assignee Selector -->
+          <div class="ee-card mb-4">
+            <h6 class="fw-bold text-dark mb-3"><i class="bi bi-person-fill-gear text-muted me-2"></i>Staff Assignment</h6>
+            <div class="mb-3">
+              <label class="form-label small text-soft fw-semibold">Assigned Support Personnel</label>
+              <select class="form-select rounded-4 shadow-sm" [value]="b.assignedTo || ''" (change)="assignSupportAgent(b.id, $event)">
+                <option value="">Unassigned / Needs Agent</option>
+                @for (agent of supportAgents; track agent) {
+                  <option [value]="agent">{{ agent }}</option>
+                }
+              </select>
+            </div>
+          </div>
+
+          <!-- Dynamic Damage Charges Form -->
+          <div class="ee-card mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <h6 class="fw-bold text-dark m-0"><i class="bi bi-hammer text-muted me-2"></i>Damage Charges</h6>
+              <button class="btn btn-outline-warning btn-sm rounded-pill px-3" (click)="showDamageForm.set(!showDamageForm())">
+                {{ showDamageForm() ? 'Cancel' : 'Record Damage' }}
+              </button>
+            </div>
+
+            @if (showDamageForm()) {
+              <div class="damage-log-form p-3 rounded-4 bg-soft-warning border border-warning border-opacity-25 mt-3">
+                <div class="mb-3">
+                  <label class="form-label small text-dark fw-bold">Damage Charges Amount (₹)</label>
+                  <input type="number" class="form-control rounded-pill" [value]="damageAmount()" (input)="damageAmount.set($any($event.target).value ? +$any($event.target).value : null)" placeholder="e.g. 5000">
+                </div>
+                <div class="mb-3">
+                  <label class="form-label small text-dark fw-bold">Detailed Damage Description</label>
+                  <textarea class="form-control rounded-3" rows="2.5" [value]="damageNotes()" (input)="damageNotes.set($any($event.target).value)" placeholder="Explain damage findings (e.g. broken buffet table leg, burned curtains)..."></textarea>
+                </div>
+                <button class="btn btn-warning w-100 rounded-pill text-dark fw-bold mt-1" [disabled]="!damageAmount() || !damageNotes().trim()" (click)="recordDamageCharges(b.id)">
+                  Save Damage Charge
+                </button>
+              </div>
+            }
+
+            @if (!showDamageForm()) {
+              @if (b.damageCharges > 0) {
+                <div class="p-3 rounded-4 border border-warning bg-warning bg-opacity-5">
+                  <div class="d-flex justify-content-between text-warning fw-bold small mb-1">
+                    <span>Charge Recorded:</span>
+                    <span>₹{{ b.damageCharges.toLocaleString('en-IN') }}</span>
+                  </div>
+                  <div class="small text-soft"><strong>Notes:</strong> {{ b.damageChargeNotes }}</div>
+                  @if (b.isDamageChargeApproved) {
+                    <div class="mt-2.5 badge bg-soft-success text-success px-3 py-1.5 rounded-pill uppercase font-heading fs-9"><i class="bi bi-shield-check me-1"></i>Approved by Client</div>
+                  } @else {
+                    <div class="mt-2.5 badge bg-soft-warning text-warning px-3 py-1.5 rounded-pill uppercase font-heading fs-9"><i class="bi bi-clock-history me-1"></i>Awaiting Client Approval</div>
+                  }
+                </div>
+              } @else {
+                <div class="text-center text-soft py-3 bg-light rounded-4 small">
+                  <i class="bi bi-check-circle-fill text-success fs-5 me-1.5"></i>No reported property damages yet
+                </div>
+              }
+            }
+          </div>
+
+          <!-- Support History Log Logs -->
+          <div class="ee-card">
+            <h6 class="fw-bold text-dark mb-3"><i class="bi bi-receipt-cutoff text-muted me-2"></i>Support Action Logs</h6>
+            
+            <!-- Log Feed List -->
+            @if (b.supportLogs && b.supportLogs.length > 0) {
+              <div class="support-log-timeline d-flex flex-column gap-3 mb-4">
+                @for (log of b.supportLogs; track log.date + log.message) {
+                  <div class="support-log-item d-flex gap-2">
+                    <div class="support-log-bullet bg-primary"></div>
+                    <div class="support-log-card flex-grow-1 p-2.5 bg-light rounded-3 border">
+                      <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="fw-bold text-dark small">{{ log.actor }}</span>
+                        <span class="text-soft extra-small">{{ log.date }}</span>
+                      </div>
+                      <p class="text-soft m-0 small">{{ log.message }}</p>
+                    </div>
+                  </div>
+                }
+              </div>
+            } @else {
+              <div class="text-center py-4 bg-light rounded-3 mb-4 text-soft small">
+                <i class="bi bi-chat-left-dots d-block mb-1.5 fs-4 text-muted"></i>
+                No logged entries yet. Keep notes of all customer touchpoints here.
+              </div>
+            }
+
+            <!-- Add Support Note Input Box -->
+            <div class="add-note-box mt-3 pt-3 border-top">
+              <label class="form-label small text-soft fw-semibold mb-2">Record New Touchpoint Note</label>
+              <div class="d-flex gap-2">
+                <input type="text" class="form-control rounded-pill flex-grow-1" [value]="newSupportNote()" (input)="newSupportNote.set($any($event.target).value)" (keyup.enter)="addSupportNote(b.id)" placeholder="Add a log note (e.g. Welcome call completed)..." style="font-size: 0.8rem;">
+                <button class="btn btn-primary rounded-pill px-4" [disabled]="!newSupportNote().trim()" (click)="addSupportNote(b.id)">
+                  Save
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+}

@@ -31,7 +31,7 @@
         }
 
         <div class="cac-header position-relative z-1">
-          <div class="cust-avatar">{{ c.name[0] }}</div>
+          <div class="cust-avatar">{{ c.name?.trim()?.charAt(0)?.toUpperCase() || 'C' }}</div>
           <div class="flex-1">
             <div class="cust-name">{{ c.name }}</div>
             <div class="cust-email text-muted small">{{ c.email }}</div>

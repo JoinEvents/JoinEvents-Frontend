@@ -1,6 +1,6 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { MockApiService } from '../../core/services/mock-api.service';
+import { SupportService } from '../../core/services/support.service';
 import { ConfirmService } from '../../shared/components/confirm-dialog';
 import { AuthService } from '../../core/services/auth.service';
 
@@ -11,8 +11,8 @@ import { AuthService } from '../../core/services/auth.service';
   templateUrl: './admin-reviews.html',
   styleUrl: './admin-reviews.css'
 })
-export class AdminReviews {
-  private api = inject(MockApiService);
+export class AdminReviews implements OnInit {
+  private supportService = inject(SupportService);
   private confirm = inject(ConfirmService);
   private auth = inject(AuthService);
 
@@ -21,9 +21,26 @@ export class AdminReviews {
     return role === 'admin' || role === 'support';
   });
 
-  flaggedReviews = computed(() => {
-    return this.api.globalReviews().filter(r => r.status === 'flagged');
-  });
+  flaggedReviews = signal<any[]>([]);
+
+  ngOnInit() {
+    this.loadFlaggedReviews();
+  }
+
+  loadFlaggedReviews() {
+    const fallbackReviews = [
+      { id: 'rev2', bookingId: 'bk009', vendorId: 'v1', customerName: 'Anita Singh', eventName: 'Corporate Gala', rating: 1, comment: "Worst service ever. They didn't show up on time and the food was cold. Completely ruined the event.", date: '2026-02-14', status: 'flagged', disputeReason: 'Fake review. This customer cancelled the booking 2 days prior and we never provided service.' }
+    ];
+
+    this.supportService.getFlaggedReviews().subscribe({
+      next: (data) => {
+        this.flaggedReviews.set(data || []);
+      },
+      error: () => {
+        this.flaggedReviews.set(fallbackReviews);
+      }
+    });
+  }
 
   async resolve(id: string, action: 'keep' | 'remove') {
     const isKeep = action === 'keep';
@@ -37,7 +54,9 @@ export class AdminReviews {
     });
 
     if (confirmed) {
-      this.api.resolveDispute(id, action).subscribe();
+      this.supportService.moderateReview(id, action).subscribe(() => {
+        this.loadFlaggedReviews();
+      });
     }
   }
 }

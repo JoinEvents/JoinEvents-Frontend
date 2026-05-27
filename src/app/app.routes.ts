@@ -46,14 +46,12 @@ export const routes: Routes = [
       { path: 'verification', loadComponent: () => import('./vendor/verification/vendor-verification').then(m => m.VendorVerification) },
       { path: 'profile', loadComponent: () => import('./vendor/profile/profile').then(m => m.VendorProfile) },
       { path: 'network', loadComponent: () => import('./vendor/network/vendor-network').then(m => m.VendorNetwork) },
-      { path: 'impact', loadComponent: () => import('./vendor/impact/vendor-impact').then(m => m.VendorImpact) },
       { path: 'finance', loadComponent: () => import('./vendor/finance/vendor-finance').then(m => m.VendorFinance) },
       { path: 'offers', loadComponent: () => import('./vendor/offers/vendor-offers').then(m => m.VendorOffers) },
       { path: 'staff', loadComponent: () => import('./vendor/staff/vendor-staff').then(m => m.VendorStaff) },
       { path: 'messages', loadComponent: () => import('./vendor/messages/messages').then(m => m.VendorMessages) },
       { path: 'rfp', loadComponent: () => import('./vendor/rfp/vendor-rfp').then(m => m.VendorRfp) },
-      { path: 'notifications', loadComponent: () => import('./shared/pages/notifications/notifications').then(m => m.NotificationsPage) },
-      { path: 'analytics', loadComponent: () => import('./vendor/analytics/vendor-analytics').then(m => m.VendorAnalytics) },
+      { path: 'notifications', loadComponent: () => import('./shared/pages/notifications/notifications').then(m => m.NotificationsPage) }
     ]
   },
 
@@ -71,7 +69,8 @@ export const routes: Routes = [
       { path: 'categories', loadComponent: () => import('./admin/categories/admin-categories').then(m => m.AdminCategories) },
       { path: 'profile', loadComponent: () => import('./admin/profile/profile').then(m => m.AdminProfile) },
       { path: 'notifications', loadComponent: () => import('./shared/pages/notifications/notifications').then(m => m.NotificationsPage) },
-      { path: 'analytics', loadComponent: () => import('./admin/analytics/admin-analytics').then(m => m.AdminAnalytics) },
+      { path: 'analytics', redirectTo: 'dashboard', pathMatch: 'full' },
+      { path: 'audit', loadComponent: () => import('./admin/audit/admin-audit').then(m => m.AdminAudit) },
     ]
   },
   {

@@ -1,8 +1,8 @@
-import { Component, signal, inject, HostListener, OnInit } from '@angular/core';
+import { Component, signal, computed, inject, HostListener, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
-import { MockApiService } from '../../core/services/mock-api.service';
+import { NotificationService } from '../../core/services/notification.service';
 import { ThemeService } from '../../core/services/theme.service';
 import { BreadcrumbComponent } from '../../shared/components/breadcrumb';
 import { SupportService } from '../../core/services/support.service';
@@ -16,7 +16,7 @@ import { SupportService } from '../../core/services/support.service';
 })
 export class SupportLayout implements OnInit {
   private auth = inject(AuthService);
-  private api = inject(MockApiService);
+  private notificationService = inject(NotificationService);
   public theme = inject(ThemeService);
   private supportService = inject(SupportService);
   
@@ -25,7 +25,42 @@ export class SupportLayout implements OnInit {
   sidebarPinned = signal(false);
   showNotifications = signal(false);
   showProfileDropdown = signal(false);
-  notifications = signal<any[]>([]);
+
+  getTypeMeta(type: string) {
+    const meta: Record<string, { color: string; icon: string }> = {
+      booking: { color: '#FF6B35', icon: 'bi-calendar-check' },
+      message: { color: '#3B82F6', icon: 'bi-chat-dots' },
+      payment: { color: '#10B981', icon: 'bi-cash-stack' },
+      verification: { color: '#8B5CF6', icon: 'bi-shield-check' },
+      system: { color: '#EF4444', icon: 'bi-server' }
+    };
+    return meta[type] || { color: '#6366F1', icon: 'bi-bell' };
+  }
+
+  private formatTime(isoString: string): string {
+    const date = new Date(isoString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins} mins ago`;
+    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+    return date.toLocaleDateString();
+  }
+
+  notifications = computed(() => {
+    return this.notificationService.activeNotifications().map(n => {
+      const meta = this.getTypeMeta(n.type);
+      return {
+        ...n,
+        color: meta.color,
+        icon: meta.icon,
+        time: this.formatTime(n.createdAt)
+      };
+    });
+  });
 
   @HostListener('window:resize')
   onResize() {
@@ -67,7 +102,6 @@ export class SupportLayout implements OnInit {
 
   constructor() {
     this.checkScreenSize();
-    this.api.getNotifications().subscribe(data => this.notifications.set(data));
   }
 
   ngOnInit() {

@@ -16,6 +16,7 @@ export class SupportService extends BaseApiService {
       id: raw.id ?? raw.Id ?? '',
       customerId: raw.customerId ?? raw.CustomerId ?? raw.userId ?? raw.UserId ?? '',
       customerName: raw.customerName ?? raw.CustomerName ?? 'Customer',
+      customerAvatar: raw.customerAvatar ?? raw.CustomerAvatar ?? undefined,
       subject: raw.subject ?? raw.Subject ?? '',
       status: (() => {
         const s = (raw.status ?? raw.Status ?? 'open').toLowerCase();
@@ -62,6 +63,29 @@ export class SupportService extends BaseApiService {
         type: (m.type ?? m.Type ?? 'text').toLowerCase() as any,
         isInternal: m.isInternal ?? m.IsInternal ?? false
       }))
+    };
+  }
+
+  private mapToVendor(raw: any): Vendor {
+    if (!raw) return null as any;
+    return {
+      id: raw.id ?? raw.Id ?? '',
+      name: raw.name ?? raw.Name ?? 'Vendor',
+      businessName: raw.businessName ?? raw.BusinessName ?? 'Business Name',
+      email: raw.email ?? raw.Email ?? '',
+      phone: raw.phone ?? raw.Phone ?? '',
+      avatar: raw.avatar ?? raw.Avatar ?? undefined,
+      city: raw.city ?? raw.City ?? 'City',
+      services: raw.services ?? raw.Services ?? [],
+      verificationStatus: (raw.verificationStatus ?? raw.VerificationStatus ?? 'pending').toLowerCase() as any,
+      verificationDocs: raw.verificationDocs ?? raw.VerificationDocs ?? [],
+      rating: raw.rating ?? raw.Rating ?? 0,
+      totalReviews: raw.totalReviews ?? raw.TotalReviews ?? 0,
+      totalEarnings: raw.totalEarnings ?? raw.TotalEarnings ?? 0,
+      joinedDate: raw.joinedDate ?? raw.JoinedDate ?? '',
+      accountStatus: (raw.accountStatus ?? raw.AccountStatus ?? 'active').toLowerCase() as any,
+      gstNumber: raw.gstNumber ?? raw.GstNumber,
+      notes: raw.notes ?? raw.Notes
     };
   }
 
@@ -115,7 +139,15 @@ export class SupportService extends BaseApiService {
 
   // --- Verifications ---
   getPendingVendors(): Observable<Vendor[]> {
-    return this.get<Vendor[]>(API_ROUTES.SUPPORT.PENDING_VENDORS, undefined, false);
+    return this.get<Vendor[]>(API_ROUTES.SUPPORT.PENDING_VENDORS, { t: Date.now().toString() }, false).pipe(
+      map(list => {
+        let items: any[] = [];
+        if (list && Array.isArray(list)) items = list;
+        else if (list && (list as any).vendors) items = (list as any).vendors;
+        else if (list && (list as any).data) items = (list as any).data;
+        return items.map(v => this.mapToVendor(v));
+      })
+    );
   }
 
   verifyVendor(id: string, status: string, remarks?: string): Observable<Vendor> {
@@ -123,7 +155,15 @@ export class SupportService extends BaseApiService {
   }
 
   getPendingPackages(): Observable<any[]> {
-    return this.get<any[]>(API_ROUTES.SUPPORT.PENDING_PACKAGES, undefined, false);
+    return this.get<any[]>(API_ROUTES.SUPPORT.PENDING_PACKAGES, { t: Date.now().toString() }, false).pipe(
+      map(list => {
+        let items: any[] = [];
+        if (list && Array.isArray(list)) items = list;
+        else if (list && (list as any).packages) items = (list as any).packages;
+        else if (list && (list as any).data) items = (list as any).data;
+        return items.map(p => this.normalizePackage(p));
+      })
+    );
   }
 
   verifyPackage(id: string, status: string, comment?: string): Observable<any> {
@@ -156,4 +196,94 @@ export class SupportService extends BaseApiService {
     return this.post<any>(API_ROUTES.SUPPORT.MODERATE_REVIEW(id), { action }, false);
   }
 
+  private normalizePackage(p: any): any {
+    if (!p) return null;
+
+    const pr = p.Pricing || p.pricing || {};
+    const priceValue = p.price || p.Price || pr.BasePrice || pr.basePrice || pr.VegPrice || pr.vegPrice || 0;
+
+    const cp = p.Capacity || p.capacity || {};
+    const guests = p.MaxGuests || p.maxGuests || cp.MaxGuests || cp.maxGuests || 100;
+    const rooms = p.RoomCount || p.roomCount || cp.TotalRooms || cp.totalRooms || 0;
+
+    const isVegOnly = p.VegOnly !== undefined ? p.VegOnly : (p.vegOnly !== undefined ? p.vegOnly : (pr.VegPrice && !pr.NonVegPrice ? true : false));
+
+    const inc = p.Includes || p.includes || p.Services || p.services || [];
+    let finalInclusions: string[] = [];
+    if (Array.isArray(inc) && inc.length > 0) {
+      finalInclusions = inc;
+    } else {
+      finalInclusions = p.Name || p.name ? [p.Name || p.name] : ['Professional Service'];
+    }
+
+    const addr = p.Address || p.address || {};
+    const cityLoc = p.City || p.city || addr.City || addr.city || p.Location || p.location || 'Multiple Locations';
+
+    const imgs = p.Images || p.images || [];
+    const primaryImg = p.Image || p.image || imgs[0] || 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&q=80&w=800';
+
+    const am = p.Amenities || p.amenities || {};
+
+    return {
+      id: p.id || p.Id,
+      eventTypeId: p.eventTypeId || p.EventTypeId || p.Category || p.category || 'wedding',
+      name: p.Name || p.name,
+      vendorName: p.VendorName || p.vendorName || 'JoinEvents Partner',
+      location: cityLoc,
+      tier: p.Tier || p.tier || 'premium',
+      price: priceValue,
+      description: p.Description || p.description,
+      maxGuests: guests,
+      roomCount: rooms,
+      vegOnly: isVegOnly,
+      services: Array.isArray(finalInclusions) ? finalInclusions : [],
+      addons: p.Addons || p.addons || [],
+      image: primaryImg,
+      images: imgs,
+      sustainabilityTags: p.SustainabilityTags || p.sustainabilityTags || [],
+      amenities: {
+        hasAc: am.HasAc || am.hasAc || false,
+        hasPowerBackup: am.HasPowerBackup || am.hasPowerBackup || false,
+        hasChangingRooms: am.HasChangingRooms || am.hasChangingRooms || false,
+        hasParking: am.HasParking || am.hasParking || false
+      },
+      experience: p.Experience !== undefined ? p.Experience : (p.experience !== undefined ? p.experience : 0),
+      rating: p.Rating !== undefined ? p.Rating : (p.rating !== undefined ? p.rating : 0),
+      totalReviews: p.TotalReviews !== undefined ? p.TotalReviews : (p.totalReviews !== undefined ? p.totalReviews : 0),
+      address: {
+        country: addr.Country || addr.country || 'India',
+        state: addr.State || addr.state || '',
+        city: addr.City || addr.city || cityLoc,
+        locality: addr.Locality || addr.locality || '',
+        street: addr.Street || addr.street || '',
+        landmark: addr.Landmark || addr.landmark || '',
+        pincode: addr.Pincode || addr.pincode || ''
+      },
+      pricing: {
+        vegPrice: pr.VegPrice !== undefined ? pr.VegPrice : (pr.vegPrice !== undefined ? pr.vegPrice : (isVegOnly ? priceValue : 0)),
+        nonVegPrice: pr.NonVegPrice !== undefined ? pr.NonVegPrice : (pr.nonVegPrice !== undefined ? pr.nonVegPrice : (!isVegOnly ? priceValue : 0)),
+        roomPrice: pr.RoomPrice !== undefined ? pr.RoomPrice : (pr.roomPrice !== undefined ? pr.roomPrice : 0),
+        basePrice: pr.BasePrice !== undefined ? pr.BasePrice : (pr.basePrice !== undefined ? pr.basePrice : 0),
+        rent: pr.Rent !== undefined ? pr.Rent : (pr.rent !== undefined ? pr.rent : 0),
+        unit: pr.Unit || pr.unit || 'per event'
+      },
+      capacity: {
+        maxGuests: guests,
+        parkingCapacity: cp.ParkingCapacity !== undefined ? cp.ParkingCapacity : (cp.parkingCapacity !== undefined ? cp.parkingCapacity : (p.parkingCapacity || 0)),
+        totalRooms: rooms
+      },
+      policies: {
+        cateringPolicy: p.Policies?.CateringPolicy || p.Policies?.cateringPolicy || p.policies?.CateringPolicy || p.policies?.cateringPolicy || 'Flexible',
+        decorPolicy: p.Policies?.DecorPolicy || p.policies?.decorPolicy || p.policies?.DecorPolicy || p.policies?.decorPolicy || 'Flexible',
+        alcoholPolicy: p.Policies?.AlcoholPolicy || p.policies?.alcoholPolicy || p.policies?.AlcoholPolicy || p.policies?.alcoholPolicy || 'Flexible',
+        djPolicy: p.Policies?.DjPolicy || p.policies?.djPolicy || p.policies?.DjPolicy || p.policies?.djPolicy || 'Flexible'
+      },
+      spaces: (p.Spaces || p.spaces || []).map((s: any) => ({
+        name: s.Name || s.name || '',
+        type: s.Type || s.type || 'Indoor',
+        seatingCapacity: s.SeatingCapacity !== undefined ? s.SeatingCapacity : (s.seatingCapacity !== undefined ? s.seatingCapacity : 0),
+        floatingCapacity: s.FloatingCapacity !== undefined ? s.FloatingCapacity : (s.floatingCapacity !== undefined ? s.floatingCapacity : 0)
+      }))
+    };
+  }
 }

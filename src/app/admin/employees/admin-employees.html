@@ -89,7 +89,7 @@
 
         <div class="emp-header position-relative z-1">
           <div class="emp-avatar" [style.background]="emp.role === 'admin' ? 'linear-gradient(135deg,#0EA5E9,#6B21A8)' : emp.role === 'support' ? 'linear-gradient(135deg,#F59E0B,#D97706)' : emp.role === 'moderator' ? 'linear-gradient(135deg,#3B82F6,#1D4ED8)' : 'linear-gradient(135deg,#10B981,#059669)'">
-            {{ emp.name[0] }}
+            {{ emp.name?.trim()?.charAt(0)?.toUpperCase() || 'E' }}
           </div>
           <div class="flex-1">
             <div class="emp-name">{{ emp.name }}</div>

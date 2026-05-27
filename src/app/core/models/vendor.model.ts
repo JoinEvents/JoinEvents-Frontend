@@ -1,6 +1,7 @@
 export interface Vendor {
   id: string;
   name: string;
+  avatar?: string;
   businessName: string;
   email: string;
   phone: string;
@@ -10,7 +11,7 @@ export interface Vendor {
   serviceCategory?: string; // For B2B Network filtering
   sustainabilityTags?: string[];
   isVerified?: boolean;
-  verificationStatus: 'pending' | 'under_review' | 'verified' | 'rejected';
+  verificationStatus: 'pending' | 'under_review' | 'verified' | 'rejected' | 'action_required';
   verificationDocs: VerificationDoc[];
   rating: number;
   totalReviews: number;
@@ -28,7 +29,9 @@ export interface VerificationDoc {
   type: string;
   name: string;
   uploadedAt: string;
-  status: 'pending' | 'approved' | 'rejected';
+  status: 'pending' | 'approved' | 'rejected' | 'action_required';
+  fileUrl?: string;
+  url?: string;
 }
 
 export interface CalendarDay {

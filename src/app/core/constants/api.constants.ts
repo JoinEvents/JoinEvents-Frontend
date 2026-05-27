@@ -21,6 +21,10 @@ export const API_ROUTES = {
     CANCEL: (id: string) => `/bookings/${id}/cancel`,
     DAMAGE: (id: string) => `/bookings/${id}/damage`,
   },
+  ADMIN: {
+    BOOKINGS: '/support/bookings',
+    ASSIGN_BOOKING: (id: string) => `/admin/bookings/${id}/assign`,
+  },
   VENDOR_PACKAGES: {
     BASE: '/vendor/packages',
     BY_ID: (id: string) => `/vendor/packages/${id}`,
@@ -57,5 +61,18 @@ export const API_ROUTES = {
     BOOKING_VENDOR_REMINDER: (id: string) => `/support/bookings/${id}/vendor-reminder`,
     FLAGGED_REVIEWS: '/support/reviews/flagged',
     MODERATE_REVIEW: (id: string) => `/support/reviews/${id}/moderate`,
+  },
+  VENDOR: {
+    PROFILE: '/vendor/profile',
+    DASHBOARD: '/vendor/dashboard',
+    TASKS: '/vendor/dashboard/tasks',
+    ANALYTICS: '/vendor/analytics',
+    COLLABORATIONS: '/vendor/collaborations',
+    COLLABORATION_ACCEPT: (id: string) => `/vendor/collaborations/${id}/accept`,
+    ENQUIRIES: '/vendor/enquiries',
+    ENQUIRY_REPLY: (id: string) => `/vendor/enquiries/${id}/reply`,
+    LOYALTY: '/vendor/loyalty',
+    GROWTH_TARGET: '/vendor/growth-target',
+    ESG_IMPACT: '/vendor/esg-impact',
   }
 };

@@ -232,7 +232,7 @@
                 <!-- Bid Header -->
                 <div class="bid-top">
                   <div class="vendor-info">
-                    <div class="vendor-avatar">{{ bid.vendorBusinessName[0] }}</div>
+                    <div class="vendor-avatar">{{ bid.vendorBusinessName?.trim()?.charAt(0)?.toUpperCase() || 'V' }}</div>
                     <div>
                       <div class="vendor-name">
                         {{ bid.vendorBusinessName }}

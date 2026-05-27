@@ -1,7 +1,7 @@
 import { Component, signal, computed, OnInit } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { inject } from '@angular/core';
-import { MockApiService } from '../../core/services/mock-api.service';
+import { EventCategoryService } from '../../core/services/event-category.service';
 import { AuthService } from '../../core/services/auth.service';
 import { EventType } from '../../core/models/event.model';
 
@@ -17,7 +17,7 @@ import { ThemeService } from '../../core/services/theme.service';
   styleUrl: './get-start.css'
 })
 export class GetStart implements OnInit {
-  private api = inject(MockApiService);
+  private eventCategoryService = inject(EventCategoryService);
   private auth = inject(AuthService);
   private router = inject(Router);
   public theme = inject(ThemeService);
@@ -117,7 +117,7 @@ export class GetStart implements OnInit {
       const path = role === 'customer' ? '/dashboard' : `/${role}/dashboard`;
       this.router.navigate([path]);
     }
-    this.api.getEventTypes().subscribe(types => this.eventTypes.set(types));
+    this.eventCategoryService.getAll().subscribe(types => this.eventTypes.set(types));
     setInterval(() => {
       this.currentSlide.update(s => (s + 1) % 3);
     }, 4500);

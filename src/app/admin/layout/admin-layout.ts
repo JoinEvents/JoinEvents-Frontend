@@ -100,7 +100,6 @@ export class AdminLayout {
     { path: '/admin/audit',         icon: 'bi-receipt',        label: 'Audit Trail' },
     { path: '/admin/messages',      icon: 'bi-chat-dots',      label: 'Admin Inbox' },
     { path: '/admin/support',       icon: 'bi-ticket-detailed', label: 'Support Tickets' },
-    { path: '/admin/analytics',     icon: 'bi-graph-up-arrow',  label: 'Analytics' },
     { path: '/admin/notifications', icon: 'bi-bell',          label: 'Notifications' }
   ];
 

@@ -5,11 +5,12 @@
 
 <div class="d-flex flex-column flex-md-row gap-3 mb-4 justify-content-between align-items-md-center">
   <div class="d-flex flex-wrap gap-2">
-    <button class="filter-chip" [class.active]="statusFilter() === 'all'" (click)="statusFilter.set('all')">All</button>
-    <button class="filter-chip chip-success" [class.active]="statusFilter() === 'active'" (click)="statusFilter.set('active')">Active</button>
-    <button class="filter-chip chip-info" [class.active]="statusFilter() === 'pending'" (click)="statusFilter.set('pending')">Pending KYC</button>
-    <button class="filter-chip chip-warning" [class.active]="statusFilter() === 'suspended'" (click)="statusFilter.set('suspended')">Suspended</button>
-    <button class="filter-chip chip-danger" [class.active]="statusFilter() === 'banned'" (click)="statusFilter.set('banned')">Banned</button>
+    <button class="filter-chip" [class.active]="statusFilter() === 'all'" (click)="statusFilter.set('all')">All <span class="chip-count">{{ countAll() }}</span></button>
+    <button class="filter-chip chip-primary" [class.active]="statusFilter() === 'verified'" (click)="statusFilter.set('verified')">Verified <span class="chip-count">{{ countVerified() }}</span></button>
+    <button class="filter-chip chip-info" [class.active]="statusFilter() === 'under_review'" (click)="statusFilter.set('under_review')">Under Review <span class="chip-count">{{ countUnderReview() }}</span></button>
+    <button class="filter-chip chip-secondary" [class.active]="statusFilter() === 'pending'" (click)="statusFilter.set('pending')">Pending KYC <span class="chip-count">{{ countPending() }}</span></button>
+    <button class="filter-chip chip-warning" [class.active]="statusFilter() === 'suspended'" (click)="statusFilter.set('suspended')">Suspended <span class="chip-count">{{ countSuspended() }}</span></button>
+    <button class="filter-chip chip-danger" [class.active]="statusFilter() === 'banned'" (click)="statusFilter.set('banned')">Banned <span class="chip-count">{{ countBanned() }}</span></button>
   </div>
   
   <div class="search-box admin-search-box px-3 py-1 rounded-pill d-flex align-items-center border shadow-sm admin-search-wrapper">
@@ -30,16 +31,36 @@
         }
 
         <div class="vac-header position-relative z-1">
-          <div class="vac-avatar">{{ v.businessName[0] }}</div>
+          <div class="vac-avatar">
+            @if (v.avatar) {
+              <img [src]="v.avatar" [alt]="v.businessName" class="vac-avatar-img" />
+            } @else {
+              {{ v.businessName?.trim()?.charAt(0)?.toUpperCase() || 'V' }}
+            }
+          </div>
           <div class="flex-1">
             <div class="vac-business">{{ v.businessName }}</div>
             <div class="vac-owner">{{ v.name }}</div>
           </div>
-          <span class="ee-badge {{ statusColor(v.verificationStatus) }}">{{ statusLabel(v.verificationStatus) }}</span>
+          @if (v.verificationStatus === 'pending' || v.verificationStatus === 'under_review' || v.verificationStatus === 'action_required') {
+            <a [routerLink]="['/support/verifications']" [queryParams]="{ vendorId: v.id }" class="ee-badge {{ statusColor(v.verificationStatus) }} interactive-badge" title="Click to open verification portal">
+              {{ statusLabel(v.verificationStatus) }} <i class="bi bi-box-arrow-up-right ms-1"></i>
+            </a>
+          } @else {
+            <span class="ee-badge {{ statusColor(v.verificationStatus) }}">{{ statusLabel(v.verificationStatus) }}</span>
+          }
         </div>
         <div class="vac-body">
-          <div class="vac-info"><i class="bi bi-envelope me-1"></i>{{ v.email }}</div>
-          <div class="vac-info"><i class="bi bi-telephone me-1"></i>{{ v.phone }}</div>
+          <div class="vac-info copyable" (click)="copyToClipboard(v.email, $event)" title="Click to copy email">
+            <i class="bi bi-envelope me-1"></i>
+            <span class="copy-text">{{ v.email }}</span>
+            <i class="bi bi-clipboard copy-icon"></i>
+          </div>
+          <div class="vac-info copyable" (click)="copyToClipboard(v.phone, $event)" title="Click to copy phone">
+            <i class="bi bi-telephone me-1"></i>
+            <span class="copy-text">{{ v.phone }}</span>
+            <i class="bi bi-clipboard copy-icon"></i>
+          </div>
           <div class="vac-info"><i class="bi bi-geo-alt me-1"></i>{{ v.city }}</div>
           <div class="vac-services">
             @for (svc of v.services; track svc) { <span class="ee-badge ee-badge-secondary">{{ svc | titlecase }}</span> }

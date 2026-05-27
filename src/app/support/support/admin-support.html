@@ -3,11 +3,11 @@
   <div class="dashboard-header-block">
     <div class="header-titles">
       <h1>Active Helpdesk Tickets</h1>
-      <p>Monitor, assign, and resolve customer and vendor inquiries</p>
+      <p>Monitor, assign, and resolve customer and vendor inquiries · sorted by priority &amp; date</p>
     </div>
     <div class="ticket-counter-badge">
       <i class="bi bi-ticket-detailed"></i>
-      <span>{{ filteredTickets().length }} Inquiries Found</span>
+      <span>{{ filteredTickets().length }} Active Inquiries</span>
     </div>
   </div>
 
@@ -26,21 +26,20 @@
       <div class="filter-select-wrapper">
         <i class="bi bi-filter-circle"></i>
         <select class="ee-form-control filter-select" (change)="statusFilter.set($any($event.target).value)">
-          <option value="all">All Statuses</option>
+          <option value="all">All Active</option>
           <option value="open">Open</option>
           <option value="in_progress">In Progress</option>
           <option value="resolved">Resolved</option>
-          <option value="closed">Closed</option>
         </select>
       </div>
       <div class="filter-select-wrapper">
         <i class="bi bi-lightning-charge"></i>
         <select class="ee-form-control filter-select" (change)="priorityFilter.set($any($event.target).value)">
           <option value="all">All Priorities</option>
-          <option value="low">Low Priority</option>
-          <option value="medium">Medium Priority</option>
-          <option value="high">High Priority</option>
-          <option value="urgent">Urgent Priority</option>
+          <option value="urgent">🔴 Urgent</option>
+          <option value="high">🟠 High Priority</option>
+          <option value="medium">🟡 Medium Priority</option>
+          <option value="low">🔵 Low Priority</option>
         </select>
       </div>
     </div>
@@ -69,8 +68,12 @@
         <!-- Customer & Event Meta -->
         <div class="ticket-card-meta">
           <div class="customer-info-block">
-            <div class="customer-avatar" [style.background]="getCustomerColor(t.customerName)">
-              {{ t.customerName.charAt(0).toUpperCase() }}
+            <div class="customer-avatar" [style.background]="t.customerAvatar ? 'transparent' : getCustomerColor(t.customerName)">
+              @if (t.customerAvatar) {
+                <img [src]="t.customerAvatar" [alt]="t.customerName" class="cust-avatar-img" />
+              } @else {
+                {{ t.customerName?.trim()?.charAt(0)?.toUpperCase() || 'C' }}
+              }
             </div>
             <div class="customer-text">
               <span class="customer-name">{{ t.customerName }}</span>
@@ -110,9 +113,95 @@
         <div class="empty-icon-wrapper">
           <i class="bi bi-search"></i>
         </div>
-        <h3>No inquiries matched your criteria</h3>
+        <h3>No active inquiries matched</h3>
         <p>Try resetting the search terms or change status/priority filter settings.</p>
       </div>
     }
   </div>
+
+  <!-- ── Ticket History Section ── -->
+  @if (hasClosedTickets()) {
+    <div class="history-section">
+      <button class="history-toggle-btn" (click)="toggleHistory()">
+        <div class="history-toggle-left">
+          <div class="history-icon-wrap">
+            <i class="bi bi-archive"></i>
+          </div>
+          <div>
+            <div class="history-toggle-title">Ticket History</div>
+            <div class="history-toggle-sub">{{ closedTickets().length }} closed ticket{{ closedTickets().length !== 1 ? 's' : '' }} · click to {{ showHistory() ? 'collapse' : 'browse old tickets' }}</div>
+          </div>
+        </div>
+        <i class="bi history-chevron" [class.bi-chevron-down]="!showHistory()" [class.bi-chevron-up]="showHistory()"></i>
+      </button>
+
+      @if (showHistory()) {
+        <div class="history-search-bar">
+          <i class="bi bi-search"></i>
+          <input
+            type="text"
+            class="ee-form-control history-search-input"
+            placeholder="Search closed tickets by subject or customer..."
+            (input)="historySearchQuery.set(histSearch.value)"
+            #histSearch>
+        </div>
+
+        @if (closedTickets().length === 0) {
+          <div class="history-empty">
+            <i class="bi bi-inbox"></i>
+            <span>No closed tickets match your search.</span>
+          </div>
+        } @else {
+          <div class="tickets-grid history-grid">
+            @for (t of closedTickets(); track t.id) {
+              <div class="ticket-card ticket-card-closed" (click)="selectTicket(t)">
+                <div class="ticket-card-header">
+                  <span class="ticket-id">#TKT-{{ t.id.slice(0, 8).toUpperCase() }}</span>
+                  <span class="priority-pill" [class]="priorityClass(t.priority)">{{ t.priority | titlecase }}</span>
+                </div>
+                <div class="ticket-card-body">
+                  <h3 class="ticket-title">{{ t.subject }}</h3>
+                  @if (t.messages && t.messages.length > 0) {
+                    <p class="ticket-message-preview">{{ t.messages[0].content }}</p>
+                  }
+                </div>
+                <div class="ticket-card-meta">
+                  <div class="customer-info-block">
+                    <div class="customer-avatar" [style.background]="t.customerAvatar ? 'transparent' : getCustomerColor(t.customerName)">
+                      @if (t.customerAvatar) {
+                        <img [src]="t.customerAvatar" [alt]="t.customerName" class="cust-avatar-img" />
+                      } @else {
+                        {{ t.customerName?.trim()?.charAt(0)?.toUpperCase() || 'C' }}
+                      }
+                    </div>
+                    <div class="customer-text">
+                      <span class="customer-name">{{ t.customerName }}</span>
+                      <span class="customer-label">Customer</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="ticket-card-footer">
+                  <div class="footer-left">
+                    <span class="meta-detail time">
+                      <i class="bi bi-clock"></i>
+                      <span>{{ t.createdAt | date:'mediumDate' }}</span>
+                    </span>
+                    <span class="meta-detail messages-count">
+                      <i class="bi bi-chat-left-text"></i>
+                      <span>{{ t.messages ? t.messages.length : 0 }}</span>
+                    </span>
+                  </div>
+                  <div class="status-indicator-pill status-closed">
+                    <span class="status-dot"></span>
+                    <span class="status-text">Closed</span>
+                    <i class="bi bi-arrow-right-short footer-arrow"></i>
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      }
+    </div>
+  }
 </div>

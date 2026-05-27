@@ -141,7 +141,7 @@ export class Register {
     }
 
     this.isLoading = true;
-    this.auth.register(this.form.name, this.form.email, this.form.phone, this.form.password, this.role(), this.form.referralCode).subscribe({
+    this.auth.register(this.form.name, this.form.email, this.form.phone, this.form.password, this.role(), this.form.referralCode, this.form.city, this.form.businessName).subscribe({
       next: (result) => {
         this.isLoading = false;
         if (!result.success) {

@@ -1,11 +1,29 @@
 <div class="page-header"><h1>Verification Status</h1><p>Track your vendor verification progress</p></div>
 
+@if (status() === 'action_required') {
+  <div class="alert alert-warning d-flex align-items-center mb-4 p-3 border-start border-warning border-3" style="background: rgba(245, 158, 11, 0.05); border-radius: var(--radius-md);">
+    <i class="bi bi-exclamation-triangle-fill text-warning fs-4 me-3"></i>
+    <div>
+      <h6 class="mb-1 text-warning-dark" style="font-weight: 700; color: #b45309;">Action Required</h6>
+      <p class="mb-0 text-secondary" style="font-size: 0.875rem;">The verification team requested changes: <strong>{{ remarks() }}</strong>. Please upload the requested documents below.</p>
+    </div>
+  </div>
+} @else if (status() === 'rejected') {
+  <div class="alert alert-danger d-flex align-items-center mb-4 p-3 border-start border-danger border-3" style="background: rgba(220, 38, 38, 0.05); border-radius: var(--radius-md);">
+    <i class="bi bi-x-circle-fill text-danger fs-4 me-3"></i>
+    <div>
+      <h6 class="mb-1 text-danger-dark" style="font-weight: 700; color: #b91c1c;">Verification Rejected</h6>
+      <p class="mb-0 text-secondary" style="font-size: 0.875rem;">Your verification was rejected: <strong>{{ remarks() }}</strong>. Please contact support if you believe this is an error.</p>
+    </div>
+  </div>
+}
+
 <div class="row g-4">
   <div class="col-12 col-lg-7">
     <div class="ee-card p-4">
       <h6 class="section-title-sm">Verification Steps</h6>
       <div class="verif-steps">
-        @for (step of steps; track step.label; let i = $index) {
+        @for (step of steps(); track step.label; let i = $index) {
           <div class="verif-step-item">
             <div class="verif-step-left">
               <div class="verif-step-dot" [class.done]="step.status==='done'" [class.active]="step.status==='active'" [class.pending]="step.status==='pending'">
@@ -13,7 +31,7 @@
                 @else if (step.status === 'active') { <span class="dot-pulse"></span> }
                 @else { {{ i + 1 }} }
               </div>
-              @if (i < steps.length - 1) { <div class="verif-step-connector" [class.done]="step.status==='done'"></div> }
+              @if (i < steps().length - 1) { <div class="verif-step-connector" [class.done]="step.status==='done'"></div> }
             </div>
             <div class="verif-step-content" [class.active-content]="step.status==='active'">
               <div class="vsc-icon-wrap" [class.done]="step.status==='done'" [class.active]="step.status==='active'">
@@ -37,7 +55,7 @@
     <div class="ee-card p-4 mb-3">
       <h6 class="section-title-sm">Uploaded Documents</h6>
       <div class="docs-list">
-        @for (doc of docs; track doc.type) {
+        @for (doc of docs(); track $index) {
           <div class="doc-item">
             <div class="doc-icon"><i class="bi bi-file-earmark-pdf"></i></div>
             <div class="flex-1">
@@ -50,7 +68,8 @@
           </div>
         }
       </div>
-      <button class="btn-ee-outline w-100 justify-content-center mt-3"><i class="bi bi-upload me-1"></i>Upload Additional Document</button>
+      <input type="file" #fileInput (change)="onFileSelected($event)" style="display: none;" accept=".pdf,.png,.jpg,.jpeg">
+      <button class="btn-ee-outline w-100 justify-content-center mt-3" (click)="fileInput.click()"><i class="bi bi-upload me-1"></i>Upload Additional Document</button>
     </div>
 
     <div class="help-verif-card">
@@ -61,3 +80,56 @@
     </div>
   </div>
 </div>
+
+@if (showUploadModal()) {
+  <div class="custom-modal-backdrop">
+    <div class="custom-modal-content">
+      <div class="modal-header-ee">
+        <div class="modal-icon"><i class="bi bi-file-earmark-arrow-up"></i></div>
+        <div>
+          <h5 class="modal-title-ee">Upload Document</h5>
+          <p class="modal-subtitle-ee">Please specify the type of document you are uploading</p>
+        </div>
+        <button class="btn-close-ee" (click)="closeUploadModal()"><i class="bi bi-x-lg"></i></button>
+      </div>
+      
+      <div class="modal-body-ee">
+        <label class="form-label-ee">Document Type</label>
+        <div class="doc-options-grid">
+          @for (option of docTypeOptions; track option) {
+            <button 
+              class="doc-option-btn" 
+              [class.selected]="selectedDocType() === option" 
+              (click)="selectedDocType.set(option)">
+              {{ option }}
+            </button>
+          }
+          <button 
+            class="doc-option-btn" 
+            [class.selected]="selectedDocType() === 'Other'" 
+            (click)="selectedDocType.set('Other')">
+            Other...
+          </button>
+        </div>
+        
+        @if (selectedDocType() === 'Other') {
+          <div class="custom-input-wrap mt-3">
+            <input 
+              type="text" 
+              class="form-control-ee" 
+              placeholder="e.g. Pan Card, Electricity Bill" 
+              [value]="customDocType()"
+              (input)="onCustomDocTypeInput($event)">
+          </div>
+        }
+      </div>
+      
+      <div class="modal-footer-ee">
+        <button class="btn-ee-outline px-4" (click)="closeUploadModal()">Cancel</button>
+        <button class="btn-ee-primary px-4" [disabled]="!isValidDocType()" (click)="confirmUpload()">
+          <i class="bi bi-check-circle me-1"></i> Upload
+        </button>
+      </div>
+    </div>
+  </div>
+}
