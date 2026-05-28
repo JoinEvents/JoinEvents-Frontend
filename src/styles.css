@@ -226,11 +226,11 @@ html, * {
 /* Admin Portal: Info color (Sky Blue) */
 .admin-shell,
 .admin-shell * {
-  scrollbar-color: var(--info) transparent;
+  scrollbar-color: var(--primary) transparent;
 }
 .admin-shell::-webkit-scrollbar-thumb,
 .admin-shell *::-webkit-scrollbar-thumb {
-  background: var(--info);
+  background: var(--primary);
 }
 
 /* Vendor Portal: Secondary color (Purple) */

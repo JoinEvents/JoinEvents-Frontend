@@ -28,7 +28,7 @@
           (error)="handleImageFallback($event, 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&q=80&w=2000')">
         <div class="hero-overlay"></div>
         <div class="hero-badges">
-          <span class="tier-badge">{{ selectedPackage()?.tier }}</span>
+          <span class="tier-badge" [style.background]="eventTierService.getGradientForTier(selectedPackage()?.tier)" style="border: none;">{{ selectedPackage()?.tier }}</span>
         </div>
       </div>
       
@@ -76,10 +76,12 @@
           </div>
         </div>
         <div class="stat-chip">
-          <div class="stat-icon tier"><i class="bi bi-gem"></i></div>
+          <div class="stat-icon tier" [style.background]="eventTierService.getGradientForTier(selectedPackage()?.tier)" style="color: white !important;">
+            <i class="bi" [ngClass]="eventTierService.getIconForTier(selectedPackage()?.tier)"></i>
+          </div>
           <div>
             <span class="stat-label">Tier</span>
-            <span class="stat-val">{{ selectedPackage()?.tier || 'Premium' }}</span>
+            <span class="stat-val">{{ selectedPackage()?.tier || 'Silver' }}</span>
           </div>
         </div>
       </div>
@@ -526,7 +528,7 @@
                   <span class="similar-price">₹{{ (pkg.price / 100000).toFixed(1) }}L</span>
                 </div>
                 <div class="similar-info">
-                  <span class="similar-tier">{{ pkg.tier }}</span>
+                  <span class="similar-tier" [style.background]="eventTierService.getGradientForTier(pkg.tier)" style="color: white; padding: 3px 10px; border-radius: 50px; display: inline-block;">{{ pkg.tier }}</span>
                   <h5 class="similar-name">{{ pkg.name }}</h5>
                   <span class="similar-loc"><i class="bi bi-geo-alt"></i> {{ pkg.location }}</span>
                 </div>

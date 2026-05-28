@@ -7,6 +7,7 @@ import { Vendor } from '../../core/models/vendor.model';
 import { EventType } from '../../core/models/event.model';
 import { FavoritesService } from '../../core/services/favorites.service';
 import { CustomerBooking } from '../booking/booking';
+import { EventTierService } from '../../core/services/event-tier.service';
 
 @Component({
   selector: 'app-customer-vendors',
@@ -22,6 +23,7 @@ export class CustomerVendors implements OnInit, OnDestroy {
   private packageService = inject(PackageService);
   private eventCategoryService = inject(EventCategoryService);
   public favoritesService = inject(FavoritesService);
+  public eventTierService = inject(EventTierService);
   private carouselInterval: any;
 
   eventTypeId = signal<string | null>(null);

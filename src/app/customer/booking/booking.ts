@@ -9,6 +9,7 @@ import { ReviewService } from '../../core/services/review.service';
 import { ToastService } from '../../core/services/toast.service';
 import { BookingService } from '../../core/services/booking.service';
 import { Booking } from '../../core/models/booking.model';
+import { EventTierService } from '../../core/services/event-tier.service';
 
 @Component({
   selector: 'app-customer-booking',
@@ -27,6 +28,7 @@ export class CustomerBooking implements OnInit, OnDestroy, OnChanges {
   private reviewService = inject(ReviewService);
   private toast = inject(ToastService);
   private bookingService = inject(BookingService);
+  public eventTierService = inject(EventTierService);
 
   userRole = computed(() => this.auth.currentUser()?.role);
 

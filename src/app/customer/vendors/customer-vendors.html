@@ -93,7 +93,7 @@
             <div class="card-content-v2">
               <div class="pkg-meta">
                 <div class="d-flex align-items-center gap-2">
-                  <span class="pkg-label">{{ pkg.tier | titlecase }}</span>
+                  <span class="pkg-label" [style.background]="eventTierService.getGradientForTier(pkg.tier)" style="color: white; border: none; font-weight: 800;">{{ pkg.tier | titlecase }}</span>
                   @if (pkg.sustainabilityTags && pkg.sustainabilityTags.length) {
                     <span class="ee-badge ee-badge-success" style="padding: 2px 8px; font-size: 0.65rem;" title="{{ pkg.sustainabilityTags.join(', ') }}">🌿 Eco-Verified</span>
                   }

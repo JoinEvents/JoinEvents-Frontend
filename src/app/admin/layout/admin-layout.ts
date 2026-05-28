@@ -94,6 +94,7 @@ export class AdminLayout {
     { path: '/admin/customers',     icon: 'bi-people',         label: 'Customer Directory' },
     { path: '/admin/vendors',       icon: 'bi-patch-check',    label: 'Vendor Verification' },
     { path: '/admin/categories',    icon: 'bi-tag',            label: 'Event Categories' },
+    { path: '/admin/tiers',         icon: 'bi-layers',         label: 'Tier Configuration' },
     { path: '/admin/bookings',      icon: 'bi-journal-check',  label: 'Bookings' },
     { path: '/admin/reviews',      icon: 'bi-exclamation-triangle', label: 'Disputes' },
     { path: '/admin/rfp',           icon: 'bi-megaphone',      label: 'Global RFPs' },

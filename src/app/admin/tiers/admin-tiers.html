@@ -1,0 +1,396 @@
+<div class="page-container">
+
+  <!-- Page Header -->
+  <div class="page-header d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4">
+    <div>
+      <h1>Tier Configuration</h1>
+      <p>Configure pricing tiers and per-service budget thresholds for different event categories</p>
+    </div>
+    <div class="mt-3 mt-md-0">
+      <button class="btn-add" (click)="openAddModal()">
+        <i class="bi bi-plus-lg"></i> Add Pricing Tier
+      </button>
+    </div>
+  </div>
+
+  <!-- Filters & Search Bar -->
+  <div class="filter-bar-container mb-4">
+    <div class="filter-bar-left">
+      <!-- Status Filters -->
+      <button class="filter-chip" [class.active]="statusFilter() === 'all'"
+        (click)="statusFilter.set('all')">All Status</button>
+      <button class="filter-chip chip-success" [class.active]="statusFilter() === 'active'"
+        (click)="statusFilter.set('active')">Active</button>
+      <button class="filter-chip chip-danger" [class.active]="statusFilter() === 'inactive'"
+        (click)="statusFilter.set('inactive')">Inactive</button>
+
+      <!-- Divider -->
+      <div class="filter-divider mx-1 d-none d-sm-block"></div>
+
+      <!-- Category Filter Dropdown -->
+      <select class="form-select filter-select" [value]="categoryFilter()" (change)="categoryFilter.set($any($event.target).value)">
+        <option value="all">All Categories</option>
+        @for (cat of activeCategories(); track cat.id) {
+          <option [value]="cat.id">{{ cat.name }}</option>
+        }
+      </select>
+    </div>
+
+    <!-- Search box -->
+    <div class="search-box admin-search-box px-3 py-1 rounded-pill d-flex align-items-center border shadow-sm admin-search-wrapper">
+      <i class="bi bi-search text-muted"></i>
+      <input type="text" #searchInput [value]="searchQuery()" (input)="searchQuery.set(searchInput.value)"
+        placeholder="Search tiers..." class="form-control border-0 shadow-none bg-transparent ms-2"
+        style="font-size: 0.85rem; box-shadow: none !important; outline: none !important; width: 100%;">
+    </div>
+  </div>
+
+  <!-- Error Banner -->
+  @if (error()) {
+    <div class="error-banner">
+      <i class="bi bi-exclamation-triangle-fill"></i>
+      {{ error() }}
+      <button class="btn-retry" (click)="loadData()">Retry</button>
+    </div>
+  }
+
+  <!-- Loading Skeleton -->
+  @if (isLoading()) {
+    <div class="tiers-grid">
+      @for (s of [1,2,3,4]; track s) {
+        <div class="tier-card skeleton-card">
+          <div class="skeleton-header"></div>
+          <div class="card-body">
+            <div class="skeleton-line w-60 mb-1"></div>
+            <div class="skeleton-line w-40 mb-3"></div>
+            <div class="skeleton-line w-100 mb-1"></div>
+            <div class="skeleton-line w-80"></div>
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- Tiers Grid -->
+  @if (!isLoading()) {
+    <div class="tiers-grid">
+      @for (tier of filteredTiers(); track tier.id) {
+        <div class="tier-card" [class.inactive]="tier.isActive === false">
+          <!-- Gradient Header from parent Category -->
+          <div class="card-gradient-header" [style.background]="tier.gradient || tier.categoryGradient || 'linear-gradient(135deg,#6B7280,#374151)'">
+            <div class="card-icon-wrap">
+              <i class="bi" [ngClass]="tier.icon || 'bi-layers'"></i>
+            </div>
+            
+            <!-- Edit & Delete Hover Actions -->
+            <div class="card-actions">
+              <label class="toggle-switch" title="Toggle Status">
+                <input type="checkbox" [checked]="tier.isActive !== false"
+                  (change)="toggleTierActive(tier, $any($event.target).checked)">
+                <span class="slider"></span>
+              </label>
+              <button class="action-btn edit-btn" (click)="openEditModal(tier)" title="Edit">
+                <i class="bi bi-pencil-fill"></i>
+              </button>
+              <button class="action-btn delete-btn" (click)="deleteTier(tier)" title="Delete">
+                <i class="bi bi-trash-fill"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="card-body">
+            <!-- Tier Name -->
+            <div class="cat-name">{{ tier.name }}</div>
+
+            <!-- Associated Category Badge -->
+            <div class="cat-key-row">
+              <span class="cat-key-badge">
+                <i class="bi bi-tag-fill"></i> {{ tier.categoryName }}
+              </span>
+            </div>
+
+            <!-- Description -->
+            <p class="cat-desc">{{ tier.description || 'No description provided.' }}</p>
+
+            <!-- Price ranges summary -->
+            <div class="price-ranges-summary mt-3">
+              <div class="summary-title mb-2">Price Rules ({{ tier.priceRanges.length }})</div>
+              
+              @if (tier.priceRanges.length === 0) {
+                <div class="text-muted text-center py-2" style="font-size: 0.78rem;">No price limits configured</div>
+              } @else {
+                <div class="summary-chips-container">
+                  @for (pr of tier.priceRanges; track pr.serviceName) {
+                    <div class="price-summary-chip">
+                      <span class="service-title">{{ pr.serviceName }}:</span>
+                      <span class="price-value">₹{{ pr.minPrice | number }} - ₹{{ pr.maxPrice | number }}</span>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- Empty States -->
+      @if (tiers().length === 0) {
+        <div class="empty-state">
+          <i class="bi bi-layers-fill"></i>
+          <h5>No pricing tiers yet</h5>
+          <p>Create your first tier configuration to define budget thresholds</p>
+          <button class="btn-add" (click)="openAddModal()">
+            <i class="bi bi-plus-lg"></i> Add Pricing Tier
+          </button>
+        </div>
+      } @else if (filteredTiers().length === 0) {
+        <div class="empty-state">
+          <i class="bi bi-search"></i>
+          <h5>No matching tiers</h5>
+          <p>Try adjusting your search query, status, or category filter.</p>
+        </div>
+      }
+    </div>
+  }
+</div>
+
+<!-- ── Modal Create/Edit ────────────────────────────────────────────────── -->
+@if (isModalOpen()) {
+  <div class="modal-overlay">
+    <div class="modal-panel">
+
+      <!-- Modal Header -->
+      <div class="modal-head">
+        <div class="modal-head-left">
+          <div class="modal-icon-ring">
+            <i class="bi bi-layers-fill"></i>
+          </div>
+          <div>
+            <h5 class="modal-title">{{ editing() ? 'Edit Tier' : 'New Pricing Tier' }}</h5>
+            <p class="modal-sub">{{ editing() ? 'Update this pricing tier configuration' : 'Create a new tier with custom service thresholds' }}</p>
+          </div>
+        </div>
+        <button class="btn-close-modal" (click)="closeModal()">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="modal-body-scroll">
+        <form #tierForm="ngForm">
+
+          <!-- Row 1: Name and Category Selection -->
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-lbl">Tier Name <span class="req">*</span></label>
+              <select class="form-inp" [(ngModel)]="formData.name" name="name"
+                (change)="onTierNameChange(formData.name)" required>
+                <option value="" disabled selected>Select Tier Name</option>
+                <option value="Silver">Silver</option>
+                <option value="Gold">Gold</option>
+                <option value="Platinum">Platinum</option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label class="form-lbl">Event Category <span class="req">*</span></label>
+              <select class="form-inp" [(ngModel)]="formData.categoryId" name="categoryId"
+                (change)="onCategoryChange(formData.categoryId)" required>
+                <option value="" disabled selected>Select Category</option>
+                @for (cat of activeCategories(); track cat.id) {
+                  <option [value]="cat.id">{{ cat.name }}</option>
+                }
+              </select>
+            </div>
+          </div>
+
+          <!-- Row 2: Configurable Icon Class & Card Gradient (Identical to Categories configuration) -->
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-lbl">Icon Class <span class="req">*</span></label>
+              <div class="icon-input-wrap">
+                <div class="icon-preview-mini" [style.background]="formData.gradient">
+                  <i class="bi {{ formData.icon }}"></i>
+                </div>
+                <input type="text" class="form-inp icon-inp" [(ngModel)]="formData.icon" name="icon"
+                  placeholder="bi-layers" required>
+              </div>
+              <span class="form-hint">
+                Bootstrap icon class.
+                <a href="https://icons.getbootstrap.com" target="_blank" rel="noopener">Browse icons →</a>
+              </span>
+            </div>
+            
+            <div class="form-group">
+              <label class="form-lbl">Card Gradient</label>
+              <div class="icon-input-wrap">
+                <div class="icon-preview-mini" [style.background]="formData.gradient"></div>
+                <input type="text" class="form-inp" [(ngModel)]="formData.gradient" name="gradient"
+                  placeholder="linear-gradient(135deg,#6B7280,#374151)">
+              </div>
+              <span class="form-hint">Choose a preset below</span>
+            </div>
+          </div>
+
+          <!-- Gradient Presets -->
+          <div class="form-group full mb-3">
+            <div class="gradient-presets-grid">
+              @for (p of gradientPresets; track p.name) {
+              <div class="gradient-swatch" [class.active]="isPresetActive(p)" [style.background]="p.gradient"
+                (click)="applyPreset(p)" [title]="p.name">
+                @if (isPresetActive(p)) {
+                <i class="bi bi-check swatch-check"></i>
+                }
+              </div>
+              }
+            </div>
+
+            <div class="direction-selector">
+              <span class="form-lbl"
+                style="font-size: 0.75rem; margin-right: 0.5rem; align-self: center;">Direction:</span>
+              @for (d of directions; track d.value) {
+              <button type="button" class="dir-btn" [class.active]="pickerDirection === d.value"
+                (click)="changeDirection(d.value)" [title]="d.value">
+                {{ d.label }}
+              </button>
+              }
+            </div>
+
+            <!-- Custom Gradient Builder Widget -->
+            <div class="custom-gradient-builder mt-3" style="display: flex; align-items: center; gap: 1rem; padding: 0.75rem; background: var(--surface, #f8fafc); border: 1px solid var(--border-color, #e2e8f0); border-radius: 0.75rem; flex-wrap: wrap;">
+              <span class="form-lbl" style="font-size: 0.75rem; margin: 0; font-weight: 700;">Custom Colors:</span>
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <span class="form-hint" style="margin: 0; font-size: 0.7rem;">Color 1:</span>
+                <div class="color-swatch-input" [style.background]="pickerColor1" style="width: 32px; height: 32px; border-radius: 0.5rem; position: relative; border: 1.5px solid rgba(0,0,0,0.15); cursor: pointer;">
+                  <input type="color" [(ngModel)]="pickerColor1" name="pickerColor1" (change)="buildGradient()" style="position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; border: none; padding: 0;">
+                </div>
+                <span style="font-size: 0.72rem; font-family: monospace; font-weight: 600;">{{ pickerColor1 }}</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <span class="form-hint" style="margin: 0; font-size: 0.7rem;">Color 2:</span>
+                <div class="color-swatch-input" [style.background]="pickerColor2" style="width: 32px; height: 32px; border-radius: 0.5rem; position: relative; border: 1.5px solid rgba(0,0,0,0.15); cursor: pointer;">
+                  <input type="color" [(ngModel)]="pickerColor2" name="pickerColor2" (change)="buildGradient()" style="position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; border: none; padding: 0;">
+                </div>
+                <span style="font-size: 0.72rem; font-family: monospace; font-weight: 600;">{{ pickerColor2 }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Description -->
+          <div class="form-group full mb-3">
+            <label class="form-lbl">Description</label>
+            <textarea class="form-inp" rows="2" [(ngModel)]="formData.description" name="description"
+              placeholder="Briefly describe what this tier is for..."></textarea>
+          </div>
+
+          <!-- Dynamic Price Range Rows Section -->
+          <div class="price-rules-editor mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <label class="form-lbl m-0">
+                Service Price Ranges 
+                <span class="form-hint">(Define bounds for each service under this Category)</span>
+              </label>
+              <button type="button" class="btn-add-row btn-sm" (click)="addPriceRangeRow()">
+                <i class="bi bi-plus-lg"></i> Add Service Row
+              </button>
+            </div>
+
+            <!-- Quick Add Suggestion Badges from Category's popularServices -->
+            @if (formData.categoryId && getSelectedCategoryPopularServices().length > 0) {
+              <div class="quick-suggestions mb-3">
+                <span class="suggestion-label text-muted">Quick Add:</span>
+                <div class="suggestion-badges mt-1">
+                  @for (s of getSelectedCategoryPopularServices(); track s) {
+                    <button type="button" class="badge-suggestion-btn" (click)="quickAddService(s)">
+                      + {{ s }}
+                    </button>
+                  }
+                </div>
+              </div>
+            }
+
+            <!-- Price Rows Table List -->
+            @if (formData.priceRanges.length === 0) {
+              <div class="no-rows-placeholder p-4 text-center text-muted rounded">
+                <i class="bi bi-table d-block fs-3 mb-2"></i>
+                <p class="m-0" style="font-size: 0.82rem;">No price limits defined. Add a row to get started.</p>
+              </div>
+            } @else {
+              <div class="price-rows-container">
+                @for (pr of formData.priceRanges; track $index) {
+                  <div class="price-row-item d-flex align-items-center gap-2 mb-2">
+                    
+                    <!-- Service Input / Autocomplete -->
+                    <div style="flex: 2;">
+                      <input type="text" class="form-inp" [(ngModel)]="pr.serviceName" 
+                        name="serviceName_{{$index}}" placeholder="e.g. Venue, Catering" required>
+                    </div>
+
+                    <!-- Min Price Input -->
+                    <div style="flex: 1.5;">
+                      <div class="price-input-wrapper">
+                        <span class="currency-symbol">₹</span>
+                        <input type="number" class="form-inp ps-4" [(ngModel)]="pr.minPrice" 
+                          name="minPrice_{{$index}}" min="0" placeholder="Min" required>
+                      </div>
+                    </div>
+
+                    <!-- Max Price Input -->
+                    <div style="flex: 1.5;">
+                      <div class="price-input-wrapper">
+                        <span class="currency-symbol">₹</span>
+                        <input type="number" class="form-inp ps-4" [(ngModel)]="pr.maxPrice" 
+                          name="maxPrice_{{$index}}" min="0" placeholder="Max" required>
+                      </div>
+                    </div>
+
+                    <!-- Delete Row Button -->
+                    <button type="button" class="btn-delete-row" (click)="removePriceRangeRow($index)">
+                      <i class="bi bi-x-circle-fill"></i>
+                    </button>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+
+          <!-- Active Toggle -->
+          <div class="form-group full mb-3"
+            style="flex-direction: row; align-items: center; justify-content: space-between; padding: 1rem; background: var(--surface, #f8fafc); border-radius: 0.75rem; border: 1px solid var(--border-color, #e2e8f0);">
+            <div style="display: flex; flex-direction: column;">
+              <label class="form-lbl" style="margin-bottom: 0.2rem;">Status: {{ formData.isActive ? 'Active' : 'Inactive' }}</label>
+              <span class="form-hint" style="margin: 0;">Set whether this tier configuration is enabled.</span>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" [(ngModel)]="formData.isActive" name="isActive">
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <!-- Save Error inside modal -->
+          @if (error() && isModalOpen()) {
+            <div class="modal-error">
+              <i class="bi bi-exclamation-circle-fill"></i> {{ error() }}
+            </div>
+          }
+
+        </form>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="modal-footer">
+        <button class="btn-cancel" type="button" (click)="closeModal()">Cancel</button>
+        <button class="btn-save" type="button" (click)="saveTier()"
+          [disabled]="!tierForm.form.valid || isSubmitting()">
+          @if (isSubmitting()) {
+            <span class="spinner"></span> Saving…
+          } @else {
+            <i class="bi" [class.bi-check2-circle]="editing()" [class.bi-plus-circle-fill]="!editing()"></i>
+            {{ editing() ? 'Save Changes' : 'Create Tier' }}
+          }
+        </button>
+      </div>
+
+    </div>
+  </div>
+}

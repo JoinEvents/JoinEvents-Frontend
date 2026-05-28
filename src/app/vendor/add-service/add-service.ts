@@ -126,12 +126,9 @@ export class VendorAddService implements OnInit, OnDestroy {
   availableInclusions = signal<string[]>([]);
 
   availableThemes = [
-    'Standard',
-    'Premium',
-    'Luxury',
-    'Elite',
-    'Budget',
-    'Custom'
+    'Silver',
+    'Gold',
+    'Platinum'
   ];
 
   ngOnInit() {
