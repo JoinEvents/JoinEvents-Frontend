@@ -357,6 +357,13 @@
   scrollbar-width: none;
   -ms-overflow-style: none;
   scroll-snap-type: x mandatory;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.categories-circles-grid:active {
+  cursor: grabbing;
 }
 
 .categories-circles-grid::-webkit-scrollbar {
@@ -422,236 +429,202 @@
 
 
 /* ==========================================================================
-   PACKAGE CARDS — Premium Event Cards
+   PACKAGE CARDS — Exact Vendor Page Card Design (package-card-v2)
    ========================================================================== */
 .dashboard-listing-section {
   position: relative;
 }
 
-.premium-package-card {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  overflow: hidden;
-  border: 1px solid var(--border-color);
+/* Ultra-Clean Package Card */
+.package-card-v2 {
   background: var(--bg-card);
-  border-radius: var(--radius-lg);
-  box-shadow: none;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 32px;
+  overflow: visible;
+  transition: all 0.5s cubic-bezier(0.19, 1, 0.22, 1);
+  height: 100%;
+  border: 1px solid transparent;
 }
 
-.premium-package-card:hover {
-  transform: translateY(-6px);
-  box-shadow: var(--shadow-lg);
-  border-color: rgba(255,107,53,0.15);
+.package-card-v2:hover {
+  transform: translateY(-10px);
+  border-color: var(--border-color);
+  box-shadow: 0 30px 60px rgba(0,0,0,0.08);
 }
 
-.card-image-wrapper {
+.card-img-wrap {
   position: relative;
-  width: 100%;
-  aspect-ratio: 16 / 10;
+  height: 280px;
+  margin: 12px;
+  border-radius: 24px;
   overflow: hidden;
-  background: var(--bg-light);
 }
 
 .card-img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 1s cubic-bezier(0.19, 1, 0.22, 1);
 }
 
-.premium-package-card:hover .card-img {
-  transform: scale(1.06);
-}
+.package-card-v2:hover .card-img { transform: scale(1.1); }
 
-/* Badges Wrapper */
-.card-badges-wrapper {
+.price-badge-v2 {
   position: absolute;
-  top: 12px;
-  left: 12px;
-  display: flex;
-  gap: 6px;
-  z-index: 5;
+  top: 20px;
+  left: 20px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  padding: 10px 20px;
+  border-radius: 50px;
+  font-weight: 900;
+  font-size: 1.1rem;
+  color: var(--navy);
+  box-shadow: 0 10px 20px rgba(0,0,0,0.1);
 }
 
-.tier-tag {
-  padding: 3px 10px;
-  border-radius: 6px;
-  font-size: 0.62rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
-  color: white;
-}
-
-.event-type-badge {
-  padding: 3px 10px;
-  border-radius: 6px;
-  font-size: 0.62rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
-}
-
-.tier-tag.elite {
-  background: linear-gradient(135deg, #1E293B, #334155);
-  border: 1px solid rgba(255,255,255,0.12);
-}
-.tier-tag.premium {
-  background: var(--gradient-primary);
-}
-.tier-tag.standard {
-  background: var(--gradient-secondary);
-}
-
-/* Favorite Button */
-.favorite-btn {
+.fav-btn {
   position: absolute;
-  top: 12px;
-  right: 12px;
-  width: 34px;
-  height: 34px;
+  top: 20px;
+  right: 20px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
-  background: rgba(255,255,255,0.2);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255,255,255,0.25);
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
-  font-size: 1rem;
+  font-size: 1.25rem;
+  transition: all 0.3s;
   cursor: pointer;
-  transition: all 0.25s ease;
-  z-index: 10;
 }
 
-.favorite-btn:hover {
-  transform: scale(1.12);
+.fav-btn:hover, .fav-btn.active {
   background: white;
-  color: var(--danger);
-  border-color: white;
+  color: #ef4444;
 }
 
-.favorite-btn.is-favorite {
-  color: var(--danger);
-  background: white;
-  border-color: white;
+.card-content-v2 {
+  padding: 15px 25px 25px;
 }
 
-/* Rating Badge */
-.rating-badge-floating {
-  position: absolute;
-  bottom: 10px;
-  right: 10px;
-  background: rgba(15, 23, 42, 0.8);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  color: white;
-  padding: 3px 9px;
-  border-radius: 6px;
-  font-size: 0.72rem;
-  font-weight: 700;
+.pkg-meta {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 4px;
-  z-index: 5;
-  border: 1px solid rgba(255,255,255,0.1);
+  margin-bottom: 12px;
 }
 
-/* Image Carousel Dots */
-.card-carousel-dots {
-  position: absolute;
-  bottom: 10px;
-  left: 12px;
-  display: flex;
-  gap: 4px;
-  z-index: 5;
+.pkg-label {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--primary);
+  background: rgba(var(--primary-ee-rgb), 0.08);
+  padding: 4px 12px;
+  border-radius: 50px;
 }
 
-.card-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: rgba(255,255,255,0.45);
-  transition: all 0.3s ease;
-}
-
-.card-dot.active {
-  background: white;
-  width: 14px;
-  border-radius: 3px;
-}
-
-/* Card Info Area */
-.card-info-wrap {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  padding: 16px 18px 18px;
-}
-
-.package-name {
-  font-family: var(--font-heading);
+.pkg-rating {
+  font-size: 0.85rem;
   font-weight: 700;
-  font-size: 0.95rem;
   color: var(--text-main);
-  line-height: 1.3;
-}
-
-.vendor-name-row {
   display: flex;
   align-items: center;
+  gap: 4px;
 }
 
-.package-location {
+.pkg-rating i { color: #F59E0B; }
+
+.pkg-title-v2 {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--text-main);
+  margin-bottom: 8px;
+  letter-spacing: -0.5px;
+}
+
+.pkg-loc-v2 {
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  margin-bottom: 20px;
   display: flex;
   align-items: center;
-}
-
-.package-features-row {
-  display: flex;
-  flex-wrap: wrap;
   gap: 6px;
 }
 
-.feature-tag {
-  background: var(--bg-light);
-  color: var(--text-muted);
-  font-size: 0.68rem;
+/* Service Pills */
+.service-pill {
+  padding: 4px 12px;
+  font-size: 0.72rem;
   font-weight: 600;
-  padding: 3px 8px;
-  border-radius: 6px;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
+  background: rgba(0,0,0,0.03);
+  color: var(--text-muted);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  transition: all 0.2s ease;
 }
 
-.feature-tag.veg-only {
-  background: rgba(22,163,74,0.07);
-  color: var(--success);
+.service-pill:hover {
+  background: rgba(var(--primary-ee-rgb), 0.03);
+  border-color: var(--primary);
+  transform: translateY(-1px);
 }
 
-.feature-tag.non-veg {
-  background: rgba(220,38,38,0.05);
-  color: var(--danger);
+.service-pill.more-pill {
+  background: rgba(255,107,53,0.1);
+  color: var(--primary);
+  border-color: rgba(255,107,53,0.2);
+  cursor: help;
 }
 
-/* Card Footer — Price & CTA */
-.card-footer-row {
+/* Features Row */
+.pkg-features {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 0;
+  padding: 15px 0 0;
   border-top: 1px solid var(--border-color);
-  margin-top: auto;
 }
 
-.price-amount {
-  font-family: var(--font-heading);
-  font-weight: 800;
-  font-size: 1.15rem;
+.feat-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-muted);
 }
 
-.leading-tight {
-  line-height: 1.2;
+.feat-item i {
+  font-size: 1.1rem;
+  color: var(--primary);
+}
+
+/* Carousel Dots Overlay */
+.carousel-indicators-mini {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  display: flex;
+  gap: 6px;
+  z-index: 10;
+}
+
+.dot-mini {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.4);
+  transition: all 0.3s ease;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
+.dot-mini.active {
+  background: white;
+  width: 16px;
+  border-radius: 4px;
 }
 
 /* View All / Explore Link */
@@ -693,6 +666,38 @@
   background: var(--bg-light);
   color: var(--primary);
   border-color: var(--primary-light);
+}
+
+.leading-tight {
+  line-height: 1.2;
+}
+
+/* Responsive Adjustments for vendor-style cards */
+@media (max-width: 576px) {
+  .card-content-v2 {
+    padding: 12px 16px 16px;
+  }
+  .pkg-title-v2 {
+    font-size: 1.25rem;
+  }
+  .price-badge-v2 {
+    top: 15px;
+    left: 15px;
+    padding: 8px 16px;
+    font-size: 1rem;
+  }
+  .fav-btn {
+    top: 15px;
+    right: 15px;
+    width: 40px;
+    height: 40px;
+    font-size: 1.1rem;
+  }
+  .card-img-wrap {
+    height: 220px;
+    margin: 8px;
+    border-radius: 20px;
+  }
 }
 
 

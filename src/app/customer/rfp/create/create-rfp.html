@@ -1,0 +1,351 @@
+<!-- Post Quote Request Wizard (Dedicated Full-Page) -->
+<div class="full-page-wizard">
+  <!-- Wizard Header Nav -->
+  <div class="wizard-top-nav">
+    <button class="btn-back-board" (click)="cancel()" title="Back to Quote board">
+      <i class="bi bi-arrow-left"></i>
+    </button>
+    <div class="wizard-header-title">
+      <h2>{{ isEditMode() ? 'Edit Quote Request' : 'Create a Quote Request' }}</h2>
+      <p>Step {{ activeStep() }} of 3 — {{ activeStep() === 1 ? 'Event Basics' : activeStep() === 2 ? 'Select Services' : 'Budget & Submit' }}</p>
+    </div>
+  </div>
+
+  <!-- Split Layout Grid -->
+  <div class="wizard-split-container">
+    
+    <!-- Left Panel: Forms & Stepper -->
+    <div class="wizard-left-panel">
+      <!-- Stepper -->
+      <div class="wizard-stepper">
+        <div class="wizard-step" [class.active]="activeStep() === 1" [class.completed]="activeStep() > 1">
+          <div class="wizard-step-circle">
+            @if (activeStep() > 1) { <i class="bi bi-check-lg"></i> } @else { 1 }
+          </div>
+          <span class="wizard-step-label">Event Basics</span>
+        </div>
+        <div class="wizard-step" [class.active]="activeStep() === 2" [class.completed]="activeStep() > 2">
+          <div class="wizard-step-circle">
+            @if (activeStep() > 2) { <i class="bi bi-check-lg"></i> } @else { 2 }
+          </div>
+          <span class="wizard-step-label">Select Services</span>
+        </div>
+        <div class="wizard-step" [class.active]="activeStep() === 3">
+          <div class="wizard-step-circle">3</div>
+          <span class="wizard-step-label">Budget & Submit</span>
+        </div>
+      </div>
+
+      <!-- Step 1: Event Basics -->
+      @if (activeStep() === 1) {
+        <div class="form-grid">
+          <!-- Title -->
+          <div class="form-group col-full">
+            <label class="form-label">Request Title / Event Name <span class="required">*</span></label>
+            <input type="text" class="form-input" [(ngModel)]="form.title"
+              placeholder="e.g. Wedding Reception in Hyderabad — 400+ Guests">
+          </div>
+
+          <!-- Event Type -->
+          <div class="form-group">
+            <label class="form-label">Event Type <span class="required">*</span></label>
+            <select class="form-input" [(ngModel)]="form.eventTypeId" (change)="onEventTypeChange()">
+              <option value="">Select event type</option>
+              @for (et of eventTypes(); track et.id) {
+                <option [value]="et.id">{{ et.name }}</option>
+              }
+            </select>
+          </div>
+
+          <!-- Event Date -->
+          <div class="form-group">
+            <label class="form-label">Event Date <span class="required">*</span></label>
+            <input type="date" class="form-input" [(ngModel)]="form.eventDate" [min]="minDate">
+          </div>
+
+          <!-- City -->
+          <div class="form-group">
+            <label class="form-label">City <span class="required">*</span></label>
+            <select class="form-input" [(ngModel)]="form.city">
+              <option value="">Select city</option>
+              @for (city of cities(); track city.id) {
+                <option [value]="city.name">{{ city.name }}</option>
+              }
+            </select>
+          </div>
+
+          <!-- Venue Status Toggle -->
+          <div class="form-group col-full">
+            <label class="form-label mb-2 d-block">Venue Booking Status <span class="required">*</span></label>
+            <div class="d-flex gap-4 mt-1">
+              <label class="d-flex align-items-center gap-2 cursor-pointer" style="font-weight: 500; font-size: 0.9rem;">
+                <input type="radio" name="venueStatus" value="not_booked" [(ngModel)]="form.venueStatus">
+                <span>Venue Not Decided Yet</span>
+              </label>
+              <label class="d-flex align-items-center gap-2 cursor-pointer" style="font-weight: 500; font-size: 0.9rem;">
+                <input type="radio" name="venueStatus" value="booked" [(ngModel)]="form.venueStatus">
+                <span>Venue Already Booked</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Conditional: Preferred Locality -->
+          @if (form.venueStatus === 'not_booked') {
+            <div class="form-group">
+              <label class="form-label">Preferred Locality / Area <span class="required">*</span></label>
+              <input type="text" class="form-input" [(ngModel)]="form.locality"
+                placeholder="e.g. Madhapur, Gachibowli">
+            </div>
+          }
+
+          <!-- Conditional: Venue Name / Landmark -->
+          @if (form.venueStatus === 'booked') {
+            <div class="form-group">
+              <label class="form-label">Venue Name / Landmark <span class="required">*</span></label>
+              <input type="text" class="form-input" [(ngModel)]="form.venueName"
+                placeholder="e.g. Taj Krishna, Shilparamam">
+            </div>
+          }
+
+          <!-- Pincode -->
+          <div class="form-group">
+            <label class="form-label">Pincode / ZIP Code</label>
+            <input type="text" class="form-input" [(ngModel)]="form.pincode" maxlength="6"
+              placeholder="e.g. 500081">
+          </div>
+
+          <!-- Guest Count -->
+          <div class="form-group col-full">
+            <label class="form-label">Expected Guests: {{ form.guestCount }}</label>
+            <input type="range" class="form-range" [(ngModel)]="form.guestCount" min="10" max="2000" step="10">
+          </div>
+        </div>
+        
+        <div class="form-actions">
+          <button class="btn-cancel" (click)="cancel()">Cancel</button>
+          <button class="btn-submit" (click)="nextStep()">
+            Next: Choose Services <i class="bi bi-arrow-right ms-1"></i>
+          </button>
+        </div>
+      }
+
+      <!-- Step 2: Choose Services -->
+      @if (activeStep() === 2) {
+        <div>
+          <!-- Service Tier Selector -->
+          <div class="mb-4">
+            <label class="form-label mb-2 d-block">Preferred Quality Tier</label>
+            <p class="form-hint mb-3" style="font-size: 0.8rem; margin-top: -4px; color: var(--text-soft);">Choose the quality tier that fits your expectations and budget</p>
+            
+            @if (filteredTiers().length === 0) {
+              <div class="alert alert-info py-2 px-3 rounded-3" style="font-size: 0.85rem;">
+                <i class="bi bi-info-circle me-1"></i> No pricing tiers configured for the selected event category. Using fallback estimates.
+              </div>
+            } @else {
+              <div class="tier-radio-grid mb-4">
+                @for (t of filteredTiers(); track t.id) {
+                  <label class="tier-radio-card" [class.selected]="selectedTierName() === t.name" (click)="onTierChange(t.name)">
+                    <div class="tier-card-header" [style.background]="t.gradient || 'linear-gradient(135deg,#6B7280,#374151)'" style="padding: 10px; color: white; display: flex; align-items: center; gap: 8px;">
+                      <i class="bi" [class]="t.icon || 'bi-layers'"></i>
+                      <span class="fw-bold" style="font-size: 0.85rem;">{{ t.name }}</span>
+                    </div>
+                    <div style="padding: 12px; font-size: 0.75rem; color: var(--text-soft); flex: 1;">
+                      {{ t.description || 'Standard quality & pricing.' }}
+                    </div>
+                  </label>
+                }
+              </div>
+            }
+          </div>
+
+          <label class="form-label mb-3 d-block">Select Services Required</label>
+          <div class="services-grid">
+            @for (cat of categories(); track cat.id) {
+              <div class="service-tile" [class.added]="isAdded(cat.id)" 
+                (click)="isAdded(cat.id) ? removeService(cat.id) : addService(cat)">
+                <div class="service-tile-icon" 
+                  [style.color]="isAdded(cat.id) ? 'white' : 'var(--primary)'"
+                  [style.background]="isAdded(cat.id) ? 'var(--gradient-primary)' : 'rgba(255,107,53,0.08)'">
+                  <i class="bi {{ cat.icon }}"></i>
+                </div>
+                <div class="service-tile-name">{{ cat.name }}</div>
+                <div class="service-tile-action">
+                  @if (isAdded(cat.id)) { <i class="bi bi-check-circle-fill text-success"></i> }
+                  @else { <i class="bi bi-plus-circle"></i> }
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button class="btn-cancel" (click)="prevStep()"><i class="bi bi-arrow-left me-1"></i> Back</button>
+          <button class="btn-submit" (click)="nextStep()" [disabled]="selectedServices().length === 0">
+            Next: Budget & Details <i class="bi bi-arrow-right ms-1"></i>
+          </button>
+        </div>
+      }
+
+      <!-- Step 3: Detailed Budget & Submit -->
+      @if (activeStep() === 3) {
+        <div class="form-grid">
+          <!-- Budget Range -->
+          <div class="form-group">
+            <label class="form-label">Minimum Target Budget (₹) <span class="required">*</span></label>
+            <input type="number" class="form-input" [(ngModel)]="form.budgetMin" step="5000">
+            <span style="font-size: 0.72rem; color: var(--text-soft);">Adjust based on estimator suggestion.</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Maximum Limit Budget (₹) <span class="required">*</span></label>
+            <input type="number" class="form-input" [(ngModel)]="form.budgetMax" step="5000">
+            <span style="font-size: 0.72rem; color: var(--text-soft);">Maximum budget limit for this event.</span>
+          </div>
+
+          <!-- Requirements -->
+          <div class="form-group col-full">
+            <label class="form-label">Detailed Requirements & Special Notes</label>
+            <textarea class="form-input" rows="5" [(ngModel)]="form.requirements"
+              placeholder="Describe your vision, specific theme preferences, must-haves, event schedule, and any vendor constraints..."></textarea>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button class="btn-cancel" (click)="prevStep()"><i class="bi bi-arrow-left me-1"></i> Back</button>
+          <button class="btn-submit" (click)="submitRfp()" [disabled]="submitting()">
+            @if (submitting()) {
+              <span class="spinner"></span> Publishing...
+            } @else {
+              <i class="bi bi-send-fill me-1"></i> {{ isEditMode() ? 'Update Quote Request' : 'Publish Quote Request' }}
+            }
+          </button>
+        </div>
+      }
+    </div>
+
+    <!-- Right Panel: Real-time cost estimator and request preview -->
+    <div class="wizard-right-panel">
+      
+      <!-- Step 1 Guidance -->
+      @if (activeStep() === 1) {
+        <div class="guidance-card">
+          <div class="guidance-icon"><i class="bi bi-info-circle-fill"></i></div>
+          <h5>Planning Your Event Basics</h5>
+          <p>Providing the correct date and location ensures you get quotes from vendors who are available in your area on your special day.</p>
+          <hr class="my-3" style="border-color: var(--border-color); opacity: 0.5;">
+          <div class="guidance-tip">
+            <i class="bi bi-lightbulb text-warning me-2"></i>
+            <span>Guest counts can be approximate. Most catering and venue quotes are calculated per head.</span>
+          </div>
+        </div>
+      }
+
+      <!-- Step 2 Cost Estimator Summary -->
+      @if (activeStep() === 2) {
+        <div class="estimator-summary-card" style="margin-top: 0;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+            <h6 style="margin: 0;">Estimated Cost Summary</h6>
+            @if (selectedTierName()) {
+              <span class="badge" [style.background]="selectedTierObject()?.gradient || 'var(--primary)'" style="font-size: 0.7rem; padding: 4px 10px; border-radius: 50px; color: white; font-weight: 700; text-transform: uppercase;">
+                {{ selectedTierName() }}
+              </span>
+            }
+          </div>
+          @if (selectedServices().length === 0) {
+            <div class="text-center py-4 text-muted">
+              <i class="bi bi-calculator fs-2 mb-2 d-block opacity-50"></i>
+              <span>Add services to see cost estimate</span>
+            </div>
+          } @else {
+            <div style="display: flex; flex-direction: column; gap: 8px; max-height: 220px; overflow-y: auto; padding-right: 4px; margin-bottom: 12px;">
+              @for (svc of selectedServices(); track svc.category) {
+                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; background: var(--bg-light); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color);">
+                  <span>{{ svc.name }}</span>
+                  <span class="fw-bold">₹{{ getServicePriceRange(svc.category).min.toLocaleString('en-IN') }} - ₹{{ getServicePriceRange(svc.category).max.toLocaleString('en-IN') }}</span>
+                </div>
+              }
+            </div>
+            
+            <div class="estimator-row">
+              <span>Sub Total</span>
+              <span>₹{{ getTotal().toLocaleString('en-IN') }}</span>
+            </div>
+            <div class="estimator-row">
+              <span>GST (18%)</span>
+              <span>₹{{ getGst().toLocaleString('en-IN') }}</span>
+            </div>
+            <div class="estimator-row total">
+              <span>Estimated Range</span>
+              <span class="text-primary fw-bold">₹{{ getMinEstimate().toLocaleString('en-IN') }} - ₹{{ getMaxEstimate().toLocaleString('en-IN') }}</span>
+            </div>
+          }
+        </div>
+      }
+
+      <!-- Step 3 Summary Preview -->
+      @if (activeStep() === 3) {
+        <div class="summary-preview-card">
+          <h5>Request Summary Preview</h5>
+          <div class="preview-list">
+            <div class="preview-item">
+              <span class="label">Event Name:</span>
+              <span class="value">{{ form.title || 'Untitled Event' }}</span>
+            </div>
+            <div class="preview-item">
+              <span class="label">Event Type:</span>
+              <span class="value">{{ form.eventTypeName || 'Not Selected' }}</span>
+            </div>
+            <div class="preview-item">
+              <span class="label">Event Date:</span>
+              <span class="value">{{ form.eventDate || 'TBD' }}</span>
+            </div>
+            <div class="preview-item">
+              <span class="label">City / Location:</span>
+              <span class="value">
+                {{ form.city || 'TBD' }}
+                @if (form.venueStatus === 'booked' && form.venueName) {
+                  — {{ form.venueName }}
+                } @else if (form.venueStatus === 'not_booked' && form.locality) {
+                  — {{ form.locality }} (Preferred Area)
+                }
+                @if (form.pincode) {
+                  ({{ form.pincode }})
+                }
+              </span>
+            </div>
+            <div class="preview-item">
+              <span class="label">Expected Guests:</span>
+              <span class="value">{{ form.guestCount }} guests</span>
+            </div>
+            <div class="preview-item">
+              <span class="label">Quality Tier:</span>
+              <span class="value">
+                @if (selectedTierName()) {
+                  <span style="display: inline-flex; align-items: center; gap: 6px; font-weight: 700;">
+                    <i class="bi" [class]="selectedTierObject()?.icon || 'bi-gem'"></i>
+                    {{ selectedTierName() }}
+                  </span>
+                } @else {
+                  Standard
+                }
+              </span>
+            </div>
+            <div class="preview-item flex-column align-items-start gap-2">
+              <span class="label">Services Requested:</span>
+              <div class="preview-tags">
+                @for (svc of selectedServices(); track svc.category) {
+                  <span class="svc-tag">{{ svc.name }}</span>
+                }
+              </div>
+            </div>
+            <div class="preview-item total mt-3 pt-3 border-top">
+              <span class="label">Calculated Estimate Range:</span>
+              <span class="value text-primary fw-bold">₹{{ (form.budgetMin || 0).toLocaleString('en-IN') }} - ₹{{ (form.budgetMax || 0).toLocaleString('en-IN') }}</span>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+
+  </div>
+</div>

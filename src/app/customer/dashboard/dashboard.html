@@ -153,70 +153,56 @@
           <div class="row g-3">
             @for (p of trendingPackages(); track p.id) {
               <div class="col-12 col-md-6">
-                <div class="premium-package-card" (mouseenter)="startCardCarousel(p.id, p.images.length)" (mouseleave)="stopCardCarousel(p.id)">
-                  <div class="card-image-wrapper">
-                    <img 
-                      [src]="p.images[activeCardCarouselIndex()[p.id] || 0] || p.image" 
-                      [alt]="p.name" 
-                      class="card-img"
-                    />
-                    <div class="card-badges-wrapper">
-                      <span class="tier-tag" [class]="p.tier">{{ p.tier | titlecase }}</span>
-                      <span class="event-type-badge" [ngStyle]="getEventTypeBadgeStyle(p.category)">
-                        {{ getEventTypeName(p.category) }}
-                      </span>
-                    </div>
-                    <button class="favorite-btn" (click)="toggleFavorite($event, p)" [class.is-favorite]="isFavorite(p.id)">
+                <div class="package-card-v2" [routerLink]="['/book', p.id]" style="cursor: pointer;" (mouseenter)="startCardCarousel(p.id, p.images.length)" (mouseleave)="stopCardCarousel(p.id)">
+                  <div class="card-img-wrap">
+                    <img [src]="p.images[activeCardCarouselIndex()[p.id] || 0] || p.image" class="card-img" [alt]="p.name" loading="lazy" style="transition: opacity 0.4s ease-in-out;">
+                    <div class="price-badge-v2">{{ formatPriceLakh(p.price) }}</div>
+                    <button class="fav-btn" [class.active]="isFavorite(p.id)" (click)="toggleFavorite($event, p)">
                       <i class="bi" [class.bi-heart-fill]="isFavorite(p.id)" [class.bi-heart]="!isFavorite(p.id)"></i>
                     </button>
-                    <div class="rating-badge-floating">
-                      <i class="bi bi-star-fill text-warning"></i>
-                      <span>{{ p.rating || '4.5' }}</span>
-                    </div>
-                    @if (p.images.length > 1) {
-                      <div class="card-carousel-dots">
-                        @for (img of p.images; track img; let imgIdx = $index) {
-                          <span class="card-dot" [class.active]="imgIdx === (activeCardCarouselIndex()[p.id] || 0)"></span>
+                    @if (p.images && p.images.length > 1) {
+                      <div class="carousel-indicators-mini">
+                        @for (img of p.images; track img; let i = $index) {
+                          <span class="dot-mini" [class.active]="i === (activeCardCarouselIndex()[p.id] || 0)"></span>
                         }
                       </div>
                     }
                   </div>
-
-                  <div class="card-info-wrap">
-                    <h5 class="package-name text-truncate mb-1" [title]="p.name">{{ p.name }}</h5>
-                    <div class="vendor-name-row mb-1">
-                      <span class="text-muted small">by <span class="fw-semibold" style="color: var(--text-main)">{{ p.vendorName }}</span></span>
-                      <i class="bi bi-patch-check-fill text-primary ms-1 small" title="Verified Partner"></i>
-                    </div>
-
-                    <div class="package-location mb-2">
-                      <i class="bi bi-geo-alt me-1 text-soft"></i>
-                      <span class="small text-muted">{{ p.location }}</span>
-                    </div>
-
-                    <div class="package-features-row mb-3">
-                      <span class="feature-tag">
-                        <i class="bi bi-people"></i> Max {{ p.maxGuests }} pax
-                      </span>
-                      @if (p.vegOnly) {
-                        <span class="feature-tag veg-only">
-                          <i class="bi bi-circle-fill small"></i> Veg Only
-                        </span>
-                      } @else {
-                        <span class="feature-tag non-veg">
-                          <i class="bi bi-circle-fill small text-danger"></i> Veg/Non-Veg
-                        </span>
-                      }
-                    </div>
-
-                    <div class="card-footer-row d-flex justify-content-between align-items-center pt-3">
-                      <div>
-                        <span class="text-soft small d-block leading-tight">Starting from</span>
-                        <span class="price-amount text-primary">₹{{ (p.price / 1000).toFixed(0) }}k</span>
+                  <div class="card-content-v2">
+                    <div class="pkg-meta">
+                      <div class="d-flex align-items-center gap-2">
+                        <span class="pkg-label" [style.background]="eventTierService.getGradientForTier(p.tier)" style="color: white; border: none; font-weight: 800;">{{ p.tier | titlecase }}</span>
                       </div>
-                      <a [routerLink]="['/book', p.id]" class="btn-ee-primary btn-sm rounded-3 px-3 py-2">
-                        Configure
-                      </a>
+                      <span class="pkg-rating"><i class="bi bi-star-fill"></i> {{ (p.rating || 0).toFixed(1) }} ({{ p.totalReviews || 0 }})</span>
+                    </div>
+                    <h3 class="pkg-title-v2">{{ p.vendorName }}</h3>
+                    <div class="pkg-loc-v2 mb-2">
+                      <i class="bi bi-geo-alt"></i> {{ p.location }}
+                    </div>
+                    @if (p.services && p.services.length) {
+                      <div class="d-flex flex-wrap gap-1 mb-3" style="min-height: 22px;">
+                        @for (svc of p.services.slice(0, 3); track svc) {
+                          <span class="service-pill">
+                            <i class="bi bi-check2 text-success me-1"></i>{{ svc }}
+                          </span>
+                        }
+                        @if (p.services.length > 3) {
+                          <span class="service-pill more-pill">+{{ p.services.length - 3 }} more</span>
+                        }
+                      </div>
+                    }
+                    <div class="pkg-features">
+                      <div class="feat-item" title="Capacity">
+                        <i class="bi bi-people-fill text-primary"></i> <span>{{ p.maxGuests }} Pax</span>
+                      </div>
+                      @if (p.roomCount > 0) {
+                        <div class="feat-item" title="Accommodation">
+                          <i class="bi bi-door-closed-fill text-success"></i> <span>{{ p.roomCount }} Rms</span>
+                        </div>
+                      }
+                      <div class="feat-item" title="Cuisine">
+                        <i class="bi bi-egg-fried text-warning"></i> <span>{{ p.vegOnly ? 'Veg' : 'Mix' }}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -240,70 +226,56 @@
           <div class="row g-3">
             @for (p of popularPackages(); track p.id) {
               <div class="col-12 col-md-6">
-                <div class="premium-package-card" (mouseenter)="startCardCarousel(p.id, p.images.length)" (mouseleave)="stopCardCarousel(p.id)">
-                  <div class="card-image-wrapper">
-                    <img 
-                      [src]="p.images[activeCardCarouselIndex()[p.id] || 0] || p.image" 
-                      [alt]="p.name" 
-                      class="card-img"
-                    />
-                    <div class="card-badges-wrapper">
-                      <span class="tier-tag" [class]="p.tier">{{ p.tier | titlecase }}</span>
-                      <span class="event-type-badge" [ngStyle]="getEventTypeBadgeStyle(p.category)">
-                        {{ getEventTypeName(p.category) }}
-                      </span>
-                    </div>
-                    <button class="favorite-btn" (click)="toggleFavorite($event, p)" [class.is-favorite]="isFavorite(p.id)">
+                <div class="package-card-v2" [routerLink]="['/book', p.id]" style="cursor: pointer;" (mouseenter)="startCardCarousel(p.id, p.images.length)" (mouseleave)="stopCardCarousel(p.id)">
+                  <div class="card-img-wrap">
+                    <img [src]="p.images[activeCardCarouselIndex()[p.id] || 0] || p.image" class="card-img" [alt]="p.name" loading="lazy" style="transition: opacity 0.4s ease-in-out;">
+                    <div class="price-badge-v2">{{ formatPriceLakh(p.price) }}</div>
+                    <button class="fav-btn" [class.active]="isFavorite(p.id)" (click)="toggleFavorite($event, p)">
                       <i class="bi" [class.bi-heart-fill]="isFavorite(p.id)" [class.bi-heart]="!isFavorite(p.id)"></i>
                     </button>
-                    <div class="rating-badge-floating">
-                      <i class="bi bi-star-fill text-warning"></i>
-                      <span>{{ p.rating || '4.6' }}</span>
-                    </div>
-                    @if (p.images.length > 1) {
-                      <div class="card-carousel-dots">
-                        @for (img of p.images; track img; let imgIdx = $index) {
-                          <span class="card-dot" [class.active]="imgIdx === (activeCardCarouselIndex()[p.id] || 0)"></span>
+                    @if (p.images && p.images.length > 1) {
+                      <div class="carousel-indicators-mini">
+                        @for (img of p.images; track img; let i = $index) {
+                          <span class="dot-mini" [class.active]="i === (activeCardCarouselIndex()[p.id] || 0)"></span>
                         }
                       </div>
                     }
                   </div>
-
-                  <div class="card-info-wrap">
-                    <h5 class="package-name text-truncate mb-1" [title]="p.name">{{ p.name }}</h5>
-                    <div class="vendor-name-row mb-1">
-                      <span class="text-muted small">by <span class="fw-semibold" style="color: var(--text-main)">{{ p.vendorName }}</span></span>
-                      <i class="bi bi-patch-check-fill text-primary ms-1 small" title="Verified Partner"></i>
-                    </div>
-
-                    <div class="package-location mb-2">
-                      <i class="bi bi-geo-alt me-1 text-soft"></i>
-                      <span class="small text-muted">{{ p.location }}</span>
-                    </div>
-
-                    <div class="package-features-row mb-3">
-                      <span class="feature-tag">
-                        <i class="bi bi-people"></i> Max {{ p.maxGuests }} pax
-                      </span>
-                      @if (p.vegOnly) {
-                        <span class="feature-tag veg-only">
-                          <i class="bi bi-circle-fill small"></i> Veg Only
-                        </span>
-                      } @else {
-                        <span class="feature-tag non-veg">
-                          <i class="bi bi-circle-fill small text-danger"></i> Veg/Non-Veg
-                        </span>
-                      }
-                    </div>
-
-                    <div class="card-footer-row d-flex justify-content-between align-items-center pt-3">
-                      <div>
-                        <span class="text-soft small d-block leading-tight">Starting from</span>
-                        <span class="price-amount text-primary">₹{{ (p.price / 1000).toFixed(0) }}k</span>
+                  <div class="card-content-v2">
+                    <div class="pkg-meta">
+                      <div class="d-flex align-items-center gap-2">
+                        <span class="pkg-label" [style.background]="eventTierService.getGradientForTier(p.tier)" style="color: white; border: none; font-weight: 800;">{{ p.tier | titlecase }}</span>
                       </div>
-                      <a [routerLink]="['/book', p.id]" class="btn-ee-primary btn-sm rounded-3 px-3 py-2">
-                        Configure
-                      </a>
+                      <span class="pkg-rating"><i class="bi bi-star-fill"></i> {{ (p.rating || 0).toFixed(1) }} ({{ p.totalReviews || 0 }})</span>
+                    </div>
+                    <h3 class="pkg-title-v2">{{ p.vendorName }}</h3>
+                    <div class="pkg-loc-v2 mb-2">
+                      <i class="bi bi-geo-alt"></i> {{ p.location }}
+                    </div>
+                    @if (p.services && p.services.length) {
+                      <div class="d-flex flex-wrap gap-1 mb-3" style="min-height: 22px;">
+                        @for (svc of p.services.slice(0, 3); track svc) {
+                          <span class="service-pill">
+                            <i class="bi bi-check2 text-success me-1"></i>{{ svc }}
+                          </span>
+                        }
+                        @if (p.services.length > 3) {
+                          <span class="service-pill more-pill">+{{ p.services.length - 3 }} more</span>
+                        }
+                      </div>
+                    }
+                    <div class="pkg-features">
+                      <div class="feat-item" title="Capacity">
+                        <i class="bi bi-people-fill text-primary"></i> <span>{{ p.maxGuests }} Pax</span>
+                      </div>
+                      @if (p.roomCount > 0) {
+                        <div class="feat-item" title="Accommodation">
+                          <i class="bi bi-door-closed-fill text-success"></i> <span>{{ p.roomCount }} Rms</span>
+                        </div>
+                      }
+                      <div class="feat-item" title="Cuisine">
+                        <i class="bi bi-egg-fried text-warning"></i> <span>{{ p.vegOnly ? 'Veg' : 'Mix' }}</span>
+                      </div>
                     </div>
                   </div>
                 </div>

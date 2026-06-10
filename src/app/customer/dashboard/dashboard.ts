@@ -6,6 +6,7 @@ import { MessengerService } from '../../core/services/messenger.service';
 import { LoyaltyService } from '../../core/services/loyalty.service';
 import { PackageService } from '../../core/services/package.service';
 import { FavoritesService } from '../../core/services/favorites.service';
+import { EventTierService } from '../../core/services/event-tier.service';
 import { EventType } from '../../core/models/event.model';
 import { Booking } from '../../core/models/booking.model';
 import { ChatThread } from '../../core/models/message.model';
@@ -31,6 +32,7 @@ export class CustomerDashboard implements OnInit, OnDestroy {
   public favoritesService = inject(FavoritesService);
   private toast = inject(ToastService);
   private router = inject(Router);
+  public eventTierService = inject(EventTierService);
 
   user = this.auth.currentUser;
   loading = signal<boolean>(true);
@@ -364,6 +366,56 @@ export class CustomerDashboard implements OnInit, OnDestroy {
       return { 'background-color': 'rgba(244, 63, 94, 0.08)', 'color': '#e11d48' };
     }
     return { 'background-color': 'rgba(107, 33, 168, 0.08)', 'color': '#6b21a8' };
+  }
+
+  formatPriceLakh(price: number): string {
+    if (!price) return '₹0';
+    const lakh = price / 100000;
+    if (lakh >= 1) {
+      return '₹' + (lakh % 1 === 0 ? lakh.toFixed(0) : lakh.toFixed(1)) + 'L';
+    }
+    return '₹' + (price / 1000).toFixed(0) + 'k';
+  }
+
+  getTierLabel(tier: string): string {
+    const map: Record<string, string> = {
+      'basic': 'Silver',
+      'standard': 'Gold',
+      'premium': 'Platinum',
+      'elite': 'Elite'
+    };
+    return map[(tier || '').toLowerCase()] || tier?.charAt(0).toUpperCase() + tier?.slice(1) || 'Gold';
+  }
+
+  getTierColorClass(tier: string): string {
+    const t = (tier || '').toLowerCase();
+    if (t === 'premium' || t === 'elite') return 'tier-platinum';
+    if (t === 'standard') return 'tier-gold';
+    return 'tier-silver';
+  }
+
+  getServiceTags(pkg: any): string[] {
+    const services = pkg.services || [];
+    if (services.length === 0) {
+      // Derive from category
+      const cat = (pkg.category || '').toLowerCase();
+      if (cat.includes('wedding')) return ['Venue', 'Catering', 'Decoration'];
+      if (cat.includes('birthday')) return ['Venue', 'Catering', 'Decoration'];
+      if (cat.includes('corporate')) return ['Conference', 'Catering', 'AV Setup'];
+      return ['Venue', 'Catering'];
+    }
+    // Shorten service names and take first 3
+    return services.slice(0, 3).map((s: string) => {
+      // Extract last meaningful word(s)
+      const words = s.split(/[\s&]+/);
+      if (words.length <= 2) return s;
+      return words.slice(-2).join(' ');
+    });
+  }
+
+  getExtraServiceCount(pkg: any): number {
+    const services = pkg.services || [];
+    return Math.max(0, services.length - 3);
   }
 
   onWheelScroll(event: WheelEvent) {

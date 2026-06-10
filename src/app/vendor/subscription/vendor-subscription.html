@@ -1,0 +1,121 @@
+<div class="page-header">
+  <h1>Subscription Plans</h1>
+  <p>Choose the plan that grows your event business</p>
+</div>
+
+@if (isLoading()) {
+  <div class="text-center py-5"><span class="spinner-border"></span></div>
+} @else {
+
+<!-- Billing Toggle -->
+<div class="billing-toggle">
+  <button [class.active]="billingCycle() === 'monthly'" (click)="billingCycle.set('monthly')">Monthly</button>
+  <button [class.active]="billingCycle() === 'yearly'" (click)="billingCycle.set('yearly')">
+    Yearly <span class="save-badge">Save 17%</span>
+  </button>
+</div>
+
+<!-- Pricing Cards -->
+<div class="pricing-grid">
+  @for (tier of tiers; track tier.tier) {
+    <div class="pricing-card" [class.popular]="tier.isPopular" [class.current]="isCurrentTier(tier)">
+      @if (tier.isPopular) {
+        <div class="popular-badge">Most Popular</div>
+      }
+      @if (isCurrentTier(tier)) {
+        <div class="current-badge">Current Plan</div>
+      }
+      <div class="card-header-area" [style.background]="tier.gradient">
+        <i class="bi {{ tier.icon }}"></i>
+        <h3>{{ tier.name }}</h3>
+        <p>{{ tier.tagline }}</p>
+      </div>
+      <div class="card-pricing">
+        @if (tier.priceMonthly === 0) {
+          <span class="price">Free</span>
+          <span class="period">forever</span>
+        } @else {
+          <span class="price">₹{{ getPrice(tier).toLocaleString('en-IN') }}</span>
+          <span class="period">/{{ billingCycle() === 'yearly' ? 'year' : 'month' }}</span>
+          @if (billingCycle() === 'yearly' && getSavings(tier) > 0) {
+            <span class="savings">Save ₹{{ getSavings(tier).toLocaleString('en-IN') }}/yr</span>
+          }
+        }
+      </div>
+      <ul class="features-list">
+        @for (feature of tier.features; track feature) {
+          <li><i class="bi bi-check-circle-fill"></i> {{ feature }}</li>
+        }
+      </ul>
+      <div class="card-action">
+        @if (isCurrentTier(tier)) {
+          <button class="btn-plan current" disabled>Current Plan</button>
+        } @else if (isUpgrade(tier)) {
+          <button class="btn-plan upgrade" (click)="initiateUpgrade(tier)">Upgrade to {{ tier.name }}</button>
+        } @else {
+          <button class="btn-plan" disabled>Included in your plan</button>
+        }
+      </div>
+    </div>
+  }
+</div>
+
+<!-- Commission Benefits -->
+<div class="commission-info ee-card">
+  <div class="d-flex align-items-center gap-3 mb-3">
+    <i class="bi bi-info-circle-fill fs-4" style="color: var(--primary)"></i>
+    <h5 class="m-0">How Commission Works</h5>
+  </div>
+  <div class="row g-3">
+    <div class="col-md-4">
+      <div class="info-item">
+        <strong>Standard Rate</strong>
+        <p>8-12% per booking depending on event category. Weddings at 8%, corporate at 12%.</p>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="info-item">
+        <strong>Premium Benefit</strong>
+        <p>Premium subscribers get 2% lower commission on all bookings, maximizing your earnings.</p>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="info-item">
+        <strong>Transparent Payouts</strong>
+        <p>See exact fee breakdown on every invoice. No hidden charges, ever.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+}
+
+<!-- Upgrade Confirmation Modal -->
+@if (showConfirmModal() && selectedUpgradeTier()) {
+  <div class="modal-overlay" (click)="cancelUpgrade()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <h4><i class="bi bi-gem me-2"></i>Upgrade to {{ selectedUpgradeTier()!.name }}</h4>
+      <p class="text-muted">You're about to upgrade your subscription. Payment will be processed securely.</p>
+      <div class="upgrade-summary">
+        <div class="d-flex justify-content-between">
+          <span>Plan</span>
+          <strong>{{ selectedUpgradeTier()!.name }}</strong>
+        </div>
+        <div class="d-flex justify-content-between">
+          <span>Amount</span>
+          <strong>₹{{ getPrice(selectedUpgradeTier()!).toLocaleString('en-IN') }}/{{ billingCycle() === 'yearly' ? 'year' : 'month' }}</strong>
+        </div>
+      </div>
+      <div class="d-flex gap-2 mt-4">
+        <button class="btn btn-outline-secondary flex-1" (click)="cancelUpgrade()" [disabled]="isUpgrading()">Cancel</button>
+        <button class="btn-plan upgrade flex-1" (click)="confirmUpgrade()" [disabled]="isUpgrading()">
+          @if (isUpgrading()) {
+            <span class="spinner-border spinner-border-sm me-2"></span> Processing...
+          } @else {
+            Confirm Upgrade
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+}
