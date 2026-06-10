@@ -12,18 +12,22 @@
       </div>
       <div class="step-item" [class.active]="currentStep() === 2" [class.completed]="currentStep() > 2">
         <div class="step-dot">2</div>
-        <div class="step-label">Location</div>
+        <div class="step-label">Inclusion Details</div>
       </div>
       <div class="step-item" [class.active]="currentStep() === 3" [class.completed]="currentStep() > 3">
         <div class="step-dot">3</div>
-        <div class="step-label">Pricing</div>
+        <div class="step-label">Location</div>
       </div>
       <div class="step-item" [class.active]="currentStep() === 4" [class.completed]="currentStep() > 4">
         <div class="step-dot">4</div>
-        <div class="step-label">Policies</div>
+        <div class="step-label">Pricing</div>
       </div>
       <div class="step-item" [class.active]="currentStep() === 5" [class.completed]="currentStep() > 5">
         <div class="step-dot">5</div>
+        <div class="step-label">Policies</div>
+      </div>
+      <div class="step-item" [class.active]="currentStep() === 6" [class.completed]="currentStep() > 6">
+        <div class="step-dot">6</div>
         <div class="step-label">Photos</div>
       </div>
     </div>
@@ -37,8 +41,12 @@
       <p class="step-subtitle">Start with the basics of your business service</p>
 
       <div class="row g-4">
-        <div class="col-md-6">
-          <label class="ee-form-label">Event Categories *</label>
+        <div class="col-md-5">
+          <label class="ee-form-label">Business / Venue Name *</label>
+          <input type="text" class="ee-form-control" [(ngModel)]="formData.name" placeholder="e.g. Royal Banquet Hall">
+        </div>
+        <div class="col-md-4">
+          <label class="ee-form-label">Event Category *</label>
           <select class="ee-form-control" [(ngModel)]="formData.category" (ngModelChange)="onCategoryChange($event)">
             <option value="">Select Category</option>
             @for (cat of categories(); track cat.id) {
@@ -46,33 +54,17 @@
             }
           </select>
         </div>
-        <div class="col-md-6">
-          <label class="ee-form-label">Business / Venue Name *</label>
-          <input type="text" class="ee-form-control" [(ngModel)]="formData.name" placeholder="e.g. Royal Banquet Hall">
-        </div>
-
-
-        <div class="col-12">
-          <label class="ee-form-label">About Your Service *</label>
-          <textarea class="ee-form-control" rows="4" [(ngModel)]="formData.description"
-            placeholder="Tell customers why they should choose you..."></textarea>
-        </div>
-        <div class="col-md-6">
+        <div class="col-md-3">
           <label class="ee-form-label">Experience (Years)</label>
           <input type="number" class="ee-form-control" [(ngModel)]="formData.experience" placeholder="e.g. 5">
         </div>
-        <div class="col-md-6">
-          <label class="ee-form-label">Service Tier *</label>
-          <div class="input-group-modern">
-            <i class="bi bi-star-fill text-primary"></i>
-            <select class="border-0 bg-transparent w-100 outline-none fw-600" [(ngModel)]="formData.theme">
-              <option value="">Select Service Tier</option>
-              @for (theme of availableThemes; track theme) {
-              <option [value]="theme">{{ theme }}</option>
-              }
-            </select>
-          </div>
+
+        <div class="col-12">
+          <label class="ee-form-label">About Your Service *</label>
+          <textarea class="ee-form-control" rows="3" [(ngModel)]="formData.description"
+            placeholder="Tell customers why they should choose you..."></textarea>
         </div>
+
 
 
         <div class="col-12">
@@ -110,8 +102,257 @@
     </div>
     }
 
-    <!-- Step 2: Location -->
+    <!-- Step 2: Inclusion Details (New) -->
     @if (currentStep() === 2) {
+    <div class="step-content">
+      <h4 class="step-title">Inclusion Details</h4>
+      <p class="step-subtitle">Choose your service tier and configure descriptions, images, and highlights for each inclusion.</p>
+
+      <div class="col-12 mb-5">
+        <label class="ee-form-label">Service Tier *</label>
+        <p class="form-hint mb-3" style="font-size: 0.8rem; margin-top: -4px;">Choose the tier that matches the budget and service range you offer</p>
+        
+        @if (!formData.category) {
+          <div class="alert alert-warning py-2 px-3 rounded-3" style="font-size: 0.85rem;">
+            <i class="bi bi-exclamation-circle me-1"></i> Please select an event category in Step 1 to view available tiers.
+          </div>
+        } @else if (filteredTiers().length === 0) {
+          <div class="alert alert-info py-2 px-3 rounded-3" style="font-size: 0.85rem;">
+            <i class="bi bi-info-circle me-1"></i> No pricing tiers configured for the selected event category yet.
+          </div>
+        } @else {
+          <div class="tier-radio-grid">
+            @for (t of filteredTiers(); track t.id) {
+              <label class="tier-radio-card" [class.selected]="selectedTierName() === t.name">
+                <input type="radio" name="serviceTier" [value]="t.name" [(ngModel)]="formData.theme" (ngModelChange)="selectedTierName.set($event)" class="tier-radio-input">
+                
+                <div class="tier-card-header" [style.background]="t.gradient || 'linear-gradient(135deg,#6B7280,#374151)'">
+                  <div class="tier-card-icon">
+                    <i class="bi" [class]="t.icon || 'bi-layers'"></i>
+                  </div>
+                  <span class="tier-card-title">{{ t.name }}</span>
+                </div>
+                
+                <div class="tier-card-body">
+                  <p class="tier-card-desc">{{ t.description || 'No description provided.' }}</p>
+                  
+                  @if (t.priceRanges && t.priceRanges.length > 0) {
+                    <div class="tier-price-limits mt-2">
+                      <span class="limit-title">Allowed Price Ranges:</span>
+                      <div class="limit-chips mt-1">
+                        @for (pr of t.priceRanges; track pr.serviceName) {
+                          <div class="limit-chip">
+                            <span class="name">{{ pr.serviceName }}:</span>
+                            <span class="val">₹{{ pr.minPrice | number }} - ₹{{ pr.maxPrice | number }}</span>
+                          </div>
+                        }
+                      </div>
+                    </div>
+                  }
+                </div>
+              </label>
+            }
+          </div>
+        }
+      </div>
+
+      @if (formData.includes.length === 0) {
+        <div class="text-center py-5 rounded-4 border bg-light">
+          <div class="mb-3 text-muted" style="font-size: 3rem;"><i class="bi bi-card-checklist"></i></div>
+          <h5 class="fw-800 color-navy">No Inclusions Selected</h5>
+          <p class="text-muted mx-auto" style="max-width: 450px;">
+            Go back to Step 1 and select the items included in your package (e.g. Premium Venue, Gourmet Catering, etc.) to set details for them here.
+          </p>
+          <button class="btn btn-outline-primary rounded-pill px-4 mt-3 fw-700" (click)="prevStep()">
+            <i class="bi bi-chevron-left me-1"></i> Go Back to Basic Info
+          </button>
+        </div>
+      } @else {
+        <div class="inclusion-tabs-container">
+          <!-- Sidebar tabs -->
+          <div class="inclusion-tabs-sidebar">
+            <div class="sidebar-title mb-2 px-3 small text-uppercase fw-800 text-muted" style="letter-spacing: 0.5px; font-size: 0.72rem;">Package Includes</div>
+            @for (inc of formData.includes; track inc) {
+              <button class="inclusion-tab-btn" 
+                [class.active]="activeInclusionTab() === inc"
+                (click)="activeInclusionTab.set(inc)">
+                <span class="tab-indicator"></span>
+                <i class="bi bi-check-circle-fill me-2 text-success" style="font-size: 0.95rem;"></i>
+                <span class="tab-label text-truncate">{{ inc }}</span>
+                <span class="tab-actions ms-auto">
+                  <i class="bi bi-chevron-right arrow-icon"></i>
+                  <span class="tab-close-btn" (click)="removeInclusionFromSidebar($event, inc)">
+                    <i class="bi bi-x-lg"></i>
+                  </span>
+                </span>
+              </button>
+            }
+          </div>
+
+          <!-- Content pane -->
+          @if (activeInclusionTab(); as activeTab) {
+            @if (inclusionDetails()[activeTab]; as details) {
+              <div class="inclusion-details-pane">
+                <div class="inclusion-details-card">
+                  <div class="d-flex align-items-center justify-content-between mb-4 border-bottom pb-3">
+                    <h5 class="m-0 fw-800 color-navy d-flex align-items-center gap-2">
+                      <i class="bi bi-pencil-square text-primary"></i>
+                      Configure: <span class="text-primary">{{ activeTab }}</span>
+                    </h5>
+                  </div>
+
+                  <div class="row g-4">
+                    <div class="col-12">
+                      <label class="ee-form-label">Detailed Description *</label>
+                      <p class="form-hint mb-2" style="font-size: 0.78rem;">What makes this specific service special? Quality, timing, styles, features etc.</p>
+                      <textarea class="ee-form-control" rows="3" [(ngModel)]="details.description" 
+                        placeholder="Provide a compelling description of what this includes..."></textarea>
+                    </div>
+
+                    <div class="col-12">
+                      <label class="ee-form-label">Price Range (INR) *</label>
+                      @if (getInclusionPriceLimit(activeTab); as limit) {
+                        <p class="form-hint mb-2 text-warning" style="font-size: 0.78rem;">
+                          <i class="bi bi-info-circle-fill"></i> Allowed range for {{ activeTab }} in tier <strong>{{ formData.theme }}</strong>: 
+                          <strong>₹{{ limit.minPrice | number }} - ₹{{ limit.maxPrice | number }}</strong>
+                        </p>
+                      } @else {
+                        <p class="form-hint mb-2" style="font-size: 0.78rem;">Enter the estimated cost range for this service inclusion</p>
+                      }
+                      <div class="row g-3">
+                        <div class="col-6">
+                          <div class="input-group-modern py-2">
+                            <span class="prefix" style="font-size:0.8rem; font-weight:700;">Min ₹</span>
+                            <input type="number" [(ngModel)]="details.minPrice" placeholder="Starts from" 
+                                   (ngModelChange)="validateInclusionPrices(activeTab)">
+                          </div>
+                        </div>
+                        <div class="col-6">
+                          <div class="input-group-modern py-2">
+                            <span class="prefix" style="font-size:0.8rem; font-weight:700;">Max ₹</span>
+                            <input type="number" [(ngModel)]="details.maxPrice" placeholder="Max price"
+                                   (ngModelChange)="validateInclusionPrices(activeTab)">
+                          </div>
+                        </div>
+                      </div>
+                      @if (inclusionPriceErrors[activeTab]) {
+                        <div class="text-danger small mt-2 fw-bold" style="font-size: 0.76rem;">
+                          <i class="bi bi-exclamation-circle-fill"></i> {{ inclusionPriceErrors[activeTab] }}
+                        </div>
+                      }
+                    </div>
+
+                    <div class="col-12">
+                      <label class="ee-form-label">Inclusion Photos *</label>
+                      <p class="form-hint mb-3" style="font-size: 0.78rem;">Upload photos showing details of this inclusion (e.g. food plates, styling, decorations).</p>
+                      
+                      <!-- Hidden file input -->
+                      <input type="file" #incFileInput class="d-none" accept="image/*" multiple (change)="onInclusionFileSelected($event, activeTab)">
+
+                      <div class="inclusion-photo-grid">
+                        <!-- Upload Button Card -->
+                        <div class="inclusion-upload-card" (click)="triggerInclusionPhotoUpload(incFileInput)">
+                          <i class="bi bi-camera-fill fs-3 text-primary"></i>
+                          <span class="fw-700 mt-1" style="font-size: 0.8rem;">Add Photo</span>
+                          <span class="text-muted" style="font-size: 0.65rem;">Max 5 photos</span>
+                        </div>
+
+                        <!-- Uploaded Thumbnail Previews -->
+                        @for (photo of details.images; track $index) {
+                          <div class="inclusion-photo-item">
+                            <img [src]="photo" alt="Inclusion Detail Photo">
+                            <div class="inclusion-photo-overlay">
+                              <button class="btn-remove-inc-photo" (click)="removeInclusionPhoto(activeTab, $index)">
+                                <i class="bi bi-trash"></i>
+                              </button>
+                            </div>
+                          </div>
+                        }
+
+                        <!-- Empty Slots Placeholder -->
+                        @if (details.images.length < 5) {
+                          @for (slot of [].constructor(4 - details.images.length); track $index) {
+                            <div class="inclusion-photo-empty-slot">
+                              <i class="bi bi-image text-muted opacity-25" style="font-size: 1.25rem;"></i>
+                            </div>
+                          }
+                        }
+                      </div>
+                    </div>
+
+                     <div class="col-12 mt-2">
+                      <div class="row g-4">
+                        <!-- Key Features -->
+                        <div class="col-md-6">
+                          <label class="ee-form-label">Key Features / Highlights *</label>
+                          <p class="form-hint mb-2" style="font-size: 0.78rem;">Add highlights one-by-one (e.g. Live Counters, 5-star Chef, Custom Menu)</p>
+                          
+                          <div class="d-flex gap-2 mb-2">
+                            <div class="input-group-modern flex-1 py-2">
+                              <i class="bi bi-tag-fill text-primary"></i>
+                              <input type="text" #featureInput placeholder="Add feature and click +..." 
+                                (keydown.enter)="addFeature(activeTab, featureInput); $event.preventDefault()">
+                            </div>
+                            <button type="button" class="btn btn-primary rounded-3 px-3 fw-bold animate-pulse" style="height: 48px; border-radius: 12px !important;" (click)="addFeature(activeTab, featureInput)">
+                              <i class="bi bi-plus-lg"></i>
+                            </button>
+                          </div>
+
+                          <div class="chips-list">
+                            @for (item of details.keyFeatures; track item; let idx = $index) {
+                              <div class="ee-chip">
+                                {{ item }}
+                                <span class="chip-remove" (click)="removeFeature(activeTab, idx)"><i class="bi bi-x"></i></span>
+                              </div>
+                            }
+                            @if (details.keyFeatures.length === 0) {
+                              <span class="text-muted small italic">No features added yet.</span>
+                            }
+                          </div>
+                        </div>
+
+                        <!-- Additional Inclusions -->
+                        <div class="col-md-6">
+                          <label class="ee-form-label">Additional Inclusions *</label>
+                          <p class="form-hint mb-2" style="font-size: 0.78rem;">Add sub-items one-by-one (e.g. Welcome Drinks, Mocktail Counter, Table Linens)</p>
+                          
+                          <div class="d-flex gap-2 mb-2">
+                            <div class="input-group-modern flex-1 py-2">
+                              <i class="bi bi-patch-check-fill text-primary"></i>
+                              <input type="text" #inclusionInput placeholder="Add sub-item and click +..." 
+                                (keydown.enter)="addInclusionItem(activeTab, inclusionInput); $event.preventDefault()">
+                            </div>
+                            <button type="button" class="btn btn-primary rounded-3 px-3 fw-bold animate-pulse" style="height: 48px; border-radius: 12px !important;" (click)="addInclusionItem(activeTab, inclusionInput)">
+                              <i class="bi bi-plus-lg"></i>
+                            </button>
+                          </div>
+
+                          <div class="chips-list">
+                            @for (item of details.inclusions; track item; let idx = $index) {
+                              <div class="ee-chip">
+                                {{ item }}
+                                <span class="chip-remove" (click)="removeInclusionItem(activeTab, idx)"><i class="bi bi-x"></i></span>
+                              </div>
+                            }
+                            @if (details.inclusions.length === 0) {
+                              <span class="text-muted small italic">No inclusions added yet.</span>
+                            }
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            }
+          }
+        </div>
+      }
+    </div>
+    }
+
+    <!-- Step 3: Location -->
+    @if (currentStep() === 3) {
     <div class="step-content">
       <h4 class="step-title">Business Location</h4>
       <p class="step-subtitle">Where can customers find you? Use the map for precision.</p>
@@ -181,8 +422,8 @@
     </div>
     }
 
-    <!-- Step 3: Pricing & Capacity -->
-    @if (currentStep() === 3) {
+    <!-- Step 4: Pricing & Capacity -->
+    @if (currentStep() === 4) {
     <div class="step-content">
       <h4 class="step-title">Pricing & Capacity</h4>
       <p class="step-subtitle">Set your rates and guest limits</p>
@@ -261,8 +502,8 @@
     </div>
     }
 
-    <!-- Step 4: Policies & Amenities -->
-    @if (currentStep() === 4) {
+    <!-- Step 5: Policies & Amenities -->
+    @if (currentStep() === 5) {
     <div class="step-content">
       <h4 class="step-title">Policies & Amenities</h4>
       <p class="step-subtitle">Define your working rules and facilities</p>
@@ -312,8 +553,8 @@
     </div>
     }
 
-    <!-- Step 5: Photos & Spaces -->
-    @if (currentStep() === 5) {
+    <!-- Step 6: Photos & Spaces -->
+    @if (currentStep() === 6) {
     <div class="step-content">
       <h4 class="step-title">Visuals & Space Details</h4>
       <p class="step-subtitle">Upload photos and define specific event areas</p>
@@ -432,7 +673,7 @@
       <i class="bi bi-chevron-left me-1"></i> Back
     </button>
 
-    @if (currentStep() < 5) { <button class="btn-ee-primary px-5" (click)="nextStep()">
+    @if (currentStep() < 6) { <button class="btn-ee-primary px-5" (click)="nextStep()">
       Continue <i class="bi bi-chevron-right ms-1"></i>
       </button>
       } @else {

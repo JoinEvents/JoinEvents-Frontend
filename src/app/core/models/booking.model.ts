@@ -34,6 +34,17 @@ export interface Booking {
   gstPercent: number;
   totalAmount: number;
   finalPaidAmount?: number;
+  // --- Platform Revenue Fields (populated by backend) ---
+  platformFeeRate?: number;
+  platformFeeAmount?: number;
+  tdsDeducted?: number;
+  vendorPayoutAmount?: number;
+  
+  // --- Escrow & Guarantee Fields (managed by backend) ---
+  escrowStatus?: 'held' | 'released' | 'refunded';
+  guaranteeStatus?: 'active' | 'claimed' | 'resolved' | 'expired';
+  vendorConfirmedAt?: string;
+  vendorConfirmationDue?: string;
   cancellationReason?: string;
   cancelledBy?: 'customer' | 'vendor' | 'system';
   disputeInfo?: {

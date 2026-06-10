@@ -12,7 +12,7 @@
 
   <!-- Financial Overview KPIs (Always Visible) -->
   <div class="row g-4 mb-5">
-    <div class="col-md-4">
+    <div class="col-md-3">
       <div class="kpi-card-glass total">
         <div class="kpi-icon"><i class="bi bi-wallet2"></i></div>
         <div class="kpi-data">
@@ -22,7 +22,7 @@
         <div class="kpi-trend positive"><i class="bi bi-arrow-up-short"></i> 12%</div>
       </div>
     </div>
-    <div class="col-md-4">
+    <div class="col-md-3">
       <div class="kpi-card-glass pending">
         <div class="kpi-icon"><i class="bi bi-clock-history"></i></div>
         <div class="kpi-data">
@@ -31,12 +31,23 @@
         </div>
       </div>
     </div>
-    <div class="col-md-4">
+    <div class="col-md-3">
       <div class="kpi-card-glass total-earned">
         <div class="kpi-icon"><i class="bi bi-graph-up-arrow"></i></div>
         <div class="kpi-data">
           <span class="kpi-label">Lifetime Earnings</span>
           <h3 class="kpi-value">₹8,52,000.00</h3>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="kpi-card">
+        <div class="kpi-icon" style="background: linear-gradient(135deg, #f59e0b, #ef4444);">
+          <i class="bi bi-receipt-cutoff"></i>
+        </div>
+        <div class="kpi-info">
+          <span class="kpi-label">Platform Fees (YTD)</span>
+          <span class="kpi-value">₹{{ totalPlatformFees().toLocaleString('en-IN') }}</span>
         </div>
       </div>
     </div>
@@ -219,7 +230,10 @@
                 <div class="inv-customer">{{ inv.customer }}</div>
               </div>
               <div class="inv-date">{{ inv.date }}</div>
-              <div class="inv-amount">₹{{ inv.amount.toLocaleString('en-IN') }}</div>
+              <div class="inv-amount">
+                <div>₹{{ inv.netPayout.toLocaleString('en-IN') }}</div>
+                <div class="text-muted" style="font-size: 0.7rem; font-weight: 600;">Gross: ₹{{ inv.grossAmount.toLocaleString('en-IN') }}</div>
+              </div>
               <div class="inv-actions">
                 <button class="btn-inv-download" title="Download PDF"><i class="bi bi-file-pdf"></i></button>
                 <button class="btn-inv-more"><i class="bi bi-three-dots-vertical"></i></button>
@@ -233,4 +247,36 @@
       </div>
     }
   </div>
+
+<!-- Fee Structure Info -->
+<div class="ee-card mt-4">
+  <div class="d-flex align-items-center gap-2 mb-3">
+    <i class="bi bi-info-circle-fill" style="color: var(--primary); font-size: 1.25rem;"></i>
+    <h6 class="m-0 fw-bold">Platform Fee Structure</h6>
+  </div>
+  <p class="small text-muted mb-3">Commission rates and TDS deductions are calculated by JoinEvents and reflected in your payout. All rates are set and enforced by the backend system.</p>
+  <div class="row g-3">
+    <div class="col-md-4">
+      <div class="p-3 rounded" style="background: var(--surface-secondary, #f8fafc);">
+        <div class="small text-muted mb-1">Commission Rate</div>
+        <div class="fw-bold">8% – 12%</div>
+        <div class="x-small text-muted">Varies by event category</div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="p-3 rounded" style="background: var(--surface-secondary, #f8fafc);">
+        <div class="small text-muted mb-1">TDS Deducted</div>
+        <div class="fw-bold">1% (Section 194-O)</div>
+        <div class="x-small text-muted">Deducted at source per IT Act</div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="p-3 rounded" style="background: var(--surface-secondary, #f8fafc);">
+        <div class="small text-muted mb-1">Payout Formula</div>
+        <div class="fw-bold">Booking − Fee − TDS</div>
+        <div class="x-small text-muted">Transparent, no hidden charges</div>
+      </div>
+    </div>
+  </div>
+</div>
 </div>

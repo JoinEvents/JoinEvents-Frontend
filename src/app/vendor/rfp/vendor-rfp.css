@@ -101,10 +101,23 @@
 .sk-meta { height: 12px; width: 60%; }
 .sk-tags { height: 24px; width: 50%; border-radius: 50px; }
 
-.rfp-empty { text-align: center; padding: 60px 24px; color: var(--text-soft); }
+.rfp-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 80px 24px;
+  color: var(--text-soft);
+  background: var(--bg-card);
+  border: 1.5px dashed var(--border-color);
+  border-radius: 24px;
+  margin: 20px 0;
+  width: 100%;
+}
 .rfp-empty i { font-size: 3rem; display: block; margin-bottom: 16px; color: #7C3AED; opacity: 0.4; }
 .rfp-empty h4 { font-family: var(--font-heading); font-weight: 700; color: var(--text-main); margin-bottom: 8px; }
-.rfp-empty p { font-size: 0.88rem; }
+.rfp-empty p { font-size: 0.88rem; max-width: 400px; margin: 0 auto; }
 
 /* DETAIL PANEL */
 .rfp-detail { display: flex; flex-direction: column; gap: 18px; animation: fadeIn 0.2s ease; }
@@ -191,9 +204,41 @@ textarea.form-input { resize: vertical; }
 .comp-num { display: block; font-family: var(--font-heading); font-size: 1.6rem; font-weight: 900; color: var(--secondary); }
 .comp-label { display: block; font-size: 0.7rem; font-weight: 700; color: var(--text-soft); text-transform: uppercase; letter-spacing: 0.4px; margin-top: 2px; }
 
+.btn-back-list {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: var(--primary);
+  font-weight: 700;
+  font-size: 0.9rem;
+  padding: 0;
+  margin-bottom: 16px;
+  cursor: pointer;
+  outline: none;
+  width: fit-content;
+}
+.btn-back-list:hover {
+  opacity: 0.8;
+}
+
 /* RESPONSIVE */
-@media (max-width: 960px) { .rfp-layout, .rfp-layout.has-detail { grid-template-columns: 1fr; } }
-@media (max-width: 576px) { .rfp-header { flex-direction: column; } .bid-cta-card { flex-direction: column; } }
+@media (max-width: 960px) {
+  .rfp-layout, .rfp-layout.has-detail {
+    grid-template-columns: 1fr;
+  }
+  .rfp-layout.has-detail .rfp-list {
+    display: none;
+  }
+  .btn-back-list {
+    display: inline-flex;
+  }
+}
+@media (max-width: 576px) {
+  .rfp-header { flex-direction: column; }
+  .bid-cta-card { flex-direction: column; }
+}
 
 /* DARK MODE */
 :host-context(.dark-theme) .rfp-card { background: #1e293b; border-color: rgba(255,255,255,0.06); }

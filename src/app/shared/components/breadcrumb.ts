@@ -38,7 +38,7 @@ const labelMap: Record<string, string> = {
   'offers': 'Special Offers',
   'staff': 'Staff Management',
   'messages': 'Messages',
-  'rfp': 'Global RFPs',
+  'rfp': 'Quote Requests',
   'tickets': 'Support Tickets',
   'reviews': 'Reviews',
   'verifications': 'Verifications',

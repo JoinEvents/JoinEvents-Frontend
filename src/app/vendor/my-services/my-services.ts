@@ -125,7 +125,13 @@ export class VendorMyServices implements OnInit, OnDestroy {
           vendorName: p.vendorName || p.VendorName || '',
           category: p.category || p.Category,
           name: p.name || p.Name,
-          description: p.description || p.Description,
+          description: (() => {
+            const rawDesc = p.description || p.Description || '';
+            if (rawDesc.includes('\n\n---INCLUSION_DETAILS---\n')) {
+              return rawDesc.split('\n\n---INCLUSION_DETAILS---\n')[0];
+            }
+            return rawDesc;
+          })(),
           pricePerUnit: (() => {
             const pricing = p.pricing || p.Pricing || {};
             const basePrice = pricing.basePrice || pricing.BasePrice || 0;

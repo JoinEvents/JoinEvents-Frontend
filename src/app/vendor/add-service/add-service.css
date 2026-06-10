@@ -226,3 +226,415 @@
     width: 100%;
   }
 }
+
+/* --- Tier Radio Card Selection --- */
+.tier-radio-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+  width: 100%;
+  margin-top: 8px;
+}
+
+.tier-radio-card {
+  display: flex;
+  flex-direction: column;
+  border-radius: 16px;
+  border: 2px solid var(--border-color, #e2e8f0);
+  background: var(--bg-card, #ffffff);
+  cursor: pointer;
+  overflow: hidden;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+.tier-radio-input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.tier-radio-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md, 0 4px 12px rgba(0,0,0,0.05));
+  border-color: var(--primary, #FF6B35);
+}
+
+.tier-radio-card.selected {
+  border-color: var(--primary, #FF6B35);
+  box-shadow: var(--shadow-lg, 0 10px 25px rgba(255, 107, 53, 0.15));
+}
+
+.tier-card-header {
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.tier-card-icon {
+  font-size: 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.tier-card-title {
+  font-size: 1.05rem;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.tier-card-body {
+  padding: 16px 20px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.tier-card-desc {
+  font-size: 0.82rem;
+  color: var(--text-soft, #475569);
+  line-height: 1.5;
+  margin-bottom: 12px;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.tier-price-limits {
+  border-top: 1px solid var(--border-color, #e2e8f0);
+  padding-top: 10px;
+  margin-top: auto;
+}
+
+.limit-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-muted, #64748b);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.limit-chips {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 110px;
+  overflow-y: auto;
+}
+
+.limit-chip {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--bg-light, #f8fafc);
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.74rem;
+  border: 1px solid rgba(0,0,0,0.02);
+}
+
+.limit-chip .name {
+  font-weight: 600;
+  color: var(--text-main, #0f172a);
+}
+
+.limit-chip .val {
+  color: #059669;
+  font-weight: 700;
+  font-family: monospace;
+}
+
+/* --- Inclusion Details Step Styling --- */
+.inclusion-tabs-container {
+  display: flex;
+  gap: 32px;
+  align-items: flex-start;
+  margin-top: 24px;
+}
+
+.inclusion-tabs-sidebar {
+  width: 280px;
+  background: var(--bg-light, #f8f9fa);
+  padding: 16px;
+  border-radius: 20px;
+  border: 1px solid var(--border-color, #e2e8f0);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.inclusion-tab-btn {
+  display: flex;
+  align-items: center;
+  padding: 14px 16px;
+  background: var(--bg-card, #ffffff);
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  position: relative;
+  text-align: left;
+  width: 100%;
+}
+
+.inclusion-tab-btn .tab-indicator {
+  position: absolute;
+  left: 0;
+  top: 15%;
+  height: 70%;
+  width: 4px;
+  background: transparent;
+  border-radius: 0 4px 4px 0;
+  transition: all 0.2s ease;
+}
+
+.inclusion-tab-btn:hover {
+  transform: translateX(4px);
+  border-color: var(--primary, #FF6B35);
+  box-shadow: var(--shadow-sm);
+}
+
+.inclusion-tab-btn.active {
+  border-color: var(--primary, #FF6B35);
+  background: rgba(255, 107, 53, 0.04);
+}
+
+.inclusion-tab-btn.active .tab-indicator {
+  background: var(--primary, #FF6B35);
+}
+
+.inclusion-tab-btn.active .tab-label {
+  color: var(--primary, #FF6B35);
+  font-weight: 700;
+}
+
+.inclusion-tab-btn .tab-label {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-main, #0f172a);
+}
+
+.inclusion-tab-btn .arrow-icon {
+  font-size: 0.8rem;
+  color: var(--text-soft, #64748b);
+  opacity: 0;
+  transition: all 0.2s ease;
+}
+
+.inclusion-tab-btn.active .arrow-icon {
+  opacity: 1;
+}
+
+.tab-actions {
+  display: flex;
+  align-items: center;
+  position: relative;
+  width: 24px;
+  height: 24px;
+  justify-content: center;
+  margin-left: auto;
+}
+
+.inclusion-tab-btn .tab-close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  opacity: 0;
+  transform: scale(0.8);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: absolute;
+  font-size: 0.65rem;
+}
+
+.inclusion-tab-btn .tab-close-btn:hover {
+  background: #ef4444;
+  color: white;
+  transform: scale(1.1);
+}
+
+.inclusion-tab-btn:hover .arrow-icon {
+  opacity: 0 !important;
+}
+
+.inclusion-tab-btn:hover .tab-close-btn {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.inclusion-details-pane {
+  flex: 1;
+  min-width: 0;
+  animation: fadeInPane 0.35s ease-in-out;
+}
+
+@keyframes fadeInPane {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.inclusion-details-card {
+  background: var(--bg-card, #ffffff);
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 24px;
+  padding: 32px;
+  box-shadow: var(--shadow-sm);
+}
+
+.inclusion-image-preview img {
+  transition: all 0.3s ease;
+}
+
+.inclusion-image-preview img:hover {
+  transform: scale(1.05);
+}
+
+/* Responsive adjustments for Inclusion Details */
+@media (max-width: 992px) {
+  .inclusion-tabs-container {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 20px;
+  }
+  .inclusion-tabs-sidebar {
+    width: 100%;
+    flex-direction: row;
+    overflow-x: auto;
+    padding: 12px;
+    gap: 12px;
+  }
+  .inclusion-tab-btn {
+    white-space: nowrap;
+    padding: 10px 16px;
+    flex-shrink: 0;
+    width: auto;
+  }
+  .inclusion-tab-btn .tab-indicator {
+    left: 15%;
+    top: auto;
+    bottom: 0;
+    width: 70%;
+    height: 4px;
+    border-radius: 4px 4px 0 0;
+  }
+  .inclusion-tab-btn .arrow-icon {
+    display: none;
+  }
+  .inclusion-tab-btn:hover {
+    transform: none;
+  }
+}
+
+/* --- Inclusion Photo Grid Layout --- */
+.inclusion-photo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.inclusion-upload-card {
+  aspect-ratio: 1;
+  background: var(--bg-light, #f8f9fa);
+  border: 2px dashed rgba(255, 107, 53, 0.3);
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.25s ease;
+  padding: 8px;
+}
+
+.inclusion-upload-card:hover {
+  border-color: var(--primary, #FF6B35);
+  background: rgba(255, 107, 53, 0.05);
+  transform: scale(1.02);
+}
+
+.inclusion-photo-item {
+  aspect-ratio: 1;
+  border-radius: 16px;
+  overflow: hidden;
+  position: relative;
+  border: 1px solid var(--border-color, #e2e8f0);
+  box-shadow: var(--shadow-sm);
+  animation: fadeIn 0.3s ease;
+}
+
+.inclusion-photo-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.inclusion-photo-item:hover img {
+  transform: scale(1.05);
+}
+
+.inclusion-photo-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.45);
+  opacity: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.inclusion-photo-item:hover .inclusion-photo-overlay {
+  opacity: 1;
+}
+
+.btn-remove-inc-photo {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: none;
+  color: var(--danger, #ef4444);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.9rem;
+}
+
+.btn-remove-inc-photo:hover {
+  transform: scale(1.15);
+  background: var(--danger, #ef4444);
+  color: #ffffff;
+}
+
+.inclusion-photo-empty-slot {
+  aspect-ratio: 1;
+  background: var(--bg-light, #f8f9fa);
+  border: 1.5px solid var(--border-color, #e2e8f0);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+

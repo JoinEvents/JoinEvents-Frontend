@@ -5,8 +5,18 @@ import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { VendorPackageService } from '../../core/services/vendor-package.service';
 import { EventCategoryService } from '../../core/services/event-category.service';
 import { ServiceCategoryDef } from '../../core/models/service.model';
+import { EventTierService } from '../../core/services/event-tier.service';
 
 declare var google: any;
+
+interface InclusionDetail {
+  description: string;
+  minPrice: number;
+  maxPrice: number;
+  images: string[];
+  keyFeatures: string[];
+  inclusions: string[];
+}
 
 @Component({
   selector: 'app-vendor-add-service',
@@ -18,6 +28,7 @@ declare var google: any;
 export class VendorAddService implements OnInit, OnDestroy {
   private api = inject(VendorPackageService);
   private eventCategoryService = inject(EventCategoryService);
+  private eventTierService = inject(EventTierService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private ngZone = inject(NgZone);
@@ -59,6 +70,38 @@ export class VendorAddService implements OnInit, OnDestroy {
   isEditMode = signal(false);
   serviceId = signal<string | null>(null);
   showVerificationModal = signal(false);
+  activeInclusionTab = signal('');
+  inclusionDetails = signal<Record<string, InclusionDetail>>({});
+  selectedCategoryKey = signal('');
+  selectedTierName = signal('');
+  inclusionPriceErrors: Record<string, string> = {};
+
+  filteredTiers = computed(() => {
+    const key = this.selectedCategoryKey();
+    if (!key) return [];
+    const catDef = this.categories().find(c => c.category === key);
+    const catId = catDef?.id || key;
+    const tiersList = this.eventTierService.tiers().filter(t => t.categoryId === catId || t.categoryId === key);
+    const orderMap: Record<string, number> = {
+      'silver': 1,
+      'gold': 2,
+      'platinum': 3
+    };
+    return [...tiersList].sort((a, b) => {
+      const orderA = orderMap[a.name.toLowerCase().trim()] || 99;
+      const orderB = orderMap[b.name.toLowerCase().trim()] || 99;
+      return orderA - orderB;
+    });
+  });
+
+  selectedTierObject = computed(() => {
+    const tierName = this.selectedTierName();
+    if (!tierName) return null;
+    const key = this.selectedCategoryKey();
+    const catDef = this.categories().find(c => c.category === key);
+    const catId = catDef?.id || key;
+    return this.eventTierService.tiers().find(t => t.name === tierName && (t.categoryId === catId || t.categoryId === key)) || null;
+  });
 
   // Form Data
   formData = {
@@ -125,7 +168,7 @@ export class VendorAddService implements OnInit, OnDestroy {
 
   availableInclusions = signal<string[]>([]);
 
-  availableThemes = [
+  availableThemes: string[] = [
     'Silver',
     'Gold',
     'Platinum'
@@ -136,6 +179,18 @@ export class VendorAddService implements OnInit, OnDestroy {
       this.categories.set(res);
       if (this.formData.category) {
         this.updateInclusionsForCategory(this.formData.category);
+        this.selectedCategoryKey.set(this.formData.category);
+      }
+    });
+
+    this.eventTierService.loadAll().subscribe({
+      next: (tiers) => {
+        if (tiers && tiers.length > 0) {
+          this.availableThemes = tiers.map(t => t.name);
+        }
+      },
+      error: (err) => {
+        console.error('Failed to load tiers from API, using fallback themes:', err);
       }
     });
 
@@ -305,9 +360,23 @@ export class VendorAddService implements OnInit, OnDestroy {
         
         // Trigger reactive updates for category
         this.updateInclusionsForCategory(this.formData.category);
+        this.selectedCategoryKey.set(this.formData.category);
         
-        this.formData.description = svc.description || svc.Description || '';
+        const rawDesc = svc.description || svc.Description || '';
+        let cleanedDesc = rawDesc;
+        let parsedInclusionDetails: any = {};
+        if (rawDesc.includes('\n\n---INCLUSION_DETAILS---\n')) {
+          const parts = rawDesc.split('\n\n---INCLUSION_DETAILS---\n');
+          cleanedDesc = parts[0];
+          try {
+            parsedInclusionDetails = JSON.parse(parts[1]) || {};
+          } catch (e) {
+            console.error('Failed to parse inclusion details JSON in loadServiceData', e);
+          }
+        }
+        this.formData.description = cleanedDesc;
         this.formData.theme = svc.theme || svc.Theme || '';
+        this.selectedTierName.set(this.formData.theme);
         this.formData.experience = (svc.experience || svc.Experience)?.toString() || '';
 
         // Hydrate Address
@@ -374,6 +443,35 @@ export class VendorAddService implements OnInit, OnDestroy {
         const inc = svc.includes || svc.Includes;
         if (inc && inc.length > 0) {
           this.formData.includes = [...inc];
+          
+          // Rehydrate inclusionDetails from parsed JSON or default
+          const details: Record<string, InclusionDetail> = {};
+          inc.forEach((item: string) => {
+            if (parsedInclusionDetails[item]) {
+              details[item] = {
+                description: parsedInclusionDetails[item].description || '',
+                minPrice: parsedInclusionDetails[item].minPrice || 0,
+                maxPrice: parsedInclusionDetails[item].maxPrice || 0,
+                images: parsedInclusionDetails[item].images || [],
+                keyFeatures: parsedInclusionDetails[item].keyFeatures || [],
+                inclusions: parsedInclusionDetails[item].inclusions || []
+              };
+            } else {
+              details[item] = {
+                description: '',
+                minPrice: 0,
+                maxPrice: 0,
+                images: [],
+                keyFeatures: [],
+                inclusions: []
+              };
+            }
+          });
+          this.inclusionDetails.set(details);
+          
+          if (inc.length > 0) {
+            this.activeInclusionTab.set(inc[0]);
+          }
         }
 
         // Hydrate photos
@@ -386,7 +484,7 @@ export class VendorAddService implements OnInit, OnDestroy {
   }
 
   nextStep() {
-    if (this.currentStep() < 5) {
+    if (this.currentStep() < 6) {
       this.currentStep.update(s => s + 1);
       window.scrollTo(0, 0);
     }
@@ -407,6 +505,38 @@ export class VendorAddService implements OnInit, OnDestroy {
     this.formData.spaces.splice(index, 1);
   }
 
+  initInclusionDetails() {
+    const current = { ...this.inclusionDetails() };
+    const includes = this.formData.includes;
+    const updated: Record<string, InclusionDetail> = {};
+    
+    includes.forEach(inc => {
+      if (current[inc]) {
+        updated[inc] = current[inc];
+      } else {
+        updated[inc] = {
+          description: '',
+          minPrice: 0,
+          maxPrice: 0,
+          images: [],
+          keyFeatures: [],
+          inclusions: []
+        };
+      }
+    });
+    
+    this.inclusionDetails.set(updated);
+    
+    // Set active tab to the first inclusion if not set or if current active tab is removed
+    if (includes.length > 0) {
+      if (!this.activeInclusionTab() || !includes.includes(this.activeInclusionTab())) {
+        this.activeInclusionTab.set(includes[0]);
+      }
+    } else {
+      this.activeInclusionTab.set('');
+    }
+  }
+
   addInclude(element: any) {
     const item = element?.value;
     if (!item) return;
@@ -424,17 +554,32 @@ export class VendorAddService implements OnInit, OnDestroy {
       }
       // Safely reset dropdown visual state
       if (element) element.value = '';
+      this.initInclusionDetails();
     }, 10);
   }
 
   removeInclude(index: number) {
     this.formData.includes.splice(index, 1);
+    this.initInclusionDetails();
+  }
+
+  removeInclusionFromSidebar(event: Event, incName: string) {
+    event.stopPropagation();
+    const idx = this.formData.includes.indexOf(incName);
+    if (idx > -1) {
+      this.removeInclude(idx);
+    }
   }
 
   onCategoryChange(categoryKey: string) {
+    this.selectedCategoryKey.set(categoryKey);
     this.updateInclusionsForCategory(categoryKey);
+    // Reset selected tier when category changes
+    this.formData.theme = '';
+    this.selectedTierName.set('');
     // Completely clear selected inclusions when the category changes
     this.formData.includes = [];
+    this.initInclusionDetails();
   }
 
   updateInclusionsForCategory(categoryKey: string) {
@@ -444,6 +589,118 @@ export class VendorAddService implements OnInit, OnDestroy {
     }
     const cat = this.categories().find((c: any) => c.category === categoryKey);
     this.availableInclusions.set(cat ? cat.popularServices || [] : []);
+  }
+
+  getInclusionPriceLimit(incName: string) {
+    const tierObj = this.selectedTierObject();
+    if (!tierObj || !tierObj.priceRanges) return null;
+    return tierObj.priceRanges.find((pr: any) => pr.serviceName.toLowerCase() === incName.toLowerCase()) || null;
+  }
+
+  validateInclusionPrices(incName: string): boolean {
+    const details = this.inclusionDetails()[incName];
+    if (!details) return true;
+    
+    const min = details.minPrice || 0;
+    const max = details.maxPrice || 0;
+    
+    if (min < 0 || max < 0) {
+      this.inclusionPriceErrors[incName] = 'Price cannot be negative.';
+      return false;
+    }
+    
+    if (min > max && max > 0) {
+      this.inclusionPriceErrors[incName] = 'Minimum price cannot exceed maximum price.';
+      return false;
+    }
+    
+    const limit = this.getInclusionPriceLimit(incName);
+    if (limit) {
+      if (min < limit.minPrice) {
+        this.inclusionPriceErrors[incName] = `Minimum price must be at least ₹${limit.minPrice.toLocaleString()}.`;
+        return false;
+      }
+      if (max > limit.maxPrice) {
+        this.inclusionPriceErrors[incName] = `Maximum price cannot exceed ₹${limit.maxPrice.toLocaleString()}.`;
+        return false;
+      }
+    }
+    
+    // Clear error if valid
+    delete this.inclusionPriceErrors[incName];
+    return true;
+  }
+
+  triggerInclusionPhotoUpload(input: HTMLInputElement) {
+    input.click();
+  }
+
+  onInclusionFileSelected(event: any, incName: string) {
+    const details = this.inclusionDetails()[incName];
+    if (!details) return;
+    
+    // Mock upload of files
+    const mockPhotos = [
+      'https://images.unsplash.com/photo-1555244162-803834f70033?w=400',
+      'https://images.unsplash.com/photo-1530103043960-ef38714abb15?w=400',
+      'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?w=400',
+      'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=400',
+      'https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?w=400'
+    ];
+    
+    if (details.images.length < 5) {
+      const nextIdx = details.images.length % mockPhotos.length;
+      details.images.push(mockPhotos[nextIdx]);
+      this.inclusionDetails.set({ ...this.inclusionDetails() });
+    }
+  }
+
+  removeInclusionPhoto(incName: string, index: number) {
+    const details = this.inclusionDetails()[incName];
+    if (details) {
+      details.images.splice(index, 1);
+      this.inclusionDetails.set({ ...this.inclusionDetails() });
+    }
+  }
+
+  addFeature(incName: string, inputElement: HTMLInputElement) {
+    const val = inputElement.value?.trim();
+    if (!val) return;
+    
+    const details = this.inclusionDetails()[incName];
+    if (details && !details.keyFeatures.includes(val)) {
+      details.keyFeatures.push(val);
+      this.inclusionDetails.set({ ...this.inclusionDetails() });
+      inputElement.value = '';
+    }
+  }
+
+  removeFeature(incName: string, index: number) {
+    const details = this.inclusionDetails()[incName];
+    if (details) {
+      details.keyFeatures.splice(index, 1);
+      this.inclusionDetails.set({ ...this.inclusionDetails() });
+    }
+  }
+
+  addInclusionItem(incName: string, inputElement: HTMLInputElement) {
+    const val = inputElement.value?.trim();
+    if (!val) return;
+    
+    const details = this.inclusionDetails()[incName];
+    if (details && !details.inclusions.includes(val)) {
+      details.inclusions.push(val);
+      this.inclusionDetails.set({ ...this.inclusionDetails() });
+      inputElement.value = '';
+    }
+  }
+
+  removeInclusionItem(incName: string, index: number) {
+    const details = this.inclusionDetails()[incName];
+    if (details) {
+      details.inclusions.splice(index, 1);
+      this.inclusionDetails.set({ ...this.inclusionDetails() });
+    }
   }
 
   triggerFileUpload() {
@@ -463,6 +720,17 @@ export class VendorAddService implements OnInit, OnDestroy {
   }
 
   saveService() {
+    // Validate all inclusion prices
+    let hasError = false;
+    this.formData.includes.forEach(inc => {
+      if (!this.validateInclusionPrices(inc)) {
+        hasError = true;
+      }
+    });
+    if (hasError) {
+      alert('Please fix the price range errors on your inclusions before saving.');
+      return;
+    }
     this.showVerificationModal.set(true);
   }
 
@@ -474,10 +742,16 @@ export class VendorAddService implements OnInit, OnDestroy {
     this.showVerificationModal.set(false);
     this.isSubmitting.set(true);
 
+    let descriptionPayload = this.formData.description;
+    const currentDetails = this.inclusionDetails();
+    if (Object.keys(currentDetails).length > 0) {
+      descriptionPayload += '\n\n---INCLUSION_DETAILS---\n' + JSON.stringify(currentDetails);
+    }
+
     const payload = {
       category: this.formData.category,
       name: this.formData.name,
-      description: this.formData.description,
+      description: descriptionPayload,
       theme: this.formData.theme,
       experience: parseInt(this.formData.experience) || 0,
       

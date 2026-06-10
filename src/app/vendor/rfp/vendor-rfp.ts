@@ -9,6 +9,7 @@ import { of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import { EventRfp } from '../../core/models/rfp.model';
+import { EventTierService } from '../../core/services/event-tier.service';
 
 @Component({
   selector: 'app-vendor-rfp',
@@ -23,12 +24,32 @@ export class VendorRfp implements OnInit {
   private auth = inject(AuthService);
   private toast = inject(ToastService);
   private http = inject(HttpClient);
+  public eventTierService = inject(EventTierService);
 
   openRfps = signal<EventRfp[]>([]);
   loading = signal(true);
   selectedRfp = signal<EventRfp | null>(null);
   showBidForm = signal(false);
   submitting = signal(false);
+
+  getTierFromRequirements(requirements?: string): string | null {
+    if (!requirements) return null;
+    const match = requirements.match(/\[Preferred Quality Tier:\s*([^\]]+)\]/);
+    return match ? match[1].trim() : null;
+  }
+
+  getCleanedRequirements(requirements?: string): string {
+    if (!requirements) return '';
+    return requirements.replace(/\[Preferred Quality Tier:\s*([^\]]+)\]\n\n?/, '').trim();
+  }
+
+  getGradientForTier(tier: string): string {
+    return this.eventTierService.getGradientForTier(tier);
+  }
+
+  getIconForTier(tier: string): string {
+    return this.eventTierService.getIconForTier(tier);
+  }
 
   bidForm = {
     proposedAmount: 0,
@@ -38,6 +59,7 @@ export class VendorRfp implements OnInit {
   };
 
   ngOnInit() {
+    this.eventTierService.loadAll().subscribe();
     this.rfpService.getAllOpenRfps().subscribe(rfps => {
       this.openRfps.set(rfps);
       this.loading.set(false);
@@ -50,6 +72,11 @@ export class VendorRfp implements OnInit {
     const user = this.auth.currentUser();
     const alreadyBid = rfp.bids.some(b => b.vendorId === user?.id);
     if (alreadyBid) this.showBidForm.set(false);
+  }
+
+  clearSelection() {
+    this.selectedRfp.set(null);
+    this.showBidForm.set(false);
   }
 
   hasAlreadyBid(rfp: EventRfp): boolean {
@@ -104,7 +131,7 @@ export class VendorRfp implements OnInit {
         this.openRfps.update(list => list.map(r => r.id === rfp.id
           ? { ...r, status: 'receiving_bids' as const } : r));
         this.bidForm = { proposedAmount: 0, description: '', deliverables: [''], validUntil: '' };
-        this.toast.success('Bid submitted successfully! The customer will be notified.');
+        this.toast.success('Quote submitted successfully! The customer will be notified.');
       });
     });
   }

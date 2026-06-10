@@ -52,6 +52,11 @@ export class CustomerDashboard implements OnInit, OnDestroy {
   private campaignTimer: any;
   private hoverTimers: Record<string, any> = {};
 
+  private isMouseDown = false;
+  private startX = 0;
+  private scrollLeftStart = 0;
+  private dragMoved = false;
+
   readonly cities = [
     'Delhi NCR',
     'Mumbai',
@@ -104,7 +109,7 @@ export class CustomerDashboard implements OnInit, OnDestroy {
   readonly stats = signal([
     { label: 'Upcoming Events', value: '0', icon: 'bi-calendar-event', gradient: 'linear-gradient(135deg,#FF6B35,#F59E0B)', iconBg: 'rgba(255,107,53,0.12)', iconColor: 'var(--primary)', route: '/bookings' },
     { label: 'Active Bookings', value: '0', icon: 'bi-journal-check', gradient: 'linear-gradient(135deg,#6B21A8,#9333EA)', iconBg: 'rgba(107,33,168,0.12)', iconColor: 'var(--secondary)', route: '/bookings' },
-    { label: 'RFP Requests', value: '0', icon: 'bi-file-earmark-text', gradient: 'linear-gradient(135deg,#16A34A,#0EA5E9)', iconBg: 'rgba(22,163,74,0.12)', iconColor: 'var(--success)', route: '/rfp' },
+    { label: 'Quote Requests', value: '0', icon: 'bi-chat-quote', gradient: 'linear-gradient(135deg,#16A34A,#0EA5E9)', iconBg: 'rgba(22,163,74,0.12)', iconColor: 'var(--success)', route: '/get-quotes' },
     { label: 'Loyalty Points', value: '0', icon: 'bi-star-half', gradient: 'linear-gradient(135deg,#F59E0B,#FF6B35)', iconBg: 'rgba(245,158,11,0.12)', iconColor: 'var(--accent)', route: '/rewards' },
   ]);
 
@@ -286,6 +291,9 @@ export class CustomerDashboard implements OnInit, OnDestroy {
   }
 
   goToVendors(category: string) {
+    if (this.dragMoved) {
+      return;
+    }
     const cleanCategory = (category || '').toLowerCase();
     this.router.navigate(['/events/vendors'], { queryParams: { [cleanCategory]: '' } });
   }
@@ -320,6 +328,81 @@ export class CustomerDashboard implements OnInit, OnDestroy {
       delete updated[pkgId];
       return updated;
     });
+  }
+
+  getEventTypeName(category: string): string {
+    if (!category) return '';
+    const cat = category.toLowerCase();
+    if (cat.includes('wedding') || cat.includes('shaadi')) return 'Wedding';
+    if (cat.includes('birthday') || cat.includes('party')) return 'Birthday Party';
+    if (cat.includes('corporate')) return 'Corporate Event';
+    if (cat.includes('beauty')) return 'Beauty & Styling';
+    if (cat.includes('travel')) return 'Travel & Transport';
+    if (cat.includes('shopping')) return 'Event Shopping';
+    return category.charAt(0).toUpperCase() + category.slice(1);
+  }
+
+  getEventTypeBadgeStyle(category: string): { [key: string]: string } {
+    if (!category) return { 'background-color': 'rgba(107, 33, 168, 0.08)', 'color': '#6b21a8' };
+    const cat = category.toLowerCase();
+    if (cat.includes('wedding') || cat.includes('shaadi')) {
+      return { 'background-color': 'rgba(233, 30, 99, 0.08)', 'color': '#e91e63' };
+    }
+    if (cat.includes('birthday') || cat.includes('party')) {
+      return { 'background-color': 'rgba(245, 158, 11, 0.08)', 'color': '#d97706' };
+    }
+    if (cat.includes('corporate')) {
+      return { 'background-color': 'rgba(14, 165, 233, 0.08)', 'color': '#0284c7' };
+    }
+    if (cat.includes('beauty')) {
+      return { 'background-color': 'rgba(217, 70, 239, 0.08)', 'color': '#c026d3' };
+    }
+    if (cat.includes('travel')) {
+      return { 'background-color': 'rgba(16, 185, 129, 0.08)', 'color': '#059669' };
+    }
+    if (cat.includes('shopping')) {
+      return { 'background-color': 'rgba(244, 63, 94, 0.08)', 'color': '#e11d48' };
+    }
+    return { 'background-color': 'rgba(107, 33, 168, 0.08)', 'color': '#6b21a8' };
+  }
+
+  onWheelScroll(event: WheelEvent) {
+    if (event.deltaY !== 0) {
+      event.preventDefault();
+      const container = event.currentTarget as HTMLElement;
+      container.scrollLeft += event.deltaY;
+    }
+  }
+
+  onMouseDown(event: MouseEvent) {
+    this.isMouseDown = true;
+    this.dragMoved = false;
+    this.startX = event.pageX - (event.currentTarget as HTMLElement).offsetLeft;
+    this.scrollLeftStart = (event.currentTarget as HTMLElement).scrollLeft;
+  }
+
+  onMouseMove(event: MouseEvent) {
+    if (!this.isMouseDown) return;
+    event.preventDefault();
+    const container = event.currentTarget as HTMLElement;
+    const x = event.pageX - container.offsetLeft;
+    const walk = (x - this.startX) * 1.5; // multiplier for scrolling speed
+    if (Math.abs(walk) > 5) {
+      this.dragMoved = true;
+    }
+    container.scrollLeft = this.scrollLeftStart - walk;
+  }
+
+  onMouseUp() {
+    this.isMouseDown = false;
+    setTimeout(() => {
+      this.dragMoved = false;
+    }, 100);
+  }
+
+  onMouseLeave() {
+    this.isMouseDown = false;
+    this.dragMoved = false;
   }
 }
 

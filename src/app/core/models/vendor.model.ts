@@ -19,6 +19,10 @@ export interface Vendor {
   joinedDate: string;
   bankAccount?: string;
   gstNumber?: string;
+  // --- Subscription Fields (managed by backend) ---
+  subscriptionTier?: 'free' | 'pro' | 'premium';
+  subscriptionBadge?: string;
+  subscriptionExpiry?: string;
   notes?: string;
   accountStatus?: 'active' | 'suspended' | 'banned';
   suspensionReason?: string;

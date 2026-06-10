@@ -1,11 +1,11 @@
 <!-- Header -->
 <div class="rfp-header">
   <div>
-    <h1>Open <span class="text-primary">RFP Board</span></h1>
-    <p>Browse event requirements posted by customers and submit your competitive bid</p>
+    <h1>Open <span class="text-primary">Quote Board</span></h1>
+    <p>Browse event requirements posted by customers and submit your custom quote</p>
   </div>
   <div class="rfp-badge">
-    <i class="bi bi-hammer"></i>
+    <i class="bi bi-chat-quote"></i>
     {{ openRfps().length }} Open Requests
   </div>
 </div>
@@ -26,7 +26,7 @@
     } @else if (openRfps().length === 0) {
       <div class="rfp-empty">
         <i class="bi bi-inbox"></i>
-        <h4>No open RFPs</h4>
+        <h4>No open Quote Requests</h4>
         <p>No customers have posted event requirements yet. Check back soon!</p>
       </div>
     } @else {
@@ -40,10 +40,20 @@
               <i class="bi bi-clock"></i> {{ getDaysLeft(rfp.expiresAt) }}d left
             </span>
           </div>
-          <h4 class="rfp-title">{{ rfp.title }}</h4>
+          <h4 class="rfp-title">
+            {{ rfp.title }}
+            @if (getTierFromRequirements(rfp.requirements); as tier) {
+              <span class="badge" [style.background]="getGradientForTier(tier)" style="font-size: 0.65rem; padding: 2px 8px; border-radius: 50px; color: white; font-weight: 700; text-transform: uppercase; margin-left: 8px; display: inline-block; vertical-align: middle;">
+                {{ tier }}
+              </span>
+            }
+          </h4>
           <div class="rfp-meta">
             <span><i class="bi bi-calendar2"></i> {{ rfp.eventDate }}</span>
-            <span><i class="bi bi-geo-alt"></i> {{ rfp.city }}</span>
+            <span>
+              <i class="bi bi-geo-alt"></i> 
+              {{ rfp.city }}@if (rfp.venueStatus === 'booked' && rfp.venueName) { — {{ rfp.venueName }} }@else if (rfp.venueStatus === 'not_booked' && rfp.locality) { — {{ rfp.locality }} }
+            </span>
             <span><i class="bi bi-people"></i> {{ rfp.guestCount }} guests</span>
           </div>
           <div class="rfp-budget-row">
@@ -60,9 +70,9 @@
               }
             </div>
             @if (hasAlreadyBid(rfp)) {
-              <span class="bid-submitted-tag"><i class="bi bi-check-circle-fill"></i> Bid Submitted</span>
+              <span class="bid-submitted-tag"><i class="bi bi-check-circle-fill"></i> Quote Submitted</span>
             } @else {
-              <span class="bid-opportunity"><i class="bi bi-hammer"></i> {{ rfp.bids.length }} bids</span>
+              <span class="bid-opportunity"><i class="bi bi-chat-quote"></i> {{ rfp.bids.length }} quote{{ rfp.bids.length !== 1 ? 's' : '' }}</span>
             }
           </div>
         </div>
@@ -73,6 +83,10 @@
   <!-- RFP Detail + Bid Panel -->
   @if (selectedRfp(); as rfp) {
     <div class="rfp-detail">
+      <!-- Back to List button (Mobile Only) -->
+      <button class="btn-back-list" (click)="clearSelection()">
+        <i class="bi bi-chevron-left"></i> Back to Quote Board
+      </button>
 
       <!-- RFP Overview -->
       <div class="detail-header">
@@ -82,24 +96,46 @@
             <h3 class="detail-title">{{ rfp.title }}</h3>
             <div class="detail-meta">
               <span><i class="bi bi-calendar-event"></i> {{ rfp.eventDate }}</span>
-              <span><i class="bi bi-geo-alt-fill"></i> {{ rfp.city }}</span>
+              <span>
+                <i class="bi bi-geo-alt-fill"></i> 
+                {{ rfp.city }}@if (rfp.venueStatus === 'booked' && rfp.venueName) { — {{ rfp.venueName }} }@else if (rfp.venueStatus === 'not_booked' && rfp.locality) { — {{ rfp.locality }} }@if (rfp.pincode) { ({{ rfp.pincode }}) }
+              </span>
               <span><i class="bi bi-people-fill"></i> {{ rfp.guestCount }} guests</span>
               <span><i class="bi bi-clock"></i> {{ getDaysLeft(rfp.expiresAt) }} days left</span>
             </div>
           </div>
         </div>
 
-        <div class="budget-banner">
-          <i class="bi bi-wallet2"></i>
-          <div>
-            <span class="budget-label-sm">Customer Budget</span>
-            <span class="budget-big">{{ formatCurrency(rfp.budgetMin) }} – {{ formatCurrency(rfp.budgetMax) }}</span>
+        <div class="budget-banner" style="display: flex; gap: 16px; align-items: center; flex-wrap: wrap;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <i class="bi bi-wallet2"></i>
+            <div>
+              <span class="budget-label-sm">Customer Budget Range</span>
+              <span class="budget-big">{{ formatCurrency(rfp.budgetMin) }} – {{ formatCurrency(rfp.budgetMax) }}</span>
+            </div>
           </div>
+          @if (rfp.venueStatus === 'booked') {
+            <div style="display: flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 50px; background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; font-size: 0.8rem; font-weight: 700; text-transform: uppercase;">
+              <i class="bi bi-house-check-fill"></i>
+              <span>Venue Booked</span>
+            </div>
+          } @else {
+            <div style="display: flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 50px; background: #fef3c7; color: #b45309; border: 1px solid #fde68a; font-size: 0.8rem; font-weight: 700; text-transform: uppercase;">
+              <i class="bi bi-house-exclamation-fill"></i>
+              <span>Venue Needed</span>
+            </div>
+          }
+          @if (getTierFromRequirements(rfp.requirements); as tier) {
+            <div style="display: flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 50px; color: white; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; margin-left: auto;" [style.background]="getGradientForTier(tier)">
+              <i class="bi" [class]="getIconForTier(tier) || 'bi-gem'"></i>
+              <span>{{ tier }} Tier</span>
+            </div>
+          }
         </div>
 
         <div class="req-section">
           <h6 class="req-label"><i class="bi bi-clipboard-text"></i> Requirements</h6>
-          <p class="req-text">{{ rfp.requirements }}</p>
+          <p class="req-text">{{ getCleanedRequirements(rfp.requirements) }}</p>
         </div>
 
         <div class="detail-services">
@@ -114,20 +150,20 @@
         @if (!showBidForm()) {
           <div class="bid-cta-card">
             <div class="bid-cta-left">
-              <i class="bi bi-hammer bid-cta-icon"></i>
+              <i class="bi bi-chat-quote bid-cta-icon"></i>
               <div>
-                <h5>Ready to submit your proposal?</h5>
-                <p>{{ rfp.bids.length }} vendor{{ rfp.bids.length !== 1 ? 's have' : ' has' }} already bid on this request</p>
+                <h5>Ready to submit your quote?</h5>
+                <p>{{ rfp.bids.length }} vendor{{ rfp.bids.length !== 1 ? 's have' : ' has' }} already quoted for this request</p>
               </div>
             </div>
             <button class="btn-bid" (click)="showBidForm.set(true)">
-              <i class="bi bi-send-fill"></i> Submit Bid
+              <i class="bi bi-send-fill"></i> Submit Quote
             </button>
           </div>
         } @else {
           <div class="bid-form-card">
             <div class="bid-form-header">
-              <h5><i class="bi bi-send-fill"></i> Submit Your Proposal</h5>
+              <h5><i class="bi bi-send-fill"></i> Submit Your Quote</h5>
               <button class="btn-close-form" (click)="showBidForm.set(false)">
                 <i class="bi bi-x-lg"></i>
               </button>
@@ -144,14 +180,14 @@
 
               <!-- Proposal Description -->
               <div class="form-group">
-                <label class="form-label">Proposal Description <span class="required">*</span></label>
+                <label class="form-label">Quote Details / Explanation <span class="required">*</span></label>
                 <textarea class="form-input" rows="4" [(ngModel)]="bidForm.description"
-                  placeholder="Describe what you'll provide, your experience with similar events, and why you're the best choice..."></textarea>
+                  placeholder="Describe what services you will provide, your experience with similar events, and why you are the best choice..."></textarea>
               </div>
 
               <!-- Deliverables -->
               <div class="form-group">
-                <label class="form-label">Key Deliverables</label>
+                <label class="form-label">Key Inclusions / Deliverables</label>
                 @for (d of bidForm.deliverables; track $index) {
                   <div class="deliverable-row">
                     <input type="text" class="form-input" [value]="d"
@@ -171,7 +207,7 @@
 
               <!-- Valid Until -->
               <div class="form-group">
-                <label class="form-label">Bid Valid Until <span class="required">*</span></label>
+                <label class="form-label">Quote Valid Until <span class="required">*</span></label>
                 <input type="date" class="form-input" [(ngModel)]="bidForm.validUntil">
               </div>
 
@@ -181,7 +217,7 @@
                   @if (submitting()) {
                     <span class="spinner"></span> Submitting...
                   } @else {
-                    <i class="bi bi-send-fill"></i> Submit Proposal
+                    <i class="bi bi-send-fill"></i> Submit Quote
                   }
                 </button>
               </div>
@@ -192,19 +228,19 @@
         <div class="already-bid-card">
           <i class="bi bi-check-circle-fill"></i>
           <div>
-            <h5>Bid Already Submitted</h5>
-            <p>You've submitted a proposal for this RFP. You'll be notified when the customer makes a decision.</p>
+            <h5>Quote Already Submitted</h5>
+            <p>You've submitted a quote for this request. You'll be notified when the customer makes a decision.</p>
           </div>
         </div>
       }
 
       <!-- Competition Overview -->
       <div class="competition-card">
-        <h6 class="comp-title"><i class="bi bi-bar-chart"></i> Competition Overview</h6>
+        <h6 class="comp-title"><i class="bi bi-bar-chart"></i> Request Overview</h6>
         <div class="comp-stats">
           <div class="comp-stat">
             <span class="comp-num">{{ rfp.bids.length }}</span>
-            <span class="comp-label">Bids Submitted</span>
+            <span class="comp-label">Quotes Submitted</span>
           </div>
           <div class="comp-stat">
             <span class="comp-num">{{ getDaysLeft(rfp.expiresAt) }}</span>

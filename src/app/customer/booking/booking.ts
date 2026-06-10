@@ -11,6 +11,8 @@ import { BookingService } from '../../core/services/booking.service';
 import { Booking } from '../../core/models/booking.model';
 import { EventTierService } from '../../core/services/event-tier.service';
 
+import { FavoritesService } from '../../core/services/favorites.service';
+
 @Component({
   selector: 'app-customer-booking',
   standalone: true,
@@ -29,6 +31,7 @@ export class CustomerBooking implements OnInit, OnDestroy, OnChanges {
   private toast = inject(ToastService);
   private bookingService = inject(BookingService);
   public eventTierService = inject(EventTierService);
+  public favoritesService = inject(FavoritesService);
 
   userRole = computed(() => this.auth.currentUser()?.role);
 
@@ -106,6 +109,76 @@ export class CustomerBooking implements OnInit, OnDestroy, OnChanges {
   showMobileBooking = signal(false);
   selectedServiceDetail = signal<any | null>(null);
   selectedImage = signal<string | null>(null);
+
+  includedCategories = [
+    { name: 'Venue', icon: 'bi-building', key: 'venue' },
+    { name: 'Catering', icon: 'bi-egg-fried', key: 'catering' },
+    { name: 'Decoration', icon: 'bi-flower1', key: 'decoration' },
+    { name: 'Transport', icon: 'bi-car-front-fill', key: 'transport' },
+    { name: 'Priest', icon: 'bi-fire', key: 'priest' },
+    { name: 'Manpower', icon: 'bi-people', key: 'manpower' },
+    { name: 'Photography', icon: 'bi-camera', key: 'photography' },
+    { name: 'Music & DJ', icon: 'bi-music-note-beamed', key: 'music' }
+  ];
+
+  displayedCategories = computed(() => {
+    return this.includedCategories.filter(cat => this.hasCategory(cat.key));
+  });
+
+  getServiceForCategory(categoryKey: string): string | null {
+    const pkg = this.selectedPackage();
+    if (!pkg || !pkg.services) return null;
+    
+    const services: string[] = pkg.services;
+    return services.find(s => {
+      const lower = s.toLowerCase();
+      if (categoryKey === 'venue') return lower.includes('venue') || lower.includes('suite') || lower.includes('hall') || lower.includes('banquet') || lower.includes('space') || lower.includes('room');
+      if (categoryKey === 'catering') return lower.includes('catering') || lower.includes('dinner') || lower.includes('feast') || lower.includes('food') || lower.includes('meal') || lower.includes('buffet') || lower.includes('veg');
+      if (categoryKey === 'decoration') return lower.includes('decor') || lower.includes('stage') || lower.includes('flower') || lower.includes('theme');
+      if (categoryKey === 'transport') return lower.includes('transport') || lower.includes('car') || lower.includes('travel') || lower.includes('coach') || lower.includes('chauffeur') || lower.includes('cab') || lower.includes('bus');
+      if (categoryKey === 'priest') return lower.includes('priest') || lower.includes('pandit') || lower.includes('pujari') || lower.includes('hawan') || lower.includes('ritual') || lower.includes('vedic');
+      if (categoryKey === 'manpower') return lower.includes('manpower') || lower.includes('staff') || lower.includes('security') || lower.includes('valet') || lower.includes('host') || lower.includes('anchor') || lower.includes('coordinator') || lower.includes('manager');
+      if (categoryKey === 'photography') return lower.includes('photo') || lower.includes('video') || lower.includes('camera') || lower.includes('drone') || lower.includes('shoot') || lower.includes('film');
+      if (categoryKey === 'music') return lower.includes('music') || lower.includes('dj') || lower.includes('sound') || lower.includes('light') || lower.includes('band') || lower.includes('av');
+      return false;
+    }) || null;
+  }
+
+  hasCategory(categoryKey: string): boolean {
+    return !!this.getServiceForCategory(categoryKey);
+  }
+
+  onCategoryClick(cat: any) {
+    const serviceName = this.getServiceForCategory(cat.key);
+    if (serviceName) {
+      this.openServiceDetail(serviceName);
+    } else {
+      // Find a matching addon
+      const pkg = this.selectedPackage();
+      const matchingAddon = pkg?.addons?.find((a: any) => {
+        const lower = a.name.toLowerCase();
+        if (cat.key === 'venue') return lower.includes('venue') || lower.includes('hall') || lower.includes('suite');
+        if (cat.key === 'catering') return lower.includes('catering') || lower.includes('food') || lower.includes('meal') || lower.includes('buffet') || lower.includes('dinner');
+        if (cat.key === 'decoration') return lower.includes('decor') || lower.includes('flower') || lower.includes('stage');
+        if (cat.key === 'transport') return lower.includes('transport') || lower.includes('car') || lower.includes('travel') || lower.includes('coach') || lower.includes('chauffeur');
+        if (cat.key === 'priest') return lower.includes('priest') || lower.includes('pandit') || lower.includes('pujari') || lower.includes('ritual');
+        if (cat.key === 'manpower') return lower.includes('manpower') || lower.includes('staff') || lower.includes('security') || lower.includes('valet') || lower.includes('host') || lower.includes('anchor');
+        if (cat.key === 'photography') return lower.includes('photo') || lower.includes('video') || lower.includes('camera') || lower.includes('drone');
+        if (cat.key === 'music') return lower.includes('music') || lower.includes('dj') || lower.includes('sound') || lower.includes('band');
+        return false;
+      });
+
+      if (matchingAddon) {
+        this.toast.info(`${cat.name} is not included in the base package, but you can add it as a customized experience below!`);
+        const el = document.querySelector('.addons-grid');
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth' });
+        }
+      } else {
+        this.toast.info(`${cat.name} is not included in this package.`);
+      }
+    }
+  }
 
   userBookings = signal<Booking[]>([]);
 
@@ -204,7 +277,11 @@ export class CustomerBooking implements OnInit, OnDestroy, OnChanges {
           
           // Load similar packages (exclude current one)
           this.api.getPackages(pkg.eventTypeId).subscribe(pkgs => {
-            const similar = pkgs.filter(p => p.id !== pkgId);
+            const similar = pkgs.filter(p => p.id !== pkgId).map(p => ({
+              ...p,
+              images: p.images && p.images.length > 0 ? p.images : (p.image ? [p.image] : []),
+              activeImageIndex: 0
+            }));
             this.similarPackages.set(similar.slice(0, 3));
           });
           
@@ -358,6 +435,45 @@ export class CustomerBooking implements OnInit, OnDestroy, OnChanges {
   }
 
   openServiceDetail(serviceName: string) {
+    // Check if the service has customized inclusion details in the package's inclusionDetails
+    const pkg = this.selectedPackage();
+    const customDetails = pkg?.inclusionDetails?.[serviceName];
+    if (customDetails) {
+      let features: string[] = [];
+      if (Array.isArray(customDetails.keyFeatures)) {
+        features = [...customDetails.keyFeatures];
+      } else if (typeof customDetails.keyFeatures === 'string' && customDetails.keyFeatures) {
+        features = customDetails.keyFeatures.split(',').map((f: string) => f.trim()).filter((f: string) => f);
+      }
+
+      if (Array.isArray(customDetails.inclusions)) {
+        features = [...features, ...customDetails.inclusions];
+      } else if (typeof customDetails.inclusions === 'string' && customDetails.inclusions) {
+        const incls = customDetails.inclusions.split(',').map((i: string) => i.trim()).filter((i: string) => i);
+        features = [...features, ...incls];
+      }
+
+      let priceRangeStr = '';
+      if (customDetails.minPrice && customDetails.maxPrice) {
+        priceRangeStr = `₹${customDetails.minPrice.toLocaleString()} - ₹${customDetails.maxPrice.toLocaleString()}`;
+      } else if (customDetails.minPrice) {
+        priceRangeStr = `Starts from ₹${customDetails.minPrice.toLocaleString()}`;
+      }
+
+      this.selectedServiceDetail.set({
+        name: serviceName,
+        description: customDetails.description || `Premium ${serviceName} details provided by our verified partners.`,
+        images: (customDetails.images && customDetails.images.length > 0)
+          ? customDetails.images
+          : (customDetails.imageUrl
+            ? [customDetails.imageUrl]
+            : ['https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&q=80&w=800']),
+        features: features.length > 0 ? features : ['Professional Service', 'JoinEvents Verified', 'Quality Guaranteed'],
+        priceRange: priceRangeStr
+      });
+      return;
+    }
+
     // Mock service details based on actual package items
     const detailsMap: any = {
       'Gourmet 5-Course Dinner': {
@@ -499,5 +615,20 @@ export class CustomerBooking implements OnInit, OnDestroy, OnChanges {
     if (img.src !== fallbackUrl) {
       img.src = fallbackUrl;
     }
+  }
+
+  isFavorite(id: string): boolean {
+    return this.favoritesService.isFavorite(id);
+  }
+
+  toggleFavorite(event: Event, pkg: any) {
+    event.stopPropagation();
+    this.favoritesService.toggleFavorite({
+      id: pkg.id,
+      name: pkg.name,
+      type: 'package',
+      subtitle: `${pkg.location} • ₹${(pkg.price / 100000).toFixed(1)}L`,
+      routeUrl: `/events/vendors?${pkg.eventTypeId || 'wedding'}=${pkg.id}`
+    });
   }
 }

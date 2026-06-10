@@ -340,6 +340,25 @@
                 <span>₹{{ gstAmount() | number }}</span>
               </div>
 
+            <!-- JoinEvents Guarantee -->
+            <div class="guarantee-section">
+              <div class="guarantee-header">
+                <i class="bi bi-shield-lock-fill"></i>
+                <span>JoinEvents Guarantee</span>
+              </div>
+              <div class="guarantee-items">
+                @for (item of guaranteeHighlights; track item.title) {
+                  <div class="guarantee-item">
+                    <i class="bi {{ item.icon }}"></i>
+                    <div>
+                      <strong>{{ item.title }}</strong>
+                      <span>{{ item.description }}</span>
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+
               @if (bookingDetails()?.isBalancePayment) {
                 <div class="price-row paid-row text-success">
                   <span>Advance Deposit Paid</span>
@@ -370,6 +389,10 @@
             <button class="btn-pay-confirm mt-4" (click)="payAndConfirm()" [disabled]="isProcessing()">
               <i class="bi bi-lock-fill me-2"></i> Pay & Confirm Booking
             </button>
+              <div class="escrow-note">
+                <i class="bi bi-lock-fill"></i>
+                Payment held in escrow until event completion
+              </div>
             <p class="security-guarantee-text text-center mt-3">
               <i class="bi bi-shield-fill-check text-purple me-1"></i> SSL encrypted transaction. 
             </p>

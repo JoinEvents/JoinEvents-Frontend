@@ -9,7 +9,7 @@ import { BookingStatus } from '../../core/models/booking.model';
 import { ToastService } from '../../core/services/toast.service';
 import { FormsModule } from '@angular/forms';
 
-interface VendorBookingReq { id: string; bookingId: string; customerName: string; eventDate: string; eventName: string; amount: number; status: BookingStatus; review?: any; customerPhone?: string; }
+interface VendorBookingReq { id: string; bookingId: string; customerName: string; eventDate: string; eventName: string; amount: number; status: BookingStatus; review?: any; }
 
 @Component({ selector: 'app-vendor-bookings', standalone: true, imports: [TitleCasePipe, RouterLink, FormsModule], templateUrl: './vendor-bookings.html', styleUrl: './vendor-bookings.css' })
 export class VendorBookings implements OnInit {

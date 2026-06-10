@@ -8,6 +8,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { PackageService } from '../../core/services/package.service';
 import { ToastService } from '../../core/services/toast.service';
 import { LoyaltyService } from '../../core/services/loyalty.service';
+import { GuaranteeService } from '../../core/services/guarantee.service';
 
 @Component({
   selector: 'app-checkout',
@@ -25,6 +26,9 @@ export class Checkout implements OnInit {
   private packageService = inject(PackageService);
   private toast = inject(ToastService);
   private loyaltyService = inject(LoyaltyService);
+  private guaranteeService = inject(GuaranteeService);
+
+  guaranteeHighlights = this.guaranteeService.getGuaranteeHighlights();
 
   bookingDetails = signal<any | null>(null);
   
@@ -87,7 +91,9 @@ export class Checkout implements OnInit {
     if (this.appliedCoupon().toUpperCase() === 'WELCOME10') {
       discount += Math.round(this.basePrice() * 0.1);
     }
-    discount += this.loyaltyDiscountAmount();
+    // Cap loyalty discount at 5% of base price (backend enforces the actual cap)
+    const maxLoyaltyDiscount = Math.round(this.basePrice() * 0.05);
+    discount += Math.min(this.loyaltyDiscountAmount(), maxLoyaltyDiscount);
     return discount;
   });
 
@@ -447,7 +453,10 @@ export class Checkout implements OnInit {
       EventName: details.packageName || 'Event Celebration',
       Venue: details.bookingCity || 'Banquet Hall',
       City: details.bookingCity || 'Mumbai',
-      GuestCount: parseInt(details.bookingGuests) || 100
+      GuestCount: parseInt(details.bookingGuests) || 100,
+      ApplyPlatformFee: true,
+      EscrowStatus: 'held',
+      GuaranteeStatus: 'active',
     };
 
     this.bookingService.createBooking(bookingPayload).subscribe({

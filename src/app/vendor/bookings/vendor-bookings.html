@@ -142,8 +142,8 @@
                 <a routerLink="/vendor/messages" class="contact-btn contact-btn-chat">
                   <i class="bi bi-chat-dots-fill"></i> Chat
                 </a>
-                <a [href]="'tel:' + (req.customerPhone || '+919876543210')" class="contact-btn contact-btn-call">
-                  <i class="bi bi-telephone-fill"></i> Call
+                <a routerLink="/vendor/messages" class="contact-btn contact-btn-call" title="Contact customer through JoinEvents messaging for booking protection">
+                  <i class="bi bi-shield-check"></i> Secure Chat
                 </a>
               </div>
             </div>
@@ -151,7 +151,7 @@
               <div class="col-6"><i class="bi bi-geo-alt me-1"></i> Location: Venue TBA</div>
               <div class="col-6"><i class="bi bi-clock me-1"></i> Time: 6:00 PM - 11:00 PM</div>
               <div class="col-6"><i class="bi bi-people me-1"></i> Guests: Approx. 150</div>
-              <div class="col-6"><i class="bi bi-telephone me-1"></i> Contact: {{ req.customerName }}</div>
+              <div class="col-6"><i class="bi bi-shield-lock me-1"></i> Contact: Via JoinEvents Chat <span class="badge bg-success bg-opacity-25 text-success x-small ms-1">Protected</span></div>
             </div>
             <div class="p-2 rounded bg-light border small text-dark" style="background: rgba(0,0,0,0.02) !important;">
               <strong class="d-block mb-1">Vendor Instructions:</strong> 

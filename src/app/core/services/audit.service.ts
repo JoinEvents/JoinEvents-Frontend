@@ -363,9 +363,9 @@ const MOCK_AUDIT_LOGS: AuditLog[] = [
     id: 'al030',
     timestamp: '2026-05-26T06:00:00Z',
     actorId: 'system', actorName: 'System', actorRole: 'system',
-    action: 'RFP Published',
-    description: 'Global RFP #RFP-2026-012 "Corporate Annual Meet — Bangalore" published and visible to all verified vendors.',
-    entityType: 'system', entityId: 'rfp-2026-012', entityName: 'RFP-2026-012',
+    action: 'Quote Request Published',
+    description: 'Global Quote Request #QR-2026-012 "Corporate Annual Meet — Bangalore" published and visible to all verified vendors.',
+    entityType: 'system', entityId: 'qr-2026-012', entityName: 'QR-2026-012',
     severity: 'info',
     metadata: { extra: 'Budget: ₹3,00,000 | Deadline: 2026-06-10 | Category: Corporate' }
   },

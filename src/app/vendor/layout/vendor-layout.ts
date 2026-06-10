@@ -99,7 +99,7 @@ export class VendorLayout {
     { path: '/vendor/calendar',     icon: 'bi-calendar3',      label: 'Calendar' },
     { path: '/vendor/bookings',     icon: 'bi-journal-check',  label: 'Booking Requests' },
     { path: '/vendor/messages',     icon: 'bi-chat-dots',      label: 'Messages' },
-    { path: '/vendor/rfp',          icon: 'bi-hammer',         label: 'RFP Board' },
+    { path: '/vendor/quote-board',  icon: 'bi-chat-quote',     label: 'Quote Board' },
     { path: '/vendor/finance',      icon: 'bi-wallet2',        label: 'Invoices & Banking' },
     { path: '/vendor/offers',       icon: 'bi-tags',           label: 'Promotional Offers' },
     { path: '/vendor/staff',        icon: 'bi-people',         label: 'Staff Management' },

@@ -2,6 +2,8 @@ import { Component, signal, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ToastService } from '../../core/services/toast.service';
+import { CommissionService } from '../../core/services/commission.service';
+import { PlatformFeeBreakdown } from '../../core/models/commission.model';
 
 @Component({
   selector: 'app-vendor-finance',
@@ -12,6 +14,7 @@ import { ToastService } from '../../core/services/toast.service';
 })
 export class VendorFinance implements OnInit {
   private toast = inject(ToastService);
+  private commissionService = inject(CommissionService);
 
   isSaving = signal(false);
   isEditing = signal(false);
@@ -31,10 +34,13 @@ export class VendorFinance implements OnInit {
   };
 
   invoices = signal([
-    { id: 'INV-001', bookingId: 'bk001', customer: 'Rajesh Kumar', date: '2025-10-15', amount: 25000, status: 'paid', downloadUrl: '#' },
-    { id: 'INV-002', bookingId: 'bk002', customer: 'Rajesh Kumar', date: '2025-11-20', amount: 12000, status: 'paid', downloadUrl: '#' },
-    { id: 'INV-003', bookingId: 'bk004', customer: 'Sunita Patel', date: '2026-04-05', amount: 40000, status: 'pending', downloadUrl: '#' },
+    { id: 'INV-001', bookingId: 'bk001', customer: 'Rajesh Kumar', date: '2025-10-15', grossAmount: 25000, platformFee: 2000, tds: 250, netPayout: 22750, status: 'paid', downloadUrl: '#' },
+    { id: 'INV-002', bookingId: 'bk002', customer: 'Rajesh Kumar', date: '2025-11-20', grossAmount: 12000, platformFee: 960, tds: 120, netPayout: 10920, status: 'paid', downloadUrl: '#' },
+    { id: 'INV-003', bookingId: 'bk004', customer: 'Sunita Patel', date: '2026-04-05', grossAmount: 40000, platformFee: 3200, tds: 400, netPayout: 36400, status: 'pending', downloadUrl: '#' },
   ]);
+
+  totalPlatformFees = signal(6160);
+  totalTdsDeducted = signal(770);
 
   ngOnInit() {
     // Initial data loading if needed

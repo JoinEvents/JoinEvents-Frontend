@@ -27,6 +27,10 @@ export interface EventRfp {
   eventTypeName: string;
   eventDate: string;
   city: string;
+  venueStatus?: 'booked' | 'not_booked';
+  venueName?: string;
+  locality?: string;
+  pincode?: string;
   guestCount: number;
   budgetMin: number;
   budgetMax: number;

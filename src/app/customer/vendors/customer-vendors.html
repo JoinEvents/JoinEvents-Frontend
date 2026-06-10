@@ -16,7 +16,12 @@
   <div class="search-hero">
     <div class="search-item">
       <label>Location</label>
-      <input type="text" placeholder="Where in India?" [value]="filterLocation()" (input)="updateFilter('location', $any($event.target).value)">
+      <select [value]="filterLocation()" (change)="updateFilter('location', $any($event.target).value)">
+        <option value="">Any Location</option>
+        @for (city of cities(); track city.id) {
+          <option [value]="city.name">{{ city.name }}</option>
+        }
+      </select>
     </div>
     <div class="search-item">
       <label>Date</label>

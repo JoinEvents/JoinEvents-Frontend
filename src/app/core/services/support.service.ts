@@ -230,7 +230,7 @@ export class SupportService extends BaseApiService {
       name: p.Name || p.name,
       vendorName: p.VendorName || p.vendorName || 'JoinEvents Partner',
       location: cityLoc,
-      tier: p.Tier || p.tier || 'premium',
+      tier: p.Tier || p.tier || p.Theme || p.theme || 'premium',
       price: priceValue,
       description: p.Description || p.description,
       maxGuests: guests,

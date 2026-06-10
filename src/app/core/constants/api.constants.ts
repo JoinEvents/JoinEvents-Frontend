@@ -74,5 +74,26 @@ export const API_ROUTES = {
     LOYALTY: '/vendor/loyalty',
     GROWTH_TARGET: '/vendor/growth-target',
     ESG_IMPACT: '/vendor/esg-impact',
-  }
+  },
+  COMMISSION: {
+    CONFIG: '/commission/config',
+    CALCULATE: '/commission/calculate',
+    RATES: '/commission/rates',
+  },
+  SUBSCRIPTION: {
+    CURRENT: '/vendor/subscription',
+    UPGRADE: '/vendor/subscription/upgrade',
+    CANCEL: '/vendor/subscription/cancel',
+    HISTORY: '/vendor/subscription/history',
+  },
+  GUARANTEE: {
+    POLICIES: '/guarantee/policies',
+    CLAIM: '/guarantee/claim',
+    CLAIMS: '/guarantee/claims',
+  },
+  INVOICES: {
+    VENDOR: '/vendor/invoices',
+    ADMIN: '/admin/invoices',
+    DOWNLOAD: (id: string) => `/invoices/${id}/download`,
+  },
 };

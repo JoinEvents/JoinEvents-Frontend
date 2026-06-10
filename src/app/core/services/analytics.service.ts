@@ -12,6 +12,13 @@ export interface AdminAnalyticsData {
   top5VendorsByEarnings: any[];
   customerAcquisitionByMonth: number[];
   averageBookingValue: number;
+  // Platform Revenue (computed from backend booking data)
+  platformCommissionTotal: number;
+  monthlyCommission: number[];
+  subscriptionRevenue: number;
+  vendorPayoutTotal: number;
+  tdsCollected: number;
+  revenueByCategory: Record<string, number>;
 }
 
 export interface VendorAnalyticsData {
@@ -66,13 +73,52 @@ export class AnalyticsService {
 
         const averageBookingValue = bookings.length ? totalRevenue / bookings.length : 0;
 
+        // Platform Revenue Calculations (display estimates — actual figures come from backend reports)
+        let platformCommissionTotal = 0;
+        const monthlyCommission = Array(12).fill(0);
+        let vendorPayoutTotal = 0;
+        let tdsCollected = 0;
+        const revenueByCategory: Record<string, number> = {};
+        const defaultRate = 0.10;
+        const tdsRate = 0.01;
+
+        bookings.forEach(b => {
+          const category = b.eventTypeId || 'wedding';
+          const commission = Math.round(b.totalAmount * defaultRate);
+          const tds = Math.round(b.totalAmount * tdsRate);
+          const gstOnComm = Math.round(commission * 0.18);
+          const platformRev = commission - gstOnComm;
+
+          platformCommissionTotal += platformRev;
+          vendorPayoutTotal += (b.totalAmount - commission - tds);
+          tdsCollected += tds;
+          revenueByCategory[category] = (revenueByCategory[category] || 0) + platformRev;
+
+          if (b.eventDate) {
+            const parts = b.eventDate.split('-');
+            const month = parseInt(parts[1], 10) - 1;
+            if (month >= 0 && month < 12) {
+              monthlyCommission[month] += platformRev;
+            }
+          }
+        });
+
+        // Estimated subscription revenue (would come from backend in production)
+        const subscriptionRevenue = (999 * 45) + (2999 * 12);
+
         return {
           totalRevenue,
           monthlyRevenue,
           bookingCountByStatus,
           top5VendorsByEarnings,
           customerAcquisitionByMonth,
-          averageBookingValue
+          averageBookingValue,
+          platformCommissionTotal,
+          monthlyCommission,
+          subscriptionRevenue,
+          vendorPayoutTotal,
+          tdsCollected,
+          revenueByCategory,
         };
       }),
       delay(300)

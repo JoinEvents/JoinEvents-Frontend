@@ -104,8 +104,7 @@ export class CustomerLayout {
   readonly navItems: NavItem[] = [
     { path: '/dashboard', icon: 'bi-grid-1x2',      label: 'Dashboard' },
     { path: '/events',    icon: 'bi-calendar-heart', label: 'Browse Events' },
-    { path: '/planner',   icon: 'bi-pencil-square',  label: 'Event Planner', protected: true },
-    { path: '/rfp',       icon: 'bi-megaphone',      label: 'RFP Board', badge: 0, protected: true },
+    { path: '/get-quotes',icon: 'bi-chat-quote',     label: 'Get Quotes', badge: 0, protected: true },
     { path: '/bookings',  icon: 'bi-journal-check',  label: 'My Bookings', protected: true },
     { path: '/messages',  icon: 'bi-chat-dots',      label: 'Messages', protected: true },
     { path: '/payments',  icon: 'bi-credit-card',    label: 'Payments', protected: true },

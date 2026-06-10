@@ -8,6 +8,7 @@ import { EventType } from '../../core/models/event.model';
 import { FavoritesService } from '../../core/services/favorites.service';
 import { CustomerBooking } from '../booking/booking';
 import { EventTierService } from '../../core/services/event-tier.service';
+import { LocationService } from '../../core/services/location.service';
 
 @Component({
   selector: 'app-customer-vendors',
@@ -24,9 +25,11 @@ export class CustomerVendors implements OnInit, OnDestroy {
   private eventCategoryService = inject(EventCategoryService);
   public favoritesService = inject(FavoritesService);
   public eventTierService = inject(EventTierService);
+  private locationService = inject(LocationService);
   private carouselInterval: any;
 
   eventTypeId = signal<string | null>(null);
+  cities = signal<any[]>([]);
   eventType = signal<EventType | null>(null);
   allPackages = signal<any[]>([]);
   packages = signal<any[]>([]);
@@ -42,6 +45,10 @@ export class CustomerVendors implements OnInit, OnDestroy {
   filterEcoFriendly = signal(false);
 
   ngOnInit() {
+    this.locationService.getCities().subscribe(list => {
+      this.cities.set(list);
+    });
+
     this.route.queryParamMap.subscribe(params => {
       const keys = params.keys;
       const typeId = keys.length > 0 ? keys[0] : null;

@@ -18,6 +18,7 @@ export interface TierInfo {
   description?: string;
   icon?: string;
   gradient?: string;
+  priceRanges?: any[];
 }
 
 @Injectable({ providedIn: 'root' })

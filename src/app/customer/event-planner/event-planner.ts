@@ -101,7 +101,7 @@ export class EventPlanner implements OnDestroy {
 
   goToRfp() {
     this.showSuccessModal.set(false);
-    this.router.navigate(['/rfp']);
+    this.router.navigate(['/get-quotes']);
   }
 
   goToDashboard() {

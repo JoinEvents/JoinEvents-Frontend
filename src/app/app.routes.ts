@@ -18,8 +18,11 @@ export const routes: Routes = [
       { path: 'checkout/:packageId', loadComponent: () => import('./customer/checkout/checkout').then(m => m.Checkout), canActivate: [authGuard(['customer', 'vendor'])] },
       { path: 'events', loadComponent: () => import('./customer/events/events').then(m => m.CustomerEvents) },
       { path: 'events/vendors', loadComponent: () => import('./customer/vendors/customer-vendors').then(m => m.CustomerVendors), canActivate: [authGuard(['customer', 'vendor'])] },
-      { path: 'planner', loadComponent: () => import('./customer/event-planner/event-planner').then(m => m.EventPlanner), canActivate: [authGuard('customer')] },
-      { path: 'rfp', loadComponent: () => import('./customer/rfp/customer-rfp').then(m => m.CustomerRfp), canActivate: [authGuard('customer')] },
+      { path: 'planner', redirectTo: 'get-quotes', pathMatch: 'full' },
+      { path: 'rfp', redirectTo: 'get-quotes', pathMatch: 'full' },
+      { path: 'get-quotes', loadComponent: () => import('./customer/rfp/customer-rfp').then(m => m.CustomerRfp), canActivate: [authGuard('customer')] },
+      { path: 'get-quotes/create', loadComponent: () => import('./customer/rfp/create/create-rfp').then(m => m.CreateRfp), canActivate: [authGuard('customer')] },
+      { path: 'get-quotes/edit/:id', loadComponent: () => import('./customer/rfp/create/create-rfp').then(m => m.CreateRfp), canActivate: [authGuard('customer')] },
       { path: 'bookings', loadComponent: () => import('./customer/my-bookings/my-bookings').then(m => m.MyBookings), canActivate: [authGuard('customer')] },
       { path: 'messages', loadComponent: () => import('./customer/messages/messages').then(m => m.CustomerMessages), canActivate: [authGuard('customer')] },
       { path: 'payments', loadComponent: () => import('./customer/payments/payments').then(m => m.CustomerPayments), canActivate: [authGuard('customer')] },
@@ -50,7 +53,8 @@ export const routes: Routes = [
       { path: 'offers', loadComponent: () => import('./vendor/offers/vendor-offers').then(m => m.VendorOffers) },
       { path: 'staff', loadComponent: () => import('./vendor/staff/vendor-staff').then(m => m.VendorStaff) },
       { path: 'messages', loadComponent: () => import('./vendor/messages/messages').then(m => m.VendorMessages) },
-      { path: 'rfp', loadComponent: () => import('./vendor/rfp/vendor-rfp').then(m => m.VendorRfp) },
+      { path: 'rfp', redirectTo: 'quote-board', pathMatch: 'full' },
+      { path: 'quote-board', loadComponent: () => import('./vendor/rfp/vendor-rfp').then(m => m.VendorRfp) },
       { path: 'notifications', loadComponent: () => import('./shared/pages/notifications/notifications').then(m => m.NotificationsPage) }
     ]
   },
@@ -75,6 +79,8 @@ export const routes: Routes = [
       { path: 'notifications', loadComponent: () => import('./shared/pages/notifications/notifications').then(m => m.NotificationsPage) },
       { path: 'analytics', redirectTo: 'dashboard', pathMatch: 'full' },
       { path: 'audit', loadComponent: () => import('./admin/audit/admin-audit').then(m => m.AdminAudit) },
+      { path: 'rfp', redirectTo: 'dashboard', pathMatch: 'full' },
+      { path: 'quote-requests', redirectTo: 'dashboard', pathMatch: 'full' },
     ]
   },
   {

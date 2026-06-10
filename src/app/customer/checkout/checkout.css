@@ -988,3 +988,42 @@
   letter-spacing: 1px;
 }
 
+/* JoinEvents Guarantee Section */
+.guarantee-section {
+  margin: 1rem 0;
+  padding: 1rem;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.05), rgba(99, 102, 241, 0.05));
+  border: 1px solid rgba(16, 185, 129, 0.15);
+}
+.guarantee-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: #10b981;
+  margin-bottom: 0.75rem;
+}
+.guarantee-header i { font-size: 1.1rem; }
+.guarantee-items { display: flex; flex-direction: column; gap: 8px; }
+.guarantee-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 0.8rem;
+}
+.guarantee-item i { color: #10b981; font-size: 0.9rem; margin-top: 2px; }
+.guarantee-item strong { display: block; font-size: 0.8rem; color: var(--text-primary, #1e293b); }
+.guarantee-item span { color: var(--text-muted, #64748b); font-size: 0.75rem; }
+.escrow-note {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  color: #10b981;
+  margin-top: 8px;
+  font-weight: 600;
+}
+

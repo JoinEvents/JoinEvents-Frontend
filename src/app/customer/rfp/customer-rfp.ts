@@ -1,16 +1,16 @@
 import { Component, signal, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { RouterLink, Router } from '@angular/router';
 import { RfpService } from '../../core/services/rfp.service';
 import { AuthService } from '../../core/services/auth.service';
 import { ToastService } from '../../core/services/toast.service';
 import { EventRfp } from '../../core/models/rfp.model';
-import { EventCategoryService } from '../../core/services/event-category.service';
+import { EventTierService } from '../../core/services/event-tier.service';
 
 @Component({
   selector: 'app-customer-rfp',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, RouterLink],
   templateUrl: './customer-rfp.html',
   styleUrl: './customer-rfp.css',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -19,31 +19,56 @@ export class CustomerRfp implements OnInit {
   private rfpService = inject(RfpService);
   private auth = inject(AuthService);
   private toast = inject(ToastService);
-  private eventCategoryService = inject(EventCategoryService);
+  private router = inject(Router);
+  public eventTierService = inject(EventTierService);
 
   rfps = signal<EventRfp[]>([]);
-  eventTypes = signal<any[]>([]);
   loading = signal(true);
-  showForm = signal(false);
   selectedRfp = signal<EventRfp | null>(null);
-  submitting = signal(false);
 
-  serviceOptions = ['Venue', 'Catering', 'Decoration', 'Photography', 'Music', 'Transport', 'Manpower', 'Priest'];
+  clearSelection() {
+    this.selectedRfp.set(null);
+  }
 
-  form = {
-    title: '',
-    eventTypeId: '',
-    eventTypeName: '',
-    eventDate: '',
-    city: '',
-    guestCount: 100,
-    budgetMin: 100000,
-    budgetMax: 500000,
-    requirements: '',
-    servicesNeeded: [] as string[]
-  };
+  editRfp(id: string) {
+    this.router.navigate(['/get-quotes/edit', id]);
+  }
+
+  deleteRfp(id: string) {
+    if (confirm('Are you sure you want to cancel this quote request? This action cannot be undone and all active offers will be deleted.')) {
+      this.rfpService.deleteRfp(id).subscribe(success => {
+        if (success) {
+          this.toast.success('Your quote request was successfully cancelled.');
+          this.rfps.update(list => list.filter(r => r.id !== id));
+          this.selectedRfp.set(null);
+        } else {
+          this.toast.error('Failed to cancel quote request. Please try again.');
+        }
+      });
+    }
+  }
+
+  getTierFromRequirements(requirements?: string): string | null {
+    if (!requirements) return null;
+    const match = requirements.match(/\[Preferred Quality Tier:\s*([^\]]+)\]/);
+    return match ? match[1].trim() : null;
+  }
+
+  getCleanedRequirements(requirements?: string): string {
+    if (!requirements) return '';
+    return requirements.replace(/\[Preferred Quality Tier:\s*([^\]]+)\]\n\n?/, '').trim();
+  }
+
+  getGradientForTier(tier: string): string {
+    return this.eventTierService.getGradientForTier(tier);
+  }
+
+  getIconForTier(tier: string): string {
+    return this.eventTierService.getIconForTier(tier);
+  }
 
   ngOnInit() {
+    this.eventTierService.loadAll().subscribe();
     const user = this.auth.currentUser();
     if (user) {
       this.rfpService.getRfps(user.id).subscribe(data => {
@@ -51,37 +76,6 @@ export class CustomerRfp implements OnInit {
         this.loading.set(false);
       });
     }
-    this.eventCategoryService.getAll().subscribe(types => this.eventTypes.set(types));
-  }
-
-  toggleService(svc: string) {
-    const current = this.form.servicesNeeded;
-    if (current.includes(svc)) {
-      this.form.servicesNeeded = current.filter(s => s !== svc);
-    } else {
-      this.form.servicesNeeded = [...current, svc];
-    }
-  }
-
-  onEventTypeChange() {
-    const type = this.eventTypes().find(t => t.id === this.form.eventTypeId);
-    if (type) this.form.eventTypeName = type.name;
-  }
-
-  submitRfp() {
-    if (!this.form.title || !this.form.eventTypeId || !this.form.eventDate || !this.form.city) {
-      this.toast.error('Please fill in all required fields.');
-      return;
-    }
-    this.submitting.set(true);
-    const user = this.auth.currentUser()!;
-    this.rfpService.createRfp({ ...this.form, customerId: user.id, customerName: user.name }).subscribe(newRfp => {
-      this.rfps.update(list => [newRfp, ...list]);
-      this.showForm.set(false);
-      this.submitting.set(false);
-      this.form = { title: '', eventTypeId: '', eventTypeName: '', eventDate: '', city: '', guestCount: 100, budgetMin: 100000, budgetMax: 500000, requirements: '', servicesNeeded: [] };
-      this.toast.success('Your event RFP is live! Vendors will start bidding shortly.');
-    });
   }
 
   selectRfp(rfp: EventRfp) {

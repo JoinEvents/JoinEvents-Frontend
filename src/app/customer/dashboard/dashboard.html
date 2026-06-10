@@ -113,7 +113,12 @@
         <h4 class="section-title">What are you planning today?</h4>
         <p class="section-subtitle">Browse packages by category from verified vendors</p>
       </div>
-      <div class="categories-circles-grid">
+      <div class="categories-circles-grid" 
+           (wheel)="onWheelScroll($event)"
+           (mousedown)="onMouseDown($event)"
+           (mousemove)="onMouseMove($event)"
+           (mouseup)="onMouseUp()"
+           (mouseleave)="onMouseLeave()">
         @for (et of eventTypes(); track et.id) {
           <div (click)="goToVendors(et.category)" class="category-pill-card">
             <div class="category-icon-box" [style.background]="et.gradient">
@@ -155,7 +160,12 @@
                       [alt]="p.name" 
                       class="card-img"
                     />
-                    <span class="tier-tag" [class]="p.tier">{{ p.tier | titlecase }}</span>
+                    <div class="card-badges-wrapper">
+                      <span class="tier-tag" [class]="p.tier">{{ p.tier | titlecase }}</span>
+                      <span class="event-type-badge" [ngStyle]="getEventTypeBadgeStyle(p.category)">
+                        {{ getEventTypeName(p.category) }}
+                      </span>
+                    </div>
                     <button class="favorite-btn" (click)="toggleFavorite($event, p)" [class.is-favorite]="isFavorite(p.id)">
                       <i class="bi" [class.bi-heart-fill]="isFavorite(p.id)" [class.bi-heart]="!isFavorite(p.id)"></i>
                     </button>
@@ -237,7 +247,12 @@
                       [alt]="p.name" 
                       class="card-img"
                     />
-                    <span class="tier-tag" [class]="p.tier">{{ p.tier | titlecase }}</span>
+                    <div class="card-badges-wrapper">
+                      <span class="tier-tag" [class]="p.tier">{{ p.tier | titlecase }}</span>
+                      <span class="event-type-badge" [ngStyle]="getEventTypeBadgeStyle(p.category)">
+                        {{ getEventTypeName(p.category) }}
+                      </span>
+                    </div>
                     <button class="favorite-btn" (click)="toggleFavorite($event, p)" [class.is-favorite]="isFavorite(p.id)">
                       <i class="bi" [class.bi-heart-fill]="isFavorite(p.id)" [class.bi-heart]="!isFavorite(p.id)"></i>
                     </button>

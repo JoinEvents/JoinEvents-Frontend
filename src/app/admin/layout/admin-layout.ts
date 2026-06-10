@@ -97,7 +97,7 @@ export class AdminLayout {
     { path: '/admin/tiers',         icon: 'bi-layers',         label: 'Tier Configuration' },
     { path: '/admin/bookings',      icon: 'bi-journal-check',  label: 'Bookings' },
     { path: '/admin/reviews',      icon: 'bi-exclamation-triangle', label: 'Disputes' },
-    { path: '/admin/rfp',           icon: 'bi-megaphone',      label: 'Global RFPs' },
+    { path: '/admin/quote-requests',icon: 'bi-chat-quote',     label: 'Quote Requests' },
     { path: '/admin/audit',         icon: 'bi-receipt',        label: 'Audit Trail' },
     { path: '/admin/messages',      icon: 'bi-chat-dots',      label: 'Admin Inbox' },
     { path: '/admin/support',       icon: 'bi-ticket-detailed', label: 'Support Tickets' },

@@ -86,13 +86,27 @@ export class PackageService extends BaseApiService {
     const pol = p.policies || p.Policies || {};
     const sp = p.spaces || p.Spaces || [];
 
+    let rawDesc = p.description || p.Description || '';
+    let cleanedDesc = rawDesc;
+    let inclusionDetails = {};
+    if (rawDesc.includes('\n\n---INCLUSION_DETAILS---\n')) {
+      const parts = rawDesc.split('\n\n---INCLUSION_DETAILS---\n');
+      cleanedDesc = parts[0];
+      try {
+        inclusionDetails = JSON.parse(parts[1]) || {};
+      } catch (e) {
+        console.error('Failed to parse inclusion details in normalizePendingPackage', e);
+      }
+    }
+
     return {
       id: p.id || p.Id,
       vendorId: p.vendorId || p.VendorId,
       vendorName: p.vendorName || p.VendorName || 'JoinEvents Partner',
       category: p.category || p.Category || 'wedding',
       name: p.name || p.Name || 'Unnamed Package',
-      description: p.description || p.Description || '',
+      description: cleanedDesc,
+      inclusionDetails: inclusionDetails,
       theme: p.theme || p.Theme || '',
       experience: p.experience !== undefined ? p.experience : (p.Experience !== undefined ? p.Experience : 0),
       rating: p.rating !== undefined ? p.rating : (p.Rating !== undefined ? p.Rating : 0),
@@ -194,6 +208,19 @@ export class PackageService extends BaseApiService {
     // Resolve Amenities
     const am = p.Amenities || p.amenities || {};
 
+    let rawDesc = p.Description || p.description || '';
+    let cleanedDesc = rawDesc;
+    let inclusionDetails = {};
+    if (rawDesc.includes('\n\n---INCLUSION_DETAILS---\n')) {
+      const parts = rawDesc.split('\n\n---INCLUSION_DETAILS---\n');
+      cleanedDesc = parts[0];
+      try {
+        inclusionDetails = JSON.parse(parts[1]) || {};
+      } catch (e) {
+        console.error('Failed to parse inclusion details in normalizePackage', e);
+      }
+    }
+
     return {
       id: p.id || p.Id,
       eventTypeId: p.EventTypeId || p.eventTypeId || p.Category || p.category || 'wedding',
@@ -202,9 +229,10 @@ export class PackageService extends BaseApiService {
       name: p.Name || p.name,
       vendorName: p.VendorName || p.vendorName || 'JoinEvents Partner',
       location: cityLoc,
-      tier: p.Tier || p.tier || 'premium',
+      tier: p.Tier || p.tier || p.Theme || p.theme || 'premium',
       price: priceValue,
-      description: p.Description || p.description,
+      description: cleanedDesc,
+      inclusionDetails: inclusionDetails,
       maxGuests: guests,
       roomCount: rooms,
       vegOnly: isVegOnly,

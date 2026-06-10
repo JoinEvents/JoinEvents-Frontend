@@ -97,12 +97,13 @@
       <!-- Services Included -->
       <div class="detail-card">
         <div class="card-label">What's Included</div>
-        <div class="included-grid">
-          @for (service of selectedPackage()?.services; track service) {
-            <div class="included-item" (click)="openServiceDetail(service)">
-              <div class="included-icon-wrap"><i class="bi bi-check2"></i></div>
-              <span class="included-text">{{ service }}</span>
-              <i class="bi bi-chevron-right included-action"></i>
+        <div class="whats-included-new-grid">
+          @for (cat of displayedCategories(); track cat.key) {
+            <div class="whats-included-card" (click)="onCategoryClick(cat)">
+              <div class="category-badge">
+                <i class="bi" [ngClass]="cat.icon"></i>
+              </div>
+              <span class="category-name">{{ cat.name }}</span>
             </div>
           }
         </div>
@@ -510,33 +511,7 @@
         </div>
       }
 
-      <!-- Similar Packages -->
-      @if (similarPackages().length) {
-        <div class="detail-card similar-section">
-          <div class="section-header">
-            <div class="card-label">You May Also Like</div>
-            <a [routerLink]="['/vendors', selectedPackage()?.eventTypeId]" class="see-all-link">
-              View All <i class="bi bi-arrow-right"></i>
-            </a>
-          </div>
-          <div class="similar-grid">
-            @for (pkg of similarPackages(); track pkg.id) {
-              <div class="similar-card" [routerLink]="['/book', pkg.id]" (click)="loadPackage(pkg.id)">
-                <div class="similar-img">
-                  <img [src]="pkg.image" [alt]="pkg.name" loading="lazy"
-                    (error)="handleImageFallback($event, 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&q=80&w=800')">
-                  <span class="similar-price">₹{{ (pkg.price / 100000).toFixed(1) }}L</span>
-                </div>
-                <div class="similar-info">
-                  <span class="similar-tier" [style.background]="eventTierService.getGradientForTier(pkg.tier)" style="color: white; padding: 3px 10px; border-radius: 50px; display: inline-block;">{{ pkg.tier }}</span>
-                  <h5 class="similar-name">{{ pkg.name }}</h5>
-                  <span class="similar-loc"><i class="bi bi-geo-alt"></i> {{ pkg.location }}</span>
-                </div>
-              </div>
-            }
-          </div>
-        </div>
-      }
+
 
     </div>
 
@@ -622,6 +597,98 @@
       </div>
     </aside>
   </div>
+
+  <!-- Similar Packages -->
+  @if (similarPackages().length) {
+    <div class="detail-card similar-section mt-5" style="border-radius: 28px; width: 100%;">
+      <div class="section-header">
+        <div class="card-label">You May Also Like</div>
+        <a [routerLink]="['/vendors', selectedPackage()?.eventTypeId]" class="see-all-link">
+          View All <i class="bi bi-arrow-right"></i>
+        </a>
+      </div>
+      <div class="similar-grid">
+        @for (pkg of similarPackages(); track pkg.id) {
+          <div class="package-card-v2" [routerLink]="['/book', pkg.id]" (click)="loadPackage(pkg.id)" style="cursor: pointer;">
+            <div class="card-img-wrap">
+              <img [src]="pkg.images && pkg.images.length > 0 ? pkg.images[pkg.activeImageIndex || 0] : pkg.image" class="card-img" [alt]="pkg.name" loading="lazy" style="transition: opacity 0.4s ease-in-out;"
+                (error)="handleImageFallback($event, 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&q=80&w=800')">
+              <div class="price-badge-v2">₹{{ (pkg.price / 100000).toFixed(1) }}L</div>
+              <button class="fav-btn" [class.active]="isFavorite(pkg.id)" (click)="toggleFavorite($event, pkg)">
+                <i class="bi" [class.bi-heart-fill]="isFavorite(pkg.id)" [class.bi-heart]="!isFavorite(pkg.id)"></i>
+              </button>
+              
+              @if (pkg.images && pkg.images.length > 1) {
+                <div class="carousel-indicators-mini">
+                  @for (img of pkg.images; track img; let i = $index) {
+                    <span class="dot-mini" [class.active]="i === (pkg.activeImageIndex || 0)"></span>
+                  }
+                </div>
+              }
+            </div>
+
+            <div class="card-content-v2">
+              <div class="pkg-meta">
+                <div class="d-flex align-items-center gap-2">
+                  <span class="pkg-label" [style.background]="eventTierService.getGradientForTier(pkg.tier)" style="color: white; border: none; font-weight: 800;">{{ pkg.tier | titlecase }}</span>
+                  @if (pkg.sustainabilityTags && pkg.sustainabilityTags.length) {
+                    <span class="ee-badge ee-badge-success" style="padding: 2px 8px; font-size: 0.65rem;" title="{{ pkg.sustainabilityTags.join(', ') }}">🌿 Eco-Verified</span>
+                  }
+                </div>
+                <span class="pkg-rating"><i class="bi bi-star-fill"></i> {{ (pkg.rating || 0).toFixed(1) }} ({{ pkg.totalReviews || 0 }})</span>
+              </div>
+              
+              <h3 class="pkg-title-v2">{{ pkg.name }}</h3>
+              <div class="pkg-loc-v2 mb-2">
+                <i class="bi bi-geo-alt"></i> {{ pkg.location }}
+              </div>
+
+              <!-- Visual Package Service Inclusions List -->
+              @if (pkg.services && pkg.services.length) {
+                <div class="d-flex flex-wrap gap-1 mb-3" style="min-height: 22px;">
+                  @for (svc of pkg.services.slice(0, 3); track svc) {
+                    <span class="service-pill">
+                      <i class="bi bi-check2 text-success me-1"></i>{{ svc }}
+                    </span>
+                  }
+                  @if (pkg.services.length > 3) {
+                    <div class="custom-tooltip-wrapper">
+                      <span class="service-pill more-pill">
+                        +{{ pkg.services.length - 3 }} more
+                      </span>
+                      <div class="custom-tooltip-content">
+                        <div class="tooltip-header">Included Extras</div>
+                        <ul class="tooltip-list">
+                          @for (extraSvc of pkg.services.slice(3); track extraSvc) {
+                            <li><i class="bi bi-check2-circle"></i> {{ extraSvc }}</li>
+                          }
+                        </ul>
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
+
+              <!-- Enhanced Capability Grid -->
+              <div class="pkg-features">
+                <div class="feat-item" title="Capacity">
+                  <i class="bi bi-people-fill text-primary"></i> <span>{{ pkg.maxGuests }} Pax</span>
+                </div>
+                @if (pkg.roomCount > 0) {
+                  <div class="feat-item" title="Accommodation">
+                    <i class="bi bi-door-closed-fill text-success"></i> <span>{{ pkg.roomCount }} Rms</span>
+                  </div>
+                }
+                <div class="feat-item" title="Cuisine">
+                  <i class="bi bi-egg-fried text-warning"></i> <span>{{ pkg.vegOnly ? 'Veg' : 'Mix' }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  }
 
   <!-- Mobile Sticky Footer -->
   <div class="mobile-footer">
@@ -710,8 +777,8 @@
 
   <!-- Service Detail Modal -->
   @if (selectedServiceDetail()) {
-    <div class="success-overlay service-modal-overlay">
-      <div class="service-modal-card fade-in-up">
+    <div class="success-overlay service-modal-overlay" (click)="selectedServiceDetail.set(null)">
+      <div class="service-modal-card fade-in-up" (click)="$event.stopPropagation()">
         <button class="modal-close-btn" (click)="selectedServiceDetail.set(null)">
           <i class="bi bi-x-lg"></i>
         </button>
@@ -738,7 +805,14 @@
             <h3 class="m-0 fw-900">{{ selectedServiceDetail().name }}</h3>
           </div>
           
-          <p class="text-muted mb-4 lead-sm">{{ selectedServiceDetail().description }}</p>
+          <p class="text-muted mb-3 lead-sm">{{ selectedServiceDetail().description }}</p>
+
+          @if (selectedServiceDetail().priceRange) {
+            <div class="alert alert-info py-2 px-3 rounded-3 mb-4 small fw-bold d-inline-flex align-items-center gap-2" style="font-size: 0.85rem; border: none; background: rgba(14, 165, 233, 0.08); color: #0369a1;">
+              <i class="bi bi-tag-fill"></i>
+              Estimated Cost: {{ selectedServiceDetail().priceRange }}
+            </div>
+          }
 
           <div class="features-section">
             <h6 class="fw-800 color-navy mb-3">Key Features & Inclusions:</h6>
