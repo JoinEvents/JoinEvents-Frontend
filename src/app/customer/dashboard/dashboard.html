@@ -1,209 +1,493 @@
 <div class="dashboard-wrapper">
   @if (loading()) {
-    <div class="loading-state text-center py-5" style="min-height: 60vh; display: flex; flex-direction: column; justify-content: center; align-items: center;">
-      <div class="spinner-border text-primary-ee mb-3" role="status" style="width: 3rem; height: 3rem;">
+    <div class="loading-state text-center py-5" style="min-height: 70vh; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+      <div class="spinner-border text-primary mb-3" role="status" style="width: 3.5rem; height: 3.5rem;">
         <span class="visually-hidden">Loading...</span>
       </div>
-      <h5 class="text-muted">Loading your dashboard...</h5>
+      <h5 class="text-muted fw-semibold">Personalizing your marketplace...</h5>
     </div>
   } @else {
-  <!-- Top Welcome Section -->
-  <div class="welcome-hero-card mb-5" [style.background]="'var(--gradient-hero)'">
-    <div class="hero-content">
-      <div class="hero-greeting" [style.color]="'var(--text-hero)'">
-        <span class="greeting-time" style="opacity: 0.7">{{ getGreeting() }}</span>,
-        <span class="user-name">{{ user()?.name }}!</span> 👋
-      </div>
-      <p class="hero-subtext" [style.color]="'var(--text-hero)'" style="opacity: 0.85">
-        @if (bookings().length === 0) {
-          Welcome to JoinEvents! Let's get started on planning your first dream event.
-        } @else {
-          You have <span class="highlight">{{ bookings().length }} active events</span> being planned. Ready to take the next step?
-        }
-      </p>
-      <div class="hero-actions mt-4">
-        <button class="btn btn-white-glass" routerLink="/planner">
-          <i class="bi bi-plus-lg me-2"></i> Plan New Event
-        </button>
-        <button class="btn btn-link text-decoration-none" routerLink="/events" style="color: var(--text-hero); opacity: 0.9;">
-          Browse Catalogs <i class="bi bi-arrow-right ms-1"></i>
-        </button>
-      </div>
-    </div>
-    <div class="hero-visual">
-      <div class="floating-icon-circle"><i class="bi bi-stars"></i></div>
-      <div class="floating-icon-circle small"><i class="bi bi-calendar-check"></i></div>
-    </div>
-  </div>
 
-  <!-- Stats Grid -->
-  <div class="row g-4 mb-5">
-    @for (stat of stats(); track stat.label) {
-      <div class="col-12 col-sm-6 col-xl-3">
-        <div class="premium-stat-card" [routerLink]="stat.route" style="cursor: pointer;">
-          <div class="stat-inner">
-            <div class="stat-info">
-              <div class="stat-label">{{ stat.label }}</div>
-              <div class="stat-value">{{ stat.value }}</div>
+    <!-- ============================================================
+         HERO SECTION: Welcome Card + Campaign Slider
+         ============================================================ -->
+    <div class="row g-4 mb-4 align-items-stretch">
+      <!-- Left: Welcome & Search -->
+      <div class="col-12 col-xl-7 d-flex">
+        <div class="ee-card hero-welcome-card p-4 p-lg-5 flex-grow-1 d-flex flex-column justify-content-between">
+          <div class="welcome-text-group">
+            <h1 class="welcome-heading">{{ getGreeting() }}, <span class="text-primary">{{ user()?.name }}</span> 👋</h1>
+            <p class="welcome-subheading">Discover and book verified venues, catering, decor, and entertainment for your next celebration.</p>
+          </div>
+          
+          <!-- Search Capsule -->
+          <div class="search-box-premium mt-auto pt-4">
+            <div class="location-select-box">
+              <i class="bi bi-geo-alt-fill text-primary"></i>
+              <select [ngModel]="selectedCity()" (ngModelChange)="selectedCity.set($event); onCityChange()" class="location-dropdown">
+                @for (city of cities; track city) {
+                  <option [value]="city">{{ city }}</option>
+                }
+              </select>
             </div>
-            <div class="stat-icon-box" [style.background]="stat.gradient">
-              <i class="bi {{ stat.icon }}"></i>
+            <div class="vertical-spacer d-none d-md-block"></div>
+            <div class="search-input-box-wrapper">
+              <i class="bi bi-search text-soft"></i>
+              <input 
+                type="text" 
+                [ngModel]="searchQuery()" 
+                (ngModelChange)="searchQuery.set($event)"
+                (keyup.enter)="onSearch()" 
+                placeholder="Search venues, catering, planners..." 
+                class="search-text-input"
+              />
             </div>
-          </div>
-          <div class="stat-progress-bar">
-            <div class="progress-fill" [style.width]="'70%'" [style.background]="stat.gradient"></div>
-          </div>
-        </div>
-      </div>
-    }
-  </div>
-
-  <div class="row g-4">
-    <!-- Main Column -->
-    <div class="col-12 col-lg-8">
-      <!-- Recent Activity / Bookings -->
-      <!-- Recent Activity / Bookings -->
-      @if (bookings().length > 0) {
-        <div class="dashboard-section-card mb-4">
-          <div class="card-header-modern">
-            <div class="header-title">
-              <i class="bi bi-journal-text me-2 text-primary-ee"></i>
-              <span>Active Event Timeline</span>
-            </div>
-            <a routerLink="/bookings" class="header-action-link">View All Bookings</a>
-          </div>
-          <div class="modern-booking-list p-4">
-            @for (b of bookings().slice(0,3); track b.id) {
-              <div class="modern-booking-item" [routerLink]="['/bookings']" [queryParams]="{ bookingId: b.id }" style="cursor: pointer;">
-                <div class="booking-date-badge">
-                  <div class="day">{{ b.eventDate?.split('-')?.[2] || '' }}</div>
-                  <div class="month">{{ b.eventDate?.split('-')?.[1] || '' }}</div>
-                </div>
-                <div class="booking-details flex-1">
-                  <h6 class="event-name">{{ b.eventName }}</h6>
-                  <div class="event-meta">
-                    <span><i class="bi bi-geo-alt me-1"></i>{{ b.venue }}, {{ b.city }}</span>
-                    <span class="mx-2 text-muted">|</span>
-                    <span><i class="bi bi-people me-1"></i>{{ b.guestCount }} Guests</span>
-                  </div>
-                </div>
-                <div class="booking-status-box text-end">
-                  <span class="status-pill {{ getStatusBadgeClass(b.status) }}">{{ getStatusLabel(b.status) }}</span>
-                  <div class="price-text mt-2">₹{{ (b.totalAmount/1000).toFixed(1) }}k</div>
-                </div>
-                <div class="booking-action-btn">
-                  <i class="bi bi-chevron-right"></i>
-                </div>
-              </div>
-            }
-          </div>
-        </div>
-      }
-
-      <!-- Quick Planner Grid -->
-      <div class="dashboard-section-card">
-        <div class="card-header-modern border-0">
-          <div class="header-title">
-            <i class="bi bi-lightning-charge me-2 text-warning"></i>
-            <span>Quick Event Categories</span>
-          </div>
-        </div>
-        <div class="p-4 pt-0">
-          <div class="modern-category-grid">
-            @for (et of eventTypes().slice(0,6); track et.id) {
-              <div (click)="goToVendors(et.category)" class="category-card" [style.--accent-color]="et.gradient" style="cursor: pointer;">
-                <div class="category-icon" [style.background]="et.gradient">
-                  <i class="bi {{ et.icon }}"></i>
-                </div>
-                <div class="category-info">
-                  <div class="cat-name">{{ et.name }}</div>
-                  <div class="cat-sub">From ₹{{ ((et.startingPrice || 0) / 1000) }}k</div>
-                </div>
-              </div>
-            }
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Sidebar Column -->
-    <div class="col-12 col-lg-4">
-      <!-- Messenger Preview -->
-      @if (recentMessages().length > 0) {
-        <div class="dashboard-section-card mb-4 glass-card">
-          <div class="card-header-modern">
-            <div class="header-title"><i class="bi bi-chat-right-dots me-2"></i>Messages</div>
-          </div>
-          <div class="p-4">
-            <div class="message-preview-list">
-              @for (msg of recentMessages(); track msg.id) {
-                <div class="msg-preview-item" [routerLink]="['/messages']" [queryParams]="{ threadId: msg.id }" style="cursor: pointer;">
-                  <div class="msg-avatar" [ngClass]="msg.unreadCount > 0 ? 'bg-primary-ee text-white' : 'bg-light text-dark'">
-                    {{ msg.participants?.[1]?.name?.charAt(0) || 'U' }}
-                  </div>
-                  <div class="msg-content">
-                    <div class="msg-sender fw-bold d-flex justify-content-between">
-                      {{ msg.participants?.[1]?.name || 'Unknown' }}
-                      @if (msg.unreadCount > 0) {
-                        <span class="badge bg-danger rounded-pill">{{ msg.unreadCount }}</span>
-                      }
-                    </div>
-                    <div class="msg-text text-truncate" style="max-width: 200px;">{{ msg.lastMessage }}</div>
-                    <div class="msg-time opacity-75 small">{{ msg.lastMessageTime | date:'shortTime' }}</div>
-                  </div>
-                </div>
-              } @empty {
-                <div class="text-center p-4 text-muted">
-                  <i class="bi bi-chat-square-text fs-1 mb-2 opacity-50"></i>
-                  <p class="mb-0">No recent messages.</p>
-                </div>
-              }
-            </div>
-            <button class="btn-ee-primary w-100 mt-4 py-3 shadow-sm" routerLink="/messages">
-              Open Messenger
+            <button (click)="onSearch()" class="btn-ee-primary btn-search-trigger">
+              Search
             </button>
           </div>
         </div>
-      }
-
-      <!-- Loyalty Card -->
-      <div class="loyalty-premium-card mb-4" routerLink="/rewards" style="cursor: pointer;">
-        <div class="loyalty-icon-circle"><i class="bi bi-gem"></i></div>
-        <div class="loyalty-info text-center mt-3">
-          <div class="loyalty-label">Loyalty Tier</div>
-          <div class="loyalty-tier">
-            {{ loyaltyBalance()?.tier || 'Bronze' }} Member
-          </div>
-          <div class="loyalty-progress mt-4">
-            <div class="d-flex justify-content-between small text-white-50 mb-2">
-              @if ((loyaltyBalance()?.pointsToNextTier || 0) > 0) {
-                <span>Progress to Next Tier</span>
-                <span>{{ loyaltyBalance()?.points || 0 }} pts</span>
-              } @else {
-                <span>Highest Tier Reached!</span>
-                <span>{{ loyaltyBalance()?.points || 0 }} pts</span>
-              }
-            </div>
-            <div class="progress" style="height: 6px; background: rgba(255,255,255,0.1); border-radius: 10px;">
-              <div class="progress-bar bg-white" [style.width.%]="(loyaltyBalance()?.pointsToNextTier || 0) > 0 ? ((loyaltyBalance()?.points || 0) / (loyaltyBalance()?.points + loyaltyBalance()?.pointsToNextTier)) * 100 : 100" style="border-radius: 10px;"></div>
-            </div>
-          </div>
-        </div>
       </div>
-
-      <!-- Support Card -->
-      <div class="modern-support-card" routerLink="/support" style="cursor: pointer;">
-        <div class="support-bg-art"></div>
-        <div class="d-flex align-items-center gap-3">
-          <div class="support-icon"><i class="bi bi-headset"></i></div>
-          <div class="flex-1">
-            <div class="support-title">Premium Support</div>
-            <div class="support-sub">Personal event manager available 24/7</div>
+      
+      <!-- Right: Campaign Slider -->
+      <div class="col-12 col-xl-5 d-flex">
+        <div class="campaign-slider-container flex-grow-1">
+          <div class="campaign-slider-track" [style.width.%]="campaigns.length * 100" [style.transform]="'translateX(-' + (activeCampaignIndex() * (100 / campaigns.length)) + '%)'">
+            @for (camp of campaigns; track camp.title) {
+              <div class="campaign-slide" [style.width.%]="100 / campaigns.length" [style.background]="camp.gradient">
+                <div class="campaign-slide-top">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <span class="campaign-slide-badge">{{ camp.badge }}</span>
+                    <div class="campaign-large-circle-icon">
+                      <i class="bi {{ camp.icon }}"></i>
+                    </div>
+                  </div>
+                  <h3 class="campaign-slide-title mt-3">{{ camp.title }}</h3>
+                  <p class="campaign-slide-desc">{{ camp.subtitle }}</p>
+                </div>
+                <div class="campaign-slide-bottom">
+                  <button class="btn btn-campaign-action" (click)="selectCampaign(camp.btnRoute)">
+                    {{ camp.btnText }} <i class="bi bi-arrow-right ms-1"></i>
+                  </button>
+                </div>
+              </div>
+            }
           </div>
-          <button class="btn-icon-circular"><i class="bi bi-telephone"></i></button>
+          <div class="campaign-dots-pagination">
+            @for (camp of campaigns; track camp.title; let idx = $index) {
+              <span 
+                class="camp-dot" 
+                [class.active]="idx === activeCampaignIndex()" 
+                (click)="setCampaignIndex(idx)"
+              ></span>
+            }
+          </div>
         </div>
       </div>
     </div>
-  </div>
+
+    <!-- ============================================================
+         QUICK STATS ROW
+         ============================================================ -->
+    <div class="row g-3 mb-4">
+      @for (stat of stats(); track stat.label) {
+        <div class="col-6 col-lg-3">
+          <div class="stat-card d-flex align-items-center gap-3" [routerLink]="stat.route" style="cursor: pointer;">
+            <div class="icon-wrap" [style.background]="stat.iconBg" [style.color]="stat.iconColor">
+              <i class="bi {{ stat.icon }}"></i>
+            </div>
+            <div>
+              <div class="stat-value">{{ stat.value }}</div>
+              <div class="stat-label">{{ stat.label }}</div>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+
+    <!-- ============================================================
+         CATEGORY PILLS — "What are you planning?"
+         ============================================================ -->
+    <div class="categories-section mb-4">
+      <div class="section-title-wrapper mb-3">
+        <h4 class="section-title">What are you planning today?</h4>
+        <p class="section-subtitle">Browse packages by category from verified vendors</p>
+      </div>
+      <div class="categories-circles-grid">
+        @for (et of eventTypes(); track et.id) {
+          <div (click)="goToVendors(et.category)" class="category-pill-card">
+            <div class="category-icon-box" [style.background]="et.gradient">
+              <i class="bi {{ et.icon }}"></i>
+            </div>
+            <div class="category-text-box">
+              <span class="category-pill-name">{{ et.name }}</span>
+              <span class="category-pill-price">From ₹{{ (et.startingPrice || 0) / 1000 }}k</span>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- ============================================================
+         MAIN CONTENT + SIDEBAR LAYOUT
+         ============================================================ -->
+    <div class="row g-4">
+      <!-- Main Content Column -->
+      <div class="col-12 col-lg-8">
+        
+        <!-- 🔥 Trending Packages -->
+        <div class="dashboard-listing-section mb-5">
+          <div class="section-title-wrapper d-flex justify-content-between align-items-center mb-3">
+            <div>
+              <h4 class="section-title">🔥 Trending Event Packages</h4>
+              <p class="section-subtitle">Top-rated packages and bestsellers across India</p>
+            </div>
+            <a routerLink="/events" class="view-all-link">Explore Catalog <i class="bi bi-chevron-right small"></i></a>
+          </div>
+
+          <div class="row g-3">
+            @for (p of trendingPackages(); track p.id) {
+              <div class="col-12 col-md-6">
+                <div class="premium-package-card" (mouseenter)="startCardCarousel(p.id, p.images.length)" (mouseleave)="stopCardCarousel(p.id)">
+                  <div class="card-image-wrapper">
+                    <img 
+                      [src]="p.images[activeCardCarouselIndex()[p.id] || 0] || p.image" 
+                      [alt]="p.name" 
+                      class="card-img"
+                    />
+                    <span class="tier-tag" [class]="p.tier">{{ p.tier | titlecase }}</span>
+                    <button class="favorite-btn" (click)="toggleFavorite($event, p)" [class.is-favorite]="isFavorite(p.id)">
+                      <i class="bi" [class.bi-heart-fill]="isFavorite(p.id)" [class.bi-heart]="!isFavorite(p.id)"></i>
+                    </button>
+                    <div class="rating-badge-floating">
+                      <i class="bi bi-star-fill text-warning"></i>
+                      <span>{{ p.rating || '4.5' }}</span>
+                    </div>
+                    @if (p.images.length > 1) {
+                      <div class="card-carousel-dots">
+                        @for (img of p.images; track img; let imgIdx = $index) {
+                          <span class="card-dot" [class.active]="imgIdx === (activeCardCarouselIndex()[p.id] || 0)"></span>
+                        }
+                      </div>
+                    }
+                  </div>
+
+                  <div class="card-info-wrap">
+                    <h5 class="package-name text-truncate mb-1" [title]="p.name">{{ p.name }}</h5>
+                    <div class="vendor-name-row mb-1">
+                      <span class="text-muted small">by <span class="fw-semibold" style="color: var(--text-main)">{{ p.vendorName }}</span></span>
+                      <i class="bi bi-patch-check-fill text-primary ms-1 small" title="Verified Partner"></i>
+                    </div>
+
+                    <div class="package-location mb-2">
+                      <i class="bi bi-geo-alt me-1 text-soft"></i>
+                      <span class="small text-muted">{{ p.location }}</span>
+                    </div>
+
+                    <div class="package-features-row mb-3">
+                      <span class="feature-tag">
+                        <i class="bi bi-people"></i> Max {{ p.maxGuests }} pax
+                      </span>
+                      @if (p.vegOnly) {
+                        <span class="feature-tag veg-only">
+                          <i class="bi bi-circle-fill small"></i> Veg Only
+                        </span>
+                      } @else {
+                        <span class="feature-tag non-veg">
+                          <i class="bi bi-circle-fill small text-danger"></i> Veg/Non-Veg
+                        </span>
+                      }
+                    </div>
+
+                    <div class="card-footer-row d-flex justify-content-between align-items-center pt-3">
+                      <div>
+                        <span class="text-soft small d-block leading-tight">Starting from</span>
+                        <span class="price-amount text-primary">₹{{ (p.price / 1000).toFixed(0) }}k</span>
+                      </div>
+                      <a [routerLink]="['/book', p.id]" class="btn-ee-primary btn-sm rounded-3 px-3 py-2">
+                        Configure
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- 📍 Popular Packages Near You -->
+        <div class="dashboard-listing-section mb-5">
+          <div class="section-title-wrapper d-flex justify-content-between align-items-center mb-3">
+            <div>
+              <h4 class="section-title">📍 Popular in {{ selectedCity() }}</h4>
+              <p class="section-subtitle">Top event deals in your selected location</p>
+            </div>
+            <button (click)="onCityChange()" class="btn-refresh-near">
+              <i class="bi bi-arrow-clockwise"></i> Refresh
+            </button>
+          </div>
+
+          <div class="row g-3">
+            @for (p of popularPackages(); track p.id) {
+              <div class="col-12 col-md-6">
+                <div class="premium-package-card" (mouseenter)="startCardCarousel(p.id, p.images.length)" (mouseleave)="stopCardCarousel(p.id)">
+                  <div class="card-image-wrapper">
+                    <img 
+                      [src]="p.images[activeCardCarouselIndex()[p.id] || 0] || p.image" 
+                      [alt]="p.name" 
+                      class="card-img"
+                    />
+                    <span class="tier-tag" [class]="p.tier">{{ p.tier | titlecase }}</span>
+                    <button class="favorite-btn" (click)="toggleFavorite($event, p)" [class.is-favorite]="isFavorite(p.id)">
+                      <i class="bi" [class.bi-heart-fill]="isFavorite(p.id)" [class.bi-heart]="!isFavorite(p.id)"></i>
+                    </button>
+                    <div class="rating-badge-floating">
+                      <i class="bi bi-star-fill text-warning"></i>
+                      <span>{{ p.rating || '4.6' }}</span>
+                    </div>
+                    @if (p.images.length > 1) {
+                      <div class="card-carousel-dots">
+                        @for (img of p.images; track img; let imgIdx = $index) {
+                          <span class="card-dot" [class.active]="imgIdx === (activeCardCarouselIndex()[p.id] || 0)"></span>
+                        }
+                      </div>
+                    }
+                  </div>
+
+                  <div class="card-info-wrap">
+                    <h5 class="package-name text-truncate mb-1" [title]="p.name">{{ p.name }}</h5>
+                    <div class="vendor-name-row mb-1">
+                      <span class="text-muted small">by <span class="fw-semibold" style="color: var(--text-main)">{{ p.vendorName }}</span></span>
+                      <i class="bi bi-patch-check-fill text-primary ms-1 small" title="Verified Partner"></i>
+                    </div>
+
+                    <div class="package-location mb-2">
+                      <i class="bi bi-geo-alt me-1 text-soft"></i>
+                      <span class="small text-muted">{{ p.location }}</span>
+                    </div>
+
+                    <div class="package-features-row mb-3">
+                      <span class="feature-tag">
+                        <i class="bi bi-people"></i> Max {{ p.maxGuests }} pax
+                      </span>
+                      @if (p.vegOnly) {
+                        <span class="feature-tag veg-only">
+                          <i class="bi bi-circle-fill small"></i> Veg Only
+                        </span>
+                      } @else {
+                        <span class="feature-tag non-veg">
+                          <i class="bi bi-circle-fill small text-danger"></i> Veg/Non-Veg
+                        </span>
+                      }
+                    </div>
+
+                    <div class="card-footer-row d-flex justify-content-between align-items-center pt-3">
+                      <div>
+                        <span class="text-soft small d-block leading-tight">Starting from</span>
+                        <span class="price-amount text-primary">₹{{ (p.price / 1000).toFixed(0) }}k</span>
+                      </div>
+                      <a [routerLink]="['/book', p.id]" class="btn-ee-primary btn-sm rounded-3 px-3 py-2">
+                        Configure
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            } @empty {
+              <div class="col-12 text-center py-5 ee-card">
+                <i class="bi bi-pin-map fs-1 text-soft mb-2"></i>
+                <h6 class="text-muted">No custom packages found for {{ selectedCity() }} yet.</h6>
+                <p class="small text-soft">Check back later or browse other trending nationwide options!</p>
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- ⭐ Featured Partners -->
+        <div class="dashboard-listing-section mb-4">
+          <div class="section-title-wrapper mb-3">
+            <h4 class="section-title">⭐ Featured Partners & Vendors</h4>
+            <p class="section-subtitle">Highly rated local planners and decorators with elite status</p>
+          </div>
+          <div class="row g-3">
+            @for (v of featuredVendors; track v.name) {
+              <div class="col-12 col-sm-6">
+                <div class="featured-vendor-card d-flex align-items-center gap-3 p-3">
+                  <div class="vendor-avatar-circle">
+                    {{ v.avatar }}
+                  </div>
+                  <div class="vendor-quick-details flex-1 text-truncate">
+                    <h6 class="mb-0 text-truncate fw-bold" style="font-size: 0.88rem; color: var(--text-main)">{{ v.name }}</h6>
+                    <span class="small text-muted d-block" style="font-size: 0.75rem;">{{ v.category }} • {{ v.city }}</span>
+                    <div class="d-flex align-items-center gap-2 mt-1">
+                      <span class="vendor-pill-badge">{{ v.badge }}</span>
+                      <span class="small text-warning"><i class="bi bi-star-fill me-1"></i>{{ v.rating }}</span>
+                    </div>
+                  </div>
+                  <button class="btn-vendor-connect" routerLink="/messages">
+                    <i class="bi bi-chat-dots"></i>
+                  </button>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ============================================================
+           SIDEBAR COLUMN
+           ============================================================ -->
+      <div class="col-12 col-lg-4">
+        
+        <!-- Active Booking Timeline -->
+        @if (bookings().length > 0) {
+          <div class="dashboard-sidebar-widget mb-4">
+            <div class="widget-header">
+              <i class="bi bi-journal-text header-icon text-primary"></i>
+              <span class="widget-title">Active Booking Timeline</span>
+            </div>
+            <div class="widget-body p-3">
+              @for (b of bookings().slice(0, 1); track b.id) {
+                <div class="active-timeline-item" [routerLink]="['/bookings']" [queryParams]="{ bookingId: b.id }" style="cursor: pointer;">
+                  <div class="d-flex justify-content-between mb-2">
+                    <h6 class="event-title mb-0 fw-bold text-truncate" style="max-width: 70%">{{ b.eventName }}</h6>
+                    <span class="badge {{ getStatusBadgeClass(b.status) }}">{{ getStatusLabel(b.status) }}</span>
+                  </div>
+                  <div class="small text-muted mb-3">
+                    <i class="bi bi-calendar-event me-1 text-primary"></i> {{ b.eventDate | date:'mediumDate' }}<br/>
+                    <i class="bi bi-geo-alt me-1 text-primary"></i> {{ b.venue }}, {{ b.city }}
+                  </div>
+                  
+                  <div class="planning-progress">
+                    <div class="d-flex justify-content-between small text-soft mb-1">
+                      <span>Planning Status</span>
+                      <span class="fw-bold text-primary">
+                        @if (b.status === 'pending') { 25% }
+                        @else if (b.status === 'advance_paid') { 50% }
+                        @else if (b.status === 'confirmed') { 75% }
+                        @else { 100% }
+                      </span>
+                    </div>
+                    <div class="progress" style="height: 5px; background: var(--bg-light); border-radius: 10px;">
+                      <div 
+                        class="progress-bar" 
+                        [style.width.%]="b.status === 'pending' ? 25 : (b.status === 'advance_paid' ? 50 : (b.status === 'confirmed' ? 75 : 100))"
+                        [style.background]="'var(--gradient-primary)'"
+                        style="border-radius: 10px;"
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+              }
+              <button class="btn-ee-outline w-100 mt-3 py-2 btn-sm text-center justify-content-center" routerLink="/bookings">
+                Manage Bookings
+              </button>
+            </div>
+          </div>
+        }
+
+        <!-- AI Assistant Widget -->
+        <div class="ai-widget-premium mb-4" [style.background]="'var(--gradient-primary)'">
+          <div class="widget-content">
+            <div class="badge-ai"><i class="bi bi-cpu-fill me-1"></i> AI POWERED</div>
+            <h5 class="ai-widget-title mt-2">Need an Event Timeline?</h5>
+            <p class="ai-widget-desc">Our smart assistant designs full itineraries and matches packages based on your budget & guest size.</p>
+            <button class="btn btn-ai-start mt-2" routerLink="/planner">
+              Launch Planner <i class="bi bi-stars ms-1"></i>
+            </button>
+          </div>
+          <div class="ai-widget-visual">
+            <i class="bi bi-chat-square-quote"></i>
+          </div>
+        </div>
+
+        <!-- RFP Widget -->
+        <div class="rfp-widget-premium mb-4 p-3">
+          <div class="d-flex align-items-start gap-3">
+            <div class="rfp-icon-box"><i class="bi bi-lightning-charge-fill"></i></div>
+            <div class="flex-1">
+              <h6 class="fw-bold mb-1" style="color: var(--text-main); font-size: 0.88rem;">Get Custom Vendor Quotes</h6>
+              <p class="small text-muted mb-2">Can't find the perfect package? Describe your event and let vendors bid for it.</p>
+              <button class="btn-ee-outline btn-sm py-2" routerLink="/rfp" style="border-radius: 8px; font-size: 0.78rem;">
+                Request Proposals
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Loyalty Rewards Card -->
+        <div class="loyalty-premium-card mb-4" [style.background]="'var(--gradient-dark)'" routerLink="/rewards" style="cursor: pointer;">
+          <div class="loyalty-icon-circle"><i class="bi bi-gem"></i></div>
+          <div class="loyalty-info text-center mt-3">
+            <div class="loyalty-label text-white-50">Loyalty Tier</div>
+            <div class="loyalty-tier text-white">
+              {{ loyaltyBalance()?.tier || 'Bronze' }} Member
+            </div>
+            <div class="loyalty-progress mt-4">
+              <div class="d-flex justify-content-between small text-white-50 mb-2">
+                @if ((loyaltyBalance()?.pointsToNextTier || 0) > 0) {
+                  <span>Progress to Next Tier</span>
+                  <span>{{ loyaltyBalance()?.points || 0 }} pts</span>
+                } @else {
+                  <span>Highest Tier Reached!</span>
+                  <span>{{ loyaltyBalance()?.points || 0 }} pts</span>
+                }
+              </div>
+              <div class="progress" style="height: 5px; background: rgba(255,255,255,0.1); border-radius: 10px;">
+                <div class="progress-bar bg-white" [style.width.%]="(loyaltyBalance()?.pointsToNextTier || 0) > 0 ? ((loyaltyBalance()?.points || 0) / (loyaltyBalance()?.points + loyaltyBalance()?.pointsToNextTier)) * 100 : 100" style="border-radius: 10px;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Messages -->
+        @if (recentMessages().length > 0) {
+          <div class="dashboard-sidebar-widget mb-4">
+            <div class="widget-header d-flex justify-content-between align-items-center">
+              <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-chat-right-dots header-icon text-secondary"></i>
+                <span class="widget-title">Recent Enquiries</span>
+              </div>
+              <a routerLink="/messages" class="small text-decoration-none text-secondary fw-semibold" style="font-size: 0.75rem;">Open inbox</a>
+            </div>
+            <div class="widget-body p-3">
+              <div class="message-preview-list">
+                @for (msg of recentMessages(); track msg.id) {
+                  <div class="msg-preview-item" [routerLink]="['/messages']" [queryParams]="{ threadId: msg.id }">
+                    <div class="msg-avatar" [ngClass]="msg.unreadCount > 0 ? 'bg-primary text-white' : 'bg-light text-dark'">
+                      {{ msg.participants?.[1]?.name?.charAt(0) || 'U' }}
+                    </div>
+                    <div class="msg-content">
+                      <div class="msg-sender d-flex justify-content-between">
+                        <span class="text-truncate" style="max-width: 140px;">{{ msg.participants?.[1]?.name || 'Unknown' }}</span>
+                        @if (msg.unreadCount > 0) {
+                          <span class="badge bg-danger rounded-pill" style="font-size: 0.62rem;">{{ msg.unreadCount }}</span>
+                        }
+                      </div>
+                      <div class="msg-text text-truncate">{{ msg.lastMessage }}</div>
+                      <div class="msg-time">{{ msg.lastMessageTime | date:'shortTime' }}</div>
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+        }
+
+        <!-- Support Card -->
+        <div class="modern-support-card p-3" routerLink="/support" style="cursor: pointer;">
+          <div class="d-flex align-items-center gap-3">
+            <div class="support-icon"><i class="bi bi-headset"></i></div>
+            <div class="flex-1">
+              <div class="support-title">Premium Support</div>
+              <div class="support-sub">Personal event manager available 24/7</div>
+            </div>
+            <button class="btn-icon-circular"><i class="bi bi-telephone"></i></button>
+          </div>
+        </div>
+
+      </div>
+    </div>
   }
 </div>

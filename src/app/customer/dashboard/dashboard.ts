@@ -1,9 +1,11 @@
-import { Component, signal, OnInit, inject, ChangeDetectionStrategy } from '@angular/core';
+import { Component, signal, OnInit, OnDestroy, inject, ChangeDetectionStrategy } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { DashboardService } from '../../core/services/dashboard.service';
 import { MessengerService } from '../../core/services/messenger.service';
 import { LoyaltyService } from '../../core/services/loyalty.service';
+import { PackageService } from '../../core/services/package.service';
+import { FavoritesService } from '../../core/services/favorites.service';
 import { EventType } from '../../core/models/event.model';
 import { Booking } from '../../core/models/booking.model';
 import { ChatThread } from '../../core/models/message.model';
@@ -11,19 +13,24 @@ import { ToastService } from '../../core/services/toast.service';
 import { catchError, of } from 'rxjs';
 
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-customer-dashboard',
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, FormsModule],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.css',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class CustomerDashboard implements OnInit {
+export class CustomerDashboard implements OnInit, OnDestroy {
   private auth = inject(AuthService);
   private dashboardService = inject(DashboardService);
   private messenger = inject(MessengerService);
   private loyaltyService = inject(LoyaltyService);
+  private packageService = inject(PackageService);
+  public favoritesService = inject(FavoritesService);
+  private toast = inject(ToastService);
+  private router = inject(Router);
 
   user = this.auth.currentUser;
   loading = signal<boolean>(true);
@@ -32,8 +39,67 @@ export class CustomerDashboard implements OnInit {
   customerProfile = signal<any>(null);
   loyaltyBalance = signal<any>(null);
   recentMessages = signal<ChatThread[]>([]);
-  private toast = inject(ToastService);
-  private router = inject(Router);
+
+  // Redesign Signals
+  selectedCity = signal<string>('Delhi NCR');
+  searchQuery = signal<string>('');
+  allPackages = signal<any[]>([]);
+  trendingPackages = signal<any[]>([]);
+  popularPackages = signal<any[]>([]);
+  activeCampaignIndex = signal<number>(0);
+  activeCardCarouselIndex = signal<Record<string, number>>({});
+
+  private campaignTimer: any;
+  private hoverTimers: Record<string, any> = {};
+
+  readonly cities = [
+    'Delhi NCR',
+    'Mumbai',
+    'Bengaluru',
+    'Hyderabad',
+    'Pune',
+    'Gurugram',
+    'Noida',
+    'Chennai',
+    'Kolkata'
+  ];
+
+  readonly campaigns = [
+    {
+      title: 'Plan Your Dream Event',
+      subtitle: 'Use our AI-powered helper to build an custom itinerary and get vendor matches instantly.',
+      btnText: 'Launch AI Planner',
+      btnRoute: '/planner',
+      icon: 'bi-stars',
+      badge: 'Smart Tool',
+      gradient: 'linear-gradient(135deg, #FF6B35 0%, #D946EF 100%)'
+    },
+    {
+      title: 'Get Custom Vendor Bids',
+      subtitle: 'Post a custom request for proposal (RFP) and receive quotes from 10+ vendors in 1 hour.',
+      btnText: 'Create RFP Request',
+      btnRoute: '/rfp',
+      icon: 'bi-file-earmark-text-fill',
+      badge: 'Save Money',
+      gradient: 'linear-gradient(135deg, #6B21A8 0%, #9333EA 100%)'
+    },
+    {
+      title: 'JoinEvents Loyalty Rewards',
+      subtitle: 'Earn points on every booking and unlock free decorations, premium catering, and sound setups.',
+      btnText: 'Explore Rewards',
+      btnRoute: '/rewards',
+      icon: 'bi-gem',
+      badge: 'Loyalty Club',
+      gradient: 'linear-gradient(135deg, #1E293B 0%, #0F172A 100%)'
+    }
+  ];
+
+  readonly featuredVendors = [
+    { name: 'Royal Palace Decorators', category: 'Decoration', rating: 4.9, reviews: 142, city: 'Delhi NCR', avatar: 'RP', badge: 'Elite Partner' },
+    { name: 'Gourmet Banquet Catering', category: 'Catering', rating: 4.8, reviews: 96, city: 'Bengaluru', avatar: 'GB', badge: 'Verified' },
+    { name: 'DJ Soundwaves & Lights', category: 'Entertainment', rating: 4.9, reviews: 210, city: 'Mumbai', avatar: 'DJ', badge: 'Elite Partner' },
+    { name: 'Styling & Blush Makeup', category: 'Makeup', rating: 4.7, reviews: 68, city: 'Delhi NCR', avatar: 'SB', badge: 'Verified' }
+  ];
 
   readonly stats = signal([
     { label: 'Upcoming Events', value: '0', icon: 'bi-calendar-event', gradient: 'linear-gradient(135deg,#FF6B35,#F59E0B)', iconBg: 'rgba(255,107,53,0.12)', iconColor: 'var(--primary)', route: '/bookings' },
@@ -45,11 +111,26 @@ export class CustomerDashboard implements OnInit {
   ngOnInit() {
     this.loading.set(true);
     
+    // Load Event Categories
     this.dashboardService.getEventCategories().subscribe(t => this.eventTypes.set(t));
     
     const user = this.auth.currentUser();
     const userId = user?.id ?? 'c1';
 
+    // Set Default City based on User Profile City if available
+    this.dashboardService.getCustomerProfile().subscribe(customer => {
+      if (customer) {
+        this.customerProfile.set(customer);
+        if (customer.city) {
+          const matchedCity = this.cities.find(c => c.toLowerCase().includes(customer.city.toLowerCase()));
+          if (matchedCity) {
+            this.selectedCity.set(matchedCity);
+          }
+        }
+      }
+    });
+
+    // Load Bookings
     this.dashboardService.getBookings().subscribe(b => {
       this.bookings.set(b);
       const upcoming = b.filter(book => book.status === 'confirmed' || book.status === 'pending' || book.status === 'in_progress').length;
@@ -61,9 +142,10 @@ export class CustomerDashboard implements OnInit {
         updated[1].value = active.toString();
         return updated;
       });
-      this.loading.set(false);
+      this.checkLoadingState();
     });
 
+    // Load RFPs
     this.dashboardService.getRfps().subscribe(rfps => {
       this.stats.update(s => {
         const updated = [...s];
@@ -72,12 +154,7 @@ export class CustomerDashboard implements OnInit {
       });
     });
 
-    this.dashboardService.getCustomerProfile().subscribe(customer => {
-      if (customer) {
-        this.customerProfile.set(customer);
-      }
-    });
-
+    // Load Loyalty
     if (userId && userId !== 'c1') {
       this.loyaltyService.getBalance(userId).subscribe(bal => {
         this.loyaltyBalance.set(bal);
@@ -89,6 +166,7 @@ export class CustomerDashboard implements OnInit {
       });
     }
 
+    // Load Chats
     this.messenger.getChatThreads(userId).pipe(
       catchError(err => {
         if (err.status !== 401) {
@@ -104,6 +182,90 @@ export class CustomerDashboard implements OnInit {
         this.toast.info(`You have ${unread} unread message(s) waiting!`);
       }
     });
+
+    // Load Packages for Trending & Popular Near You
+    this.packageService.getPackages().subscribe(pkgs => {
+      const mapped = pkgs.map(p => ({
+        ...p,
+        images: p.images && p.images.length > 0 ? p.images : (p.image ? [p.image] : []),
+        activeImageIndex: 0
+      }));
+      this.allPackages.set(mapped);
+      this.filterPackages();
+      this.checkLoadingState();
+    });
+
+    // Start Campaign Auto-sliding timer (every 6 seconds)
+    this.campaignTimer = setInterval(() => {
+      this.activeCampaignIndex.update(idx => (idx + 1) % this.campaigns.length);
+    }, 6000);
+  }
+
+  ngOnDestroy() {
+    if (this.campaignTimer) clearInterval(this.campaignTimer);
+    Object.values(this.hoverTimers).forEach(timer => clearInterval(timer));
+  }
+
+  private checkLoadingState() {
+    if (this.allPackages().length > 0 || this.bookings().length >= 0) {
+      this.loading.set(false);
+    }
+  }
+
+  filterPackages() {
+    const pkgs = this.allPackages();
+    const city = this.selectedCity().toLowerCase();
+
+    // 1. Trending Packages: Nationwide top-rated packages
+    const trending = [...pkgs]
+      .sort((a, b) => (b.rating || 0) - (a.rating || 0))
+      .slice(0, 4);
+    this.trendingPackages.set(trending);
+
+    // 2. Popular Packages Near You: Packages in the selected city
+    const popular = pkgs.filter(p => {
+      const loc = (p.location || '').toLowerCase();
+      // Check if location contains city string
+      return loc.includes(city) || city.includes(loc);
+    });
+
+    if (popular.length === 0) {
+      // Fallback: show any 4 packages if none exist in this city
+      this.popularPackages.set(pkgs.slice(0, 4));
+    } else {
+      this.popularPackages.set(popular.slice(0, 4));
+    }
+  }
+
+  onCityChange() {
+    this.filterPackages();
+  }
+
+  onSearch() {
+    const query = this.searchQuery().trim();
+    if (query) {
+      this.router.navigate(['/events/vendors'], { queryParams: { q: query } });
+    } else {
+      this.router.navigate(['/events']);
+    }
+  }
+
+  toggleFavorite(event: Event, pkg: any) {
+    event.stopPropagation();
+    event.preventDefault();
+    this.favoritesService.toggleFavorite({
+      id: pkg.id,
+      name: pkg.name,
+      type: 'package',
+      subtitle: `${pkg.location} • ₹${(pkg.price / 1000).toFixed(0)}k`,
+      imageUrl: pkg.image,
+      routeUrl: `/events/vendors?category=${pkg.category}&packageId=${pkg.id}`
+    });
+    this.toast.success(`${this.favoritesService.isFavorite(pkg.id) ? 'Added to' : 'Removed from'} favorites!`);
+  }
+
+  isFavorite(id: string): boolean {
+    return this.favoritesService.isFavorite(id);
   }
 
   getStatusBadgeClass(status: string): string {
@@ -125,6 +287,39 @@ export class CustomerDashboard implements OnInit {
 
   goToVendors(category: string) {
     const cleanCategory = (category || '').toLowerCase();
-    this.router.navigateByUrl(`/events/vendors?${cleanCategory}`);
+    this.router.navigate(['/events/vendors'], { queryParams: { [cleanCategory]: '' } });
+  }
+
+  selectCampaign(route: string) {
+    this.router.navigateByUrl(route);
+  }
+
+  setCampaignIndex(idx: number) {
+    this.activeCampaignIndex.set(idx);
+  }
+
+  startCardCarousel(pkgId: string, maxImages: number) {
+    if (maxImages <= 1) return;
+    if (this.hoverTimers[pkgId]) return;
+    
+    this.hoverTimers[pkgId] = setInterval(() => {
+      this.activeCardCarouselIndex.update(indices => {
+        const current = indices[pkgId] || 0;
+        return { ...indices, [pkgId]: (current + 1) % maxImages };
+      });
+    }, 2000);
+  }
+
+  stopCardCarousel(pkgId: string) {
+    if (this.hoverTimers[pkgId]) {
+      clearInterval(this.hoverTimers[pkgId]);
+      delete this.hoverTimers[pkgId];
+    }
+    this.activeCardCarouselIndex.update(indices => {
+      const updated = { ...indices };
+      delete updated[pkgId];
+      return updated;
+    });
   }
 }
+

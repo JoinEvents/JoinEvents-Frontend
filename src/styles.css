@@ -194,6 +194,7 @@ html, body {
   margin: 0;
   padding: 0;
   transition: background-color var(--transition-theme), color var(--transition-theme);
+  overflow-x: hidden;
 }
 
 h1,h2,h3,h4,h5,h6 {
@@ -423,7 +424,6 @@ html, * {
 .app-shell { 
   display: block; 
   min-height: 100vh; 
-  overflow-x: hidden; 
   background: var(--bg-app);
 }
 
@@ -645,7 +645,6 @@ html, * {
   padding: 28px;
   min-height: calc(100vh - var(--topbar-height));
   transition: all var(--transition);
-  overflow-x: hidden;
   background: var(--bg-app);
 }
 
