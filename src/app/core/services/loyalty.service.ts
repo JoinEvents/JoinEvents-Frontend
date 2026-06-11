@@ -3,6 +3,7 @@ import { BaseApiService } from './base-api.service';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { LoyaltyTransaction } from '../models/user.model';
+import { API_ROUTES } from '../constants/api.constants';
 
 export interface LoyaltyBalance {
   points: number;
@@ -40,7 +41,7 @@ export class LoyaltyService extends BaseApiService {
   }
 
   getBalance(userId: string): Observable<LoyaltyBalance> {
-    return this.get<any>('/loyalty/balance', { userId: this.cleanGuid(userId) }).pipe(
+    return this.get<any>(API_ROUTES.LOYALTY.BALANCE, { userId: this.cleanGuid(userId) }).pipe(
       map(res => ({
         points: res.Points ?? res.points ?? 0,
         tier: res.Tier ?? res.tier ?? 'Bronze',
@@ -50,7 +51,7 @@ export class LoyaltyService extends BaseApiService {
   }
 
   getHistory(userId: string): Observable<LoyaltyTransaction[]> {
-    return this.get<any[]>('/loyalty/history', { userId: this.cleanGuid(userId) }).pipe(
+    return this.get<any[]>(API_ROUTES.LOYALTY.HISTORY, { userId: this.cleanGuid(userId) }).pipe(
       map(arr => arr.map(t => ({
         id: t.Id ?? t.id,
         date: t.Date ?? t.date,
@@ -64,18 +65,18 @@ export class LoyaltyService extends BaseApiService {
   redeemPoints(userId: string, req: RedeemRequest): Observable<RedeemResponse> {
     const payload = { ...req, userId: this.cleanGuid(userId) };
     if (payload.bookingId) payload.bookingId = this.cleanGuid(payload.bookingId);
-    return this.post<RedeemResponse>('/loyalty/redeem', payload, false);
+    return this.post<RedeemResponse>(API_ROUTES.LOYALTY.REDEEM, payload, false);
   }
 
   calculateDiscount(userId: string, pointsToRedeem: number): Observable<CalculateDiscountResponse> {
-    return this.post<CalculateDiscountResponse>('/loyalty/calculate-discount', { userId: this.cleanGuid(userId), pointsToRedeem }, false);
+    return this.post<CalculateDiscountResponse>(API_ROUTES.LOYALTY.CALCULATE_DISCOUNT, { userId: this.cleanGuid(userId), pointsToRedeem }, false);
   }
 
   referFriend(userId: string, friendEmail: string): Observable<any> {
-    return this.post<any>('/loyalty/refer', { userId: this.cleanGuid(userId), friendEmail }, false);
+    return this.post<any>(API_ROUTES.LOYALTY.REFER, { userId: this.cleanGuid(userId), friendEmail }, false);
   }
 
   claimReviewBonus(userId: string, bookingId: string): Observable<any> {
-    return this.post<any>('/loyalty/review', { userId: this.cleanGuid(userId), bookingId: this.cleanGuid(bookingId) }, false);
+    return this.post<any>(API_ROUTES.LOYALTY.REVIEW, { userId: this.cleanGuid(userId), bookingId: this.cleanGuid(bookingId) }, false);
   }
 }

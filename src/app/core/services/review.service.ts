@@ -1,6 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { BaseApiService } from './base-api.service';
 import { Observable } from 'rxjs';
+import { API_ROUTES } from '../constants/api.constants';
 
 export interface ReviewDto {
   bookingId: string;
@@ -14,6 +15,6 @@ export interface ReviewDto {
 @Injectable({ providedIn: 'root' })
 export class ReviewService extends BaseApiService {
   submitReview(review: ReviewDto): Observable<any> {
-    return this.post<any>('/reviews', review, false);
+    return this.post<any>(API_ROUTES.REVIEWS.BASE, review, false);
   }
 }

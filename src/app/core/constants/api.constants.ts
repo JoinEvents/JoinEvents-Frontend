@@ -17,9 +17,12 @@ export const API_ROUTES = {
   },
   BOOKINGS: {
     BASE: '/bookings',
+    CREATE: '/booking',
     STATUS: (id: string) => `/bookings/${id}/status`,
     CANCEL: (id: string) => `/bookings/${id}/cancel`,
     DAMAGE: (id: string) => `/bookings/${id}/damage`,
+    DISPUTE: (id: string) => `/bookings/${id}/dispute`,
+    LOGS: (id: string) => `/bookings/${id}/logs`,
   },
   ADMIN: {
     BOOKINGS: '/support/bookings',
@@ -95,5 +98,16 @@ export const API_ROUTES = {
     VENDOR: '/vendor/invoices',
     ADMIN: '/admin/invoices',
     DOWNLOAD: (id: string) => `/invoices/${id}/download`,
+  },
+  REVIEWS: {
+    BASE: '/reviews',
+  },
+  LOYALTY: {
+    BALANCE: '/loyalty/balance',
+    HISTORY: '/loyalty/history',
+    REDEEM: '/loyalty/redeem',
+    CALCULATE_DISCOUNT: '/loyalty/calculate-discount',
+    REFER: '/loyalty/refer',
+    REVIEW: '/loyalty/review',
   },
 };
