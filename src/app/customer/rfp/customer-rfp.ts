@@ -34,6 +34,10 @@ export class CustomerRfp implements OnInit {
     this.router.navigate(['/get-quotes/edit', id]);
   }
 
+  messageVendor(vendorId: string) {
+    this.router.navigate(['/messages'], { queryParams: { vendorId } });
+  }
+
   deleteRfp(id: string) {
     if (confirm('Are you sure you want to cancel this quote request? This action cannot be undone and all active offers will be deleted.')) {
       this.rfpService.deleteRfp(id).subscribe(success => {
@@ -83,14 +87,46 @@ export class CustomerRfp implements OnInit {
   }
 
   acceptBid(rfpId: string, bidId: string) {
-    this.rfpService.acceptBid(rfpId, bidId).subscribe(() => {
+    this.rfpService.acceptBid(rfpId, bidId).subscribe((res: any) => {
       this.rfps.update(list => list.map(r => r.id === rfpId ? {
         ...r,
         status: 'bid_selected' as const,
         bids: r.bids.map(b => ({ ...b, status: (b.id === bidId ? 'accepted' : 'rejected') as any }))
       } : r));
+      
+      const rfp = this.selectedRfp();
       this.selectedRfp.update(r => r ? { ...r, status: 'bid_selected' as const, bids: r.bids.map(b => ({ ...b, status: (b.id === bidId ? 'accepted' : 'rejected') as any })) } : null);
-      this.toast.success('Bid accepted! The vendor will be in touch shortly.');
+      
+      this.toast.success('Bid accepted! Redirecting to payment...');
+      
+      if (res && res.data && res.data.bookingId) {
+        const bookingDetails = {
+          bookingId: res.data.bookingId,
+          packageId: null, // No package since this is an RFP
+          packageName: rfp?.title || 'Custom Event Package',
+          vendorId: res.data.vendorId,
+          bookingDate: rfp?.eventDate || new Date().toISOString(),
+          bookingCity: rfp?.city || '',
+          bookingGuests: rfp?.guestCount || 100,
+          selectedAddons: [],
+          includeInsurance: false,
+          couponCode: '',
+          discountAmount: 0,
+          basePrice: res.data.basePrice,
+          addonsTotal: 0,
+          gstAmount: res.data.gstAmount,
+          insurancePrice: 0,
+          totalAmount: res.data.totalAmount,
+          advanceAmount: res.data.advanceAmount,
+          payableAmount: res.data.payableAmount,
+          isBalancePayment: true // To ensure we don't recreate the booking
+        };
+        
+        sessionStorage.setItem('joinevents_booking_pending', JSON.stringify(bookingDetails));
+        this.router.navigate(['/checkout', res.data.bookingId], {
+          state: { bookingDetails }
+        });
+      }
     });
   }
 

@@ -15,6 +15,10 @@ export const cacheInterceptor: HttpInterceptorFn = (req, next) => {
       req.url.includes('/vendor/dashboard') ||
       req.headers.has('X-Bypass-Cache')) {
     
+    if (req.method !== 'GET') {
+      cache.clear();
+    }
+    
     // Set headers to force the browser native network stack to bypass cache
     const bypassHeaders = req.headers
       .set('Cache-Control', 'no-cache, no-store, must-revalidate')

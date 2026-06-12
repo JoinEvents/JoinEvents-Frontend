@@ -5,6 +5,20 @@
       <p class="checkout-subtitle">Review your booking summary and select your preferred payment method.</p>
     </div>
 
+    <!-- Error Message Banner -->
+    @if (errorMessage()) {
+      <div class="alert alert-danger d-flex align-items-center gap-3 p-3 mb-4 rounded-3 border border-danger-subtle animate-fade-in" style="background-color: #fff5f5; color: #dc3545;">
+        <i class="bi bi-exclamation-triangle-fill fs-4"></i>
+        <div class="flex-grow-1">
+          <h6 class="fw-bold mb-1">Booking Error</h6>
+          <p class="mb-0 small">{{ errorMessage() }}</p>
+        </div>
+        <button type="button" style="background: none; border: none; color: #dc3545; font-size: 1.25rem;" (click)="errorMessage.set('')">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+    }
+
 
 
     @if (bookingDetails()) {
@@ -444,7 +458,7 @@
       </div>
 
       <div class="success-actions mt-4">
-        <button class="btn-view-bookings" routerLink="/bookings">
+        <button class="btn-view-bookings" [routerLink]="['/bookings']" [queryParams]="{ bookingId: newlyCreatedBookingId() }">
           <i class="bi bi-calendar3 me-2"></i> View My Bookings
         </button>
         <button class="btn-back-dashboard mt-2" routerLink="/dashboard">

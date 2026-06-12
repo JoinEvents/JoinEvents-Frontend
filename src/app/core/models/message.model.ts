@@ -14,6 +14,7 @@ export interface ChatMessage {
 export interface ChatThread {
   id: string;
   bookingId?: string;
+  vendorId?: string;
   participants: { id: string; name: string; role: string }[];
   lastMessage: string;
   lastMessageTime: string;

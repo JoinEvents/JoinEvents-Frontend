@@ -23,10 +23,16 @@ export class MyBookings implements OnInit {
   private auth = inject(AuthService);
   private route = inject(ActivatedRoute);
   private loyaltyService = inject(LoyaltyService);
-  bookings = signal<Booking[]>([]);
+  bookings = this.bookingService.globalBookings;
   selectedBooking = signal<Booking | null>(null);
   activeFilter = signal<string>('all');
   
+  cancellationPreview = computed(() => {
+    const b = this.selectedBooking();
+    if (!b) return null;
+    return this.bookingService.calculateCancellation(b, 'customer');
+  });
+
   // UI States
   showCancelPrompt = signal(false);
   showDisputePrompt = signal(false);
@@ -52,6 +58,7 @@ export class MyBookings implements OnInit {
     { key: 'pending', label: 'Pending' },
     { key: 'confirmed', label: 'Active' },
     { key: 'settled', label: 'Settled' },
+    { key: 'cancelled', label: 'Cancelled' },
   ];
 
   readonly statusLabels: Record<string, string> = {
@@ -64,12 +71,34 @@ export class MyBookings implements OnInit {
     in_progress: 'pill-primary', completed: 'pill-success', settled: 'pill-success', cancelled: 'pill-danger'
   };
 
+  sortBy = signal<string>('date-desc');
+
   filteredBookings = computed(() => {
     const filter = this.activeFilter();
     const all = this.bookings();
-    if (filter === 'all') return all;
-    if (filter === 'confirmed') return all.filter(b => ['confirmed','in_progress','completed','advance_paid'].includes(b.status));
-    return all.filter(b => b.status === filter);
+    const sort = this.sortBy();
+    
+    // 1. Filter
+    let result = [...all];
+    if (filter === 'confirmed') {
+      result = all.filter(b => ['confirmed','in_progress','completed','advance_paid'].includes(b.status));
+    } else if (filter !== 'all') {
+      result = all.filter(b => b.status === filter);
+    }
+    
+    // 2. Sort
+    result.sort((x, y) => {
+      const tx = x.eventDate ? new Date(x.eventDate).getTime() : 0;
+      const ty = y.eventDate ? new Date(y.eventDate).getTime() : 0;
+      
+      if (sort === 'date-desc') return ty - tx;
+      if (sort === 'date-asc') return tx - ty;
+      if (sort === 'price-desc') return y.totalAmount - x.totalAmount;
+      if (sort === 'price-asc') return x.totalAmount - y.totalAmount;
+      return 0;
+    });
+    
+    return result;
   });
 
   ngOnInit() {
@@ -174,8 +203,8 @@ export class MyBookings implements OnInit {
       return;
     }
     this.bookingService.cancelBooking(b.id, this.cancelReason(), 'customer').subscribe(() => {
-      this.bookings.update(bs => bs.map(item => item.id === b.id ? { ...item, status: 'cancelled', cancelledBy: 'customer', cancellationReason: this.cancelReason() } : item));
-      this.selectedBooking.update(item => item ? { ...item, status: 'cancelled', cancelledBy: 'customer', cancellationReason: this.cancelReason() } : null);
+      const updated = this.bookings().find(item => item.id === b.id);
+      if (updated) this.selectedBooking.set(updated);
       this.showCancelPrompt.set(false);
       this.toast.warning('Booking has been cancelled.');
     });
@@ -184,9 +213,9 @@ export class MyBookings implements OnInit {
   approveDamageCharges() {
     const b = this.selectedBooking();
     if (!b) return;
-    this.bookingService.updateBookingStatus(b.id, 'confirmed').subscribe(() => { // Using confirmed as approval for damage charges for now
-      this.bookings.update(bs => bs.map(item => item.id === b.id ? { ...item, isDamageChargeApproved: true } : item));
-      this.selectedBooking.update(item => item ? { ...item, isDamageChargeApproved: true } : null);
+    this.bookingService.updateBookingStatus(b.id, 'confirmed').subscribe(() => {
+      const updated = this.bookings().find(item => item.id === b.id);
+      if (updated) this.selectedBooking.set(updated);
       this.toast.success('Damage charges approved and added to your final bill.');
     });
   }
@@ -199,8 +228,8 @@ export class MyBookings implements OnInit {
       return;
     }
     this.bookingService.raiseDispute(b.id, this.disputeReason()).subscribe(() => {
-      this.bookings.update(bs => bs.map(item => item.id === b.id ? { ...item, status: 'disputed', disputeInfo: { reason: this.disputeReason(), status: 'open' } } : item));
-      this.selectedBooking.update(item => item ? { ...item, status: 'disputed', disputeInfo: { reason: this.disputeReason(), status: 'open' } } : null);
+      const updated = this.bookings().find(item => item.id === b.id);
+      if (updated) this.selectedBooking.set(updated);
       this.showDisputePrompt.set(false);
       this.toast.info('Dispute raised. Our support team will review this shortly.');
     });

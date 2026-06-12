@@ -532,8 +532,14 @@
             <label>Event Date</label>
             <div class="input-wrap">
               <i class="bi bi-calendar3"></i>
-              <input type="date" [(ngModel)]="bookingDate" [min]="minDate">
+              <input type="date" [ngModel]="bookingDate" (ngModelChange)="onDateChange($event)" [min]="minDate">
             </div>
+            @if (!isDateAvailable() && bookingDate) {
+              <div class="date-warning-container">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+                <span>This date is unavailable. Please select another date.</span>
+              </div>
+            }
           </div>
 
           <div class="form-field">
@@ -573,9 +579,11 @@
             <div class="deposit-note">Pay now to confirm your booking</div>
           </div>
 
-          <button class="btn-confirm" [disabled]="!bookingDate || isLoading()" (click)="confirmBooking()">
+          <button class="btn-confirm" [disabled]="!bookingDate || isLoading() || !isDateAvailable() || checkingAvailability()" (click)="confirmBooking()">
             @if (isLoading()) {
               <span class="spinner-border spinner-border-sm me-2"></span> Processing...
+            } @else if (checkingAvailability()) {
+              <span class="spinner-border spinner-border-sm me-2"></span> Checking...
             } @else {
               Confirm Booking <i class="bi bi-arrow-right ms-1"></i>
             }
@@ -720,8 +728,14 @@
             <label>Event Date</label>
             <div class="input-wrap">
               <i class="bi bi-calendar3"></i>
-              <input type="date" [(ngModel)]="bookingDate" [min]="minDate">
+              <input type="date" [ngModel]="bookingDate" (ngModelChange)="onDateChange($event)" [min]="minDate">
             </div>
+            @if (!isDateAvailable() && bookingDate) {
+              <div class="date-warning-container">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+                <span>This date is unavailable. Please select another date.</span>
+              </div>
+            }
           </div>
           <div class="form-field">
             <label>Guests</label>
@@ -736,9 +750,11 @@
             <div class="deposit-amount">₹{{ getAdvanceAmount().toLocaleString('en-IN') }}</div>
           </div>
 
-          <button class="btn-confirm" [disabled]="!bookingDate || isLoading()" (click)="confirmBooking()">
+          <button class="btn-confirm" [disabled]="!bookingDate || isLoading() || !isDateAvailable() || checkingAvailability()" (click)="confirmBooking()">
             @if (isLoading()) {
               <span class="spinner-border spinner-border-sm me-2"></span> Processing...
+            } @else if (checkingAvailability()) {
+              <span class="spinner-border spinner-border-sm me-2"></span> Checking...
             } @else {
               Confirm & Pay <i class="bi bi-arrow-right ms-1"></i>
             }

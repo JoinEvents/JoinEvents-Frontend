@@ -52,21 +52,159 @@ export class BookingService extends BaseApiService {
     );
   }
 
+  calculateCancellation(booking: Booking, cancelledBy: 'customer' | 'vendor' | 'system'): {
+    refundAmount: number;
+    cancellationFee: number;
+    platformCancellationFee: number;
+    vendorPenaltyAmount: number;
+    vendorStrikeApplied: boolean;
+    daysUntilEvent: number;
+    refundPercentage: number;
+  } {
+    if (!booking.eventDate) {
+      return {
+        refundAmount: 0,
+        cancellationFee: 0,
+        platformCancellationFee: 0,
+        vendorPenaltyAmount: 0,
+        vendorStrikeApplied: false,
+        daysUntilEvent: 0,
+        refundPercentage: 0
+      };
+    }
+
+    const eventDate = new Date(booking.eventDate);
+    const now = new Date();
+    eventDate.setHours(0, 0, 0, 0);
+    now.setHours(0, 0, 0, 0);
+    const diffTime = eventDate.getTime() - now.getTime();
+    const daysUntilEvent = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    const advancePaid = booking.advanceAmount || 0;
+    const totalAmount = booking.totalAmount || 0;
+
+    // Default structure
+    let refundAmount = 0;
+    let cancellationFee = 0;
+    let platformCancellationFee = 0;
+    let vendorPenaltyAmount = 0;
+    let vendorStrikeApplied = false;
+    let refundPercentage = 0;
+
+    if (cancelledBy === 'customer') {
+      if (booking.status === 'pending') {
+        refundAmount = 0;
+        cancellationFee = 0;
+        platformCancellationFee = 0;
+        refundPercentage = 0;
+      } else {
+        if (daysUntilEvent > 30) {
+          // Customer gets refund of advance paid minus platform processing fee (2% of total, capped at 2500)
+          platformCancellationFee = Math.min(Math.round(totalAmount * 0.02), 2500);
+          refundAmount = Math.max(0, advancePaid - platformCancellationFee);
+          cancellationFee = 0;
+          refundPercentage = 100;
+        } else if (daysUntilEvent >= 15 && daysUntilEvent <= 30) {
+          // 50% refund, 50% retained
+          const retainedCharge = advancePaid * 0.5;
+          refundAmount = advancePaid * 0.5;
+          refundPercentage = 50;
+
+          // Platform retains standard fee (10% of total) up to 50% of retained charge
+          platformCancellationFee = Math.min(Math.round(totalAmount * 0.10), retainedCharge * 0.5);
+          cancellationFee = Math.max(0, retainedCharge - platformCancellationFee);
+        } else if (daysUntilEvent >= 7 && daysUntilEvent < 15) {
+          // 25% refund, 75% retained
+          const retainedCharge = advancePaid * 0.75;
+          refundAmount = advancePaid * 0.25;
+          refundPercentage = 25;
+
+          platformCancellationFee = Math.min(Math.round(totalAmount * 0.10), retainedCharge * 0.5);
+          cancellationFee = Math.max(0, retainedCharge - platformCancellationFee);
+        } else {
+          // < 7 days: 0% refund, 100% retained
+          const retainedCharge = advancePaid;
+          refundAmount = 0;
+          refundPercentage = 0;
+
+          platformCancellationFee = Math.min(Math.round(totalAmount * 0.10), retainedCharge * 0.5);
+          cancellationFee = Math.max(0, retainedCharge - platformCancellationFee);
+        }
+      }
+    } else if (cancelledBy === 'vendor') {
+      // 100% refund to customer
+      refundAmount = advancePaid;
+      cancellationFee = 0;
+      platformCancellationFee = 0;
+      refundPercentage = 100;
+
+      // Penalty to vendor: 10% of total booking value (capped at 15000)
+      vendorPenaltyAmount = Math.min(Math.round(totalAmount * 0.10), 15000);
+      vendorStrikeApplied = true;
+    } else { // System cancellation
+      refundAmount = advancePaid;
+      cancellationFee = 0;
+      platformCancellationFee = 0;
+      refundPercentage = 100;
+    }
+
+    return {
+      refundAmount: Math.round(refundAmount),
+      cancellationFee: Math.round(cancellationFee),
+      platformCancellationFee: Math.round(platformCancellationFee),
+      vendorPenaltyAmount: Math.round(vendorPenaltyAmount),
+      vendorStrikeApplied,
+      daysUntilEvent,
+      refundPercentage
+    };
+  }
+
   cancelBooking(bookingId: string, reason: string, cancelledBy: 'customer' | 'vendor'): Observable<boolean> {
-    const booking = this.globalBookings().find(b => b.id === bookingId) || { bookingNumber: bookingId };
+    const booking = this.globalBookings().find(b => b.id === bookingId) || {} as Booking;
+    const calc = this.calculateCancellation(booking, cancelledBy);
+
+    const cancellationProps = {
+      cancellationDate: new Date().toISOString().split('T')[0],
+      refundAmount: calc.refundAmount,
+      cancellationFee: calc.cancellationFee,
+      platformCancellationFeeRetained: calc.platformCancellationFee,
+      vendorPenaltyAmount: calc.vendorPenaltyAmount,
+      vendorStrikeApplied: calc.vendorStrikeApplied,
+      refundStatus: calc.refundAmount > 0 ? ('pending' as const) : ('none' as const),
+      escrowStatus: calc.refundAmount > 0 ? ('refunded' as const) : ('released' as const)
+    };
+
     this.auditService.logEvent(
       cancelledBy === 'vendor' ? 'Vendor Partner' : 'Customer Portal',
       cancelledBy === 'vendor' ? 'system' : 'system',
       'Booking Cancelled',
-      `Booking ${booking.bookingNumber} cancelled by ${cancelledBy}. Reason: ${reason}.`,
-      'booking', bookingId, booking.bookingNumber,
+      `Booking ${booking.bookingNumber || bookingId} cancelled by ${cancelledBy}. Reason: ${reason}. Refund: ₹${calc.refundAmount}, Cancellation Fee: ₹${calc.cancellationFee}, Platform Fee Retained: ₹${calc.platformCancellationFee}.`,
+      'booking', bookingId, booking.bookingNumber || bookingId,
       'critical',
-      { reason, extra: `Cancelled by: ${cancelledBy}` }
+      { reason, calc, extra: `Cancelled by: ${cancelledBy}` }
     );
+
     this.globalBookings.update(list => 
-      list.map(b => b.id === bookingId ? { ...b, status: 'cancelled', cancellationReason: reason, cancelledBy } : b)
+      list.map(b => b.id === bookingId ? { 
+        ...b, 
+        status: 'cancelled', 
+        cancellationReason: reason, 
+        cancelledBy,
+        ...cancellationProps
+      } : b)
     );
-    return this.post<any>(API_ROUTES.BOOKINGS.CANCEL(bookingId), { reason, cancelledBy }, false).pipe(
+
+    return this.post<any>(API_ROUTES.BOOKINGS.CANCEL(bookingId), { 
+      reason, 
+      cancelledBy,
+      ...cancellationProps
+    }, false).pipe(
+      map(() => true)
+    );
+  }
+
+  updateCancellationDetails(bookingId: string, details: Partial<Booking>): Observable<boolean> {
+    return this.patch<any>(API_ROUTES.BOOKINGS.CANCELLATION(bookingId), details, false).pipe(
       map(() => true)
     );
   }

@@ -1,5 +1,5 @@
 import { Component, signal, computed, OnInit, inject } from '@angular/core';
-import { TitleCasePipe } from '@angular/common';
+import { TitleCasePipe, DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { of, Observable } from 'rxjs';
 import { delay } from 'rxjs/operators';
@@ -11,7 +11,7 @@ import { FormsModule } from '@angular/forms';
 
 interface VendorBookingReq { id: string; bookingId: string; customerName: string; eventDate: string; eventName: string; amount: number; status: BookingStatus; review?: any; }
 
-@Component({ selector: 'app-vendor-bookings', standalone: true, imports: [TitleCasePipe, RouterLink, FormsModule], templateUrl: './vendor-bookings.html', styleUrl: './vendor-bookings.css' })
+@Component({ selector: 'app-vendor-bookings', standalone: true, imports: [TitleCasePipe, DecimalPipe, RouterLink, FormsModule], templateUrl: './vendor-bookings.html', styleUrl: './vendor-bookings.css' })
 export class VendorBookings implements OnInit {
   private bookingService = inject(BookingService);
   private vendorDashboard = inject(VendorDashboardService);
@@ -71,6 +71,20 @@ export class VendorBookings implements OnInit {
   selectedBookingId = signal<string | null>(null);
   cancelPrompt = signal<string | null>(null);
 
+  cancellationPreview = computed(() => {
+    const id = this.cancelPrompt();
+    if (!id) return null;
+    const booking = this.requests().find(r => r.bookingId === id || r.id === id);
+    if (!booking) return null;
+    const amt = booking.amount || 0;
+    const penalty = Math.min(Math.round(amt * 0.10), 15000);
+    return {
+      amount: amt,
+      penalty: penalty,
+      strike: true
+    };
+  });
+
   toggleBookingDetails(id: string) {
     this.selectedBookingId.update(curr => curr === id ? null : id);
   }
@@ -95,6 +109,7 @@ export class VendorBookings implements OnInit {
     }
     this.bookingService.cancelBooking(id, reason, 'vendor').subscribe(() => {
       this.requestsData.update(rs => rs.map(r => r.id === id ? { ...r, status: 'cancelled' as any } : r));
+      this.cancelPrompt.set(null);
       this.toast.warning('Booking cancelled.');
     });
   }

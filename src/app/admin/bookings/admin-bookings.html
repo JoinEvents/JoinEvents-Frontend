@@ -248,6 +248,95 @@
         </div>
       </div>
 
+      <!-- Cancellation & Refund Overview Section -->
+      @if (b.status === 'cancelled') {
+        <div class="row g-3 mb-4">
+          <div class="col-12">
+            <div class="ee-card border-danger-soft p-4 rounded-4" style="background-color: rgba(239, 68, 68, 0.02); border: 1px solid rgba(239, 68, 68, 0.15);">
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold text-danger m-0"><i class="bi bi-shield-fill-exclamation text-danger me-2"></i> Cancellation & Refund Management</h5>
+                <span class="badge bg-danger text-uppercase px-3 py-1 rounded-pill small fw-bold" style="font-size: 0.72rem;">Cancelled by {{ b.cancelledBy | titlecase }}</span>
+              </div>
+              
+              <div class="row g-3">
+                <div class="col-12 col-md-6">
+                  <div class="bg-white p-3 rounded-3 border">
+                    <h6 class="small fw-bold text-dark border-bottom pb-2 mb-2">Refund Calculations</h6>
+                    <div class="d-flex justify-content-between py-1 small">
+                      <span class="text-muted">Advance Amount Paid:</span>
+                      <span class="fw-semibold">₹{{ b.advanceAmount | number:'1.0-0' }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between py-1 small text-success">
+                      <span>Customer Refund Amount:</span>
+                      <strong class="fs-6">₹{{ b.refundAmount | number:'1.0-0' }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between py-1 small text-danger">
+                      <span class="text-muted">Platform Retained Fee:</span>
+                      <span>₹{{ b.platformCancellationFeeRetained | number:'1.0-0' }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between py-1 small text-danger">
+                      <span class="text-muted">Cancellation Fee (Vendor Payout):</span>
+                      <span>₹{{ b.cancellationFee | number:'1.0-0' }}</span>
+                    </div>
+                    
+                    @if (b.vendorPenaltyAmount) {
+                      <div class="d-flex justify-content-between py-1 border-top mt-2 pt-2 small text-warning">
+                        <span>Vendor Penalty Applied:</span>
+                        <span class="fw-bold">₹{{ b.vendorPenaltyAmount | number:'1.0-0' }}</span>
+                      </div>
+                      <div class="d-flex justify-content-between py-1 small text-warning">
+                        <span>Vendor Strike Logged:</span>
+                        <span class="fw-bold">Yes (1 Strike)</span>
+                      </div>
+                    }
+                  </div>
+                </div>
+                
+                <div class="col-12 col-md-6">
+                  <div class="bg-white p-3 rounded-3 border h-100">
+                    <h6 class="small fw-bold text-dark border-bottom pb-2 mb-2">Support Override Actions</h6>
+                    <p class="x-small text-muted mb-3">Adjust refund/fee distributions manually in case of disputes, force majeure, or vendor failure.</p>
+                    
+                    <div class="row g-2 mb-3">
+                      <div class="col-6">
+                        <label class="x-small fw-bold text-muted d-block mb-1">Customer Refund</label>
+                        <input type="number" class="form-control form-control-sm rounded-pill" [value]="overrideRefundAmount()" (input)="overrideRefundAmount.set($any($event.target).value ? +$any($event.target).value : null)" [placeholder]="b.refundAmount">
+                      </div>
+                      <div class="col-6">
+                        <label class="x-small fw-bold text-muted d-block mb-1">Cancellation Fee</label>
+                        <input type="number" class="form-control form-control-sm rounded-pill" [value]="overrideCancellationFee()" (input)="overrideCancellationFee.set($any($event.target).value ? +$any($event.target).value : null)" [placeholder]="b.cancellationFee">
+                      </div>
+                    </div>
+                    
+                    <button class="btn btn-outline-danger btn-sm w-100 rounded-pill fw-bold" (click)="applyRefundOverride(b.id)">
+                      Apply Manual Override
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Escrow Status & Processing -->
+              <div class="mt-3 p-3 rounded-3 bg-light border d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div>
+                  <span class="small text-muted d-block">Escrow Status: <strong>{{ b.escrowStatus | uppercase }}</strong></span>
+                  <span class="small text-muted">Refund Status: <strong>{{ (b.refundStatus || 'none') | uppercase }}</strong></span>
+                </div>
+                <div class="d-flex gap-2">
+                  @if (b.refundStatus === 'pending') {
+                    <button class="btn btn-sm btn-success rounded-pill px-3 fw-bold" (click)="markRefundProcessed(b.id)">
+                      Mark Refund as Processed
+                    </button>
+                  }
+                  <button class="btn btn-sm btn-outline-secondary rounded-pill px-3 fw-bold" (click)="markEscrowSettled(b.id)">
+                    Mark Escrow Settled
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+
       <!-- Main Columns Grid -->
       <div class="row g-4">
         <!-- Left Side: Customer Info, Services Booked, Cost Breakdown -->

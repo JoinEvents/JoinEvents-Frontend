@@ -26,6 +26,8 @@ export class AdminBookings implements OnInit {
   damageNotes = signal('');
   showDamageForm = signal(false);
   loading = signal(true);
+  overrideRefundAmount = signal<number | null>(null);
+  overrideCancellationFee = signal<number | null>(null);
 
   readonly statuses = ['all', 'pending', 'advance_paid', 'confirmed', 'in_progress', 'completed', 'settled', 'cancelled', 'disputed'];
   readonly statusColors: Record<string, string> = {
@@ -158,6 +160,8 @@ export class AdminBookings implements OnInit {
   openBookingDetails(booking: Booking) {
     this.selectedBooking.set(booking);
     this.showDamageForm.set(false);
+    this.overrideRefundAmount.set(booking.refundAmount ?? null);
+    this.overrideCancellationFee.set(booking.cancellationFee ?? null);
   }
 
   closeBookingDetails() {
@@ -202,6 +206,79 @@ export class AdminBookings implements OnInit {
         if (updated) this.selectedBooking.set(updated);
       },
       error: () => this.toast.error('Failed to record damage charges')
+    });
+  }
+
+  applyRefundOverride(bookingId: string) {
+    const refund = this.overrideRefundAmount();
+    const fee = this.overrideCancellationFee();
+    if (refund === null || fee === null) {
+      this.toast.warning('Please enter valid refund and fee values.');
+      return;
+    }
+
+    const booking = this.bookings().find(b => b.id === bookingId);
+    if (!booking) return;
+
+    const updatedProperties = {
+      refundAmount: refund,
+      cancellationFee: fee,
+      platformCancellationFeeRetained: Math.max(0, booking.advanceAmount - refund - fee),
+      refundStatus: refund > 0 ? ('pending' as const) : ('none' as const)
+    };
+
+    this.bookingService.updateCancellationDetails(bookingId, updatedProperties).subscribe({
+      next: () => {
+        this.bookingService.globalBookings.update(list =>
+          list.map(b => b.id === bookingId ? { ...b, ...updatedProperties } : b)
+        );
+        this.bookingService.addSupportLog(bookingId, `Support override applied: Refund changed to ₹${refund}, Cancellation Fee to ₹${fee}.`, 'Priya Nair').subscribe(() => {
+          this.toast.success('Refund values overwritten successfully.');
+          const updated = this.bookings().find(b => b.id === bookingId);
+          if (updated) this.selectedBooking.set(updated);
+        });
+      },
+      error: () => this.toast.error('Failed to override refund values on server')
+    });
+  }
+
+  markRefundProcessed(bookingId: string) {
+    const txnId = 'TXN-REFUND-' + Math.floor(Math.random() * 1000000);
+    const updatedProperties = {
+      refundStatus: 'processed' as const,
+      refundTransactionId: txnId
+    };
+    this.bookingService.updateCancellationDetails(bookingId, updatedProperties).subscribe({
+      next: () => {
+        this.bookingService.globalBookings.update(list =>
+          list.map(b => b.id === bookingId ? { ...b, ...updatedProperties } : b)
+        );
+        this.bookingService.addSupportLog(bookingId, `Refund marked as PROCESSED. Transaction ID: ${txnId}`, 'Priya Nair').subscribe(() => {
+          this.toast.success('Refund status updated to Processed.');
+          const updated = this.bookings().find(b => b.id === bookingId);
+          if (updated) this.selectedBooking.set(updated);
+        });
+      },
+      error: () => this.toast.error('Failed to process refund on server')
+    });
+  }
+
+  markEscrowSettled(bookingId: string) {
+    const updatedProperties = {
+      escrowStatus: 'released' as const
+    };
+    this.bookingService.updateCancellationDetails(bookingId, updatedProperties).subscribe({
+      next: () => {
+        this.bookingService.globalBookings.update(list =>
+          list.map(b => b.id === bookingId ? { ...b, ...updatedProperties } : b)
+        );
+        this.bookingService.addSupportLog(bookingId, `Escrow status marked as RELEASED/SETTLED.`, 'Priya Nair').subscribe(() => {
+          this.toast.success('Escrow status updated.');
+          const updated = this.bookings().find(b => b.id === bookingId);
+          if (updated) this.selectedBooking.set(updated);
+        });
+      },
+      error: () => this.toast.error('Failed to update escrow status on server')
     });
   }
 

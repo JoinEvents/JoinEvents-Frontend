@@ -16,6 +16,12 @@ export interface Booking {
   customerId: string;
   customerName: string;
   customerPhone: string;
+  vendorId?: string;
+  vendorName?: string;
+  vendorPhone?: string;
+  vendorEmail?: string;
+  vendorLocation?: string;
+  vendorDescription?: string;
   eventTypeId: string;
   eventName: string;
   packageId?: string;
@@ -47,6 +53,14 @@ export interface Booking {
   vendorConfirmationDue?: string;
   cancellationReason?: string;
   cancelledBy?: 'customer' | 'vendor' | 'system';
+  cancellationDate?: string;
+  cancellationFee?: number;
+  platformCancellationFeeRetained?: number;
+  refundAmount?: number;
+  refundStatus?: 'none' | 'pending' | 'processed' | 'failed';
+  refundTransactionId?: string;
+  vendorPenaltyAmount?: number;
+  vendorStrikeApplied?: boolean;
   disputeInfo?: {
     reason: string;
     status: 'open' | 'resolved';

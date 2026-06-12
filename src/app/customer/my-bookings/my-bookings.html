@@ -3,17 +3,31 @@
   <p>Track all your event bookings, payments and download invoices</p>
 </div>
 
-<!-- Filter Chips -->
-<div class="filter-bar">
-  <button class="filter-chip" [class.active]="activeFilter() === 'all'" (click)="activeFilter.set('all')">
-    All <span class="chip-count">{{ bookings().length }}</span>
-  </button>
-  @for (step of filterTabs; track step.key) {
-    <button class="filter-chip" [class.active]="activeFilter() === step.key" (click)="activeFilter.set(step.key)">
-      {{ step.label }}
-      <span class="chip-count">{{ getCountByStatus(step.key) }}</span>
+<!-- Filter & Sort Toolbar -->
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-4">
+  <!-- Filter Chips -->
+  <div class="filter-bar mb-0">
+    <button class="filter-chip" [class.active]="activeFilter() === 'all'" (click)="activeFilter.set('all')">
+      All <span class="chip-count">{{ bookings().length }}</span>
     </button>
-  }
+    @for (step of filterTabs; track step.key) {
+      <button class="filter-chip" [class.active]="activeFilter() === step.key" (click)="activeFilter.set(step.key)">
+        {{ step.label }}
+        <span class="chip-count">{{ getCountByStatus(step.key) }}</span>
+      </button>
+    }
+  </div>
+
+  <!-- Sort Dropdown -->
+  <div class="d-flex align-items-center gap-2">
+    <span class="text-muted small fw-bold"><i class="bi bi-sort-down-alt"></i> Sort by:</span>
+    <select class="form-select form-select-sm py-1.5 px-3 border rounded-3" style="width: auto; font-size: 0.82rem; font-weight: 700; cursor: pointer;" [ngModel]="sortBy()" (ngModelChange)="sortBy.set($event)">
+      <option value="date-desc">Newest Event First</option>
+      <option value="date-asc">Oldest Event First</option>
+      <option value="price-desc">Price: High to Low</option>
+      <option value="price-asc">Price: Low to High</option>
+    </select>
+  </div>
 </div>
 
 <div class="bookings-layout">
@@ -59,45 +73,39 @@
       </button>
 
       <!-- Detail Header -->
-      <div class="detail-header-card">
-        <div class="dh-top">
-          <div>
-            <h3 class="detail-title">{{ b.eventName }}</h3>
-            <span class="detail-booking-id">{{ b.bookingNumber }}</span>
+      <div class="detail-header-card border-status-{{ b.status }}">
+        <div class="dh-top-new d-flex align-items-center justify-content-between flex-wrap gap-4">
+          <div class="dh-info-group">
+            <div class="d-flex align-items-center gap-3 flex-wrap">
+              <h3 class="detail-title-modern">{{ b.eventName }}</h3>
+              <span class="status-pill-modern {{ statusColors[b.status] }}">
+                <span class="status-dot"></span> {{ statusLabels[b.status] }}
+              </span>
+            </div>
+            <div class="dh-meta-row d-flex align-items-center gap-3 mt-2 flex-wrap">
+              <span class="meta-item"><i class="bi bi-hash"></i> {{ b.bookingNumber }}</span>
+              <span class="meta-divider">•</span>
+              <span class="meta-item"><i class="bi bi-calendar-event"></i> {{ b.eventDate | date:'mediumDate' }}</span>
+              @if (b.venue) {
+                <span class="meta-divider">•</span>
+                <span class="meta-item"><i class="bi bi-geo-alt"></i> {{ b.venue }}</span>
+              }
+            </div>
           </div>
-          <span class="status-pill lg {{ statusColors[b.status] }}">{{ statusLabels[b.status] }}</span>
+          <div class="dh-actions-group d-flex align-items-center gap-2">
+            @if (['in_progress', 'completed', 'settled'].includes(selectedBooking()!.status)) {
+              <button class="btn-booking-action-modern btn-dispute-modern" (click)="showDisputePrompt.set(true)">
+                <i class="bi bi-flag-fill"></i> Raise Dispute
+              </button>
+            }
+            <button class="btn-booking-action-modern btn-chat-modern" [routerLink]="['/messages']" [queryParams]="{ vendorId: b.vendorId || 'v1', bookingId: b.id }">
+              <i class="bi bi-chat-dots-fill"></i> Chat with Vendor
+            </button>
+          </div>
         </div>
       </div>
 
       <div class="booking-detail-body">
-        <!-- Action Toolbar -->
-        <div class="detail-actions-bar mb-4">
-          @if (['pending', 'advance_paid', 'confirmed'].includes(selectedBooking()!.status)) {
-            <button class="btn-booking-action btn-booking-action-cancel" (click)="showCancelPrompt.set(true)">
-              <i class="bi bi-x-circle-fill"></i> Cancel Booking
-            </button>
-          }
-          @if (['in_progress', 'completed', 'settled'].includes(selectedBooking()!.status)) {
-            <button class="btn-booking-action btn-booking-action-dispute" (click)="showDisputePrompt.set(true)">
-              <i class="bi bi-flag-fill"></i> Raise Dispute
-            </button>
-          }
-          <button class="btn-booking-action btn-booking-action-chat" [routerLink]="['/messages']" [queryParams]="{ vendorId: b.services && b.services.length ? b.services[0].vendorId : 'v1', bookingId: b.id }">
-            <i class="bi bi-chat-dots-fill"></i> Chat with Vendor
-          </button>
-        </div>
-
-        @if (showCancelPrompt()) {
-          <div class="alert alert-danger mb-4 animation-fade-in">
-            <h6 class="fw-bold mb-2">Cancel Booking?</h6>
-            <p class="small mb-3">Please provide a reason for cancellation. Note that cancellation charges may apply based on the policy.</p>
-            <textarea class="form-control form-control-sm mb-3" [(ngModel)]="cancelReason" placeholder="Reason for cancellation..."></textarea>
-            <div class="d-flex gap-2">
-              <button class="btn btn-sm btn-danger" (click)="cancelBooking()">Confirm Cancellation</button>
-              <button class="btn btn-sm btn-light" (click)="showCancelPrompt.set(false)">Go Back</button>
-            </div>
-          </div>
-        }
 
         @if (showDisputePrompt()) {
           <div class="alert alert-warning mb-4 animation-fade-in">
@@ -123,10 +131,74 @@
         }
 
         @if (selectedBooking()!.status === 'cancelled') {
-          <div class="alert alert-secondary mb-4 border-start border-danger border-4 animation-fade-in">
-            <h6 class="fw-bold mb-1 text-danger">Booking Cancelled</h6>
-            <p class="small mb-0">Cancelled by: <strong>{{ selectedBooking()!.cancelledBy | titlecase }}</strong></p>
-            <p class="small mb-0">Reason: <em>{{ selectedBooking()!.cancellationReason }}</em></p>
+          <div class="detail-section-card cancellation-summary-card mb-4 animation-fade-in border-start border-danger border-4">
+            <div class="section-header d-flex justify-between align-items-center">
+              <h6 class="section-title text-danger m-0"><i class="bi bi-x-octagon-fill text-danger me-2"></i> Cancellation & Refund Summary</h6>
+              <span class="badge-actor bg-danger-soft text-danger px-3 py-1 rounded-pill small fw-bold">By {{ selectedBooking()!.cancelledBy | titlecase }}</span>
+            </div>
+            
+            <div class="cancellation-body mt-3">
+              <div class="alert alert-danger-light p-3 rounded-3 mb-3 small" style="background-color: rgba(220,53,69,0.05); border-left: 3px solid #dc3545; color: #721c24;">
+                <strong>Reason:</strong> <em>"{{ selectedBooking()!.cancellationReason || 'No reason provided' }}"</em>
+                @if (selectedBooking()!.cancellationDate) {
+                  <div class="text-muted mt-1 small">Date of Cancellation: {{ selectedBooking()!.cancellationDate }}</div>
+                }
+              </div>
+
+              <div class="refund-detail-grid bg-white p-3 rounded-3 border">
+                <div class="refund-row d-flex justify-between py-2 border-bottom">
+                  <span class="text-muted">Advance Paid:</span>
+                  <span class="fw-bold">₹{{ selectedBooking()!.advanceAmount | number:'1.0-0' }}</span>
+                </div>
+                <div class="refund-row d-flex justify-between py-2 border-bottom text-success">
+                  <span>Refund Amount:</span>
+                  <strong class="fs-5">₹{{ selectedBooking()!.refundAmount || 0 | number:'1.0-0' }}</strong>
+                </div>
+                <div class="refund-row d-flex justify-between py-2 border-bottom text-danger">
+                  <span class="text-muted">Platform Retained Fee:</span>
+                  <span>- ₹{{ selectedBooking()!.platformCancellationFeeRetained || 0 | number:'1.0-0' }}</span>
+                </div>
+                <div class="refund-row d-flex justify-between py-2 text-danger">
+                  <span class="text-muted">Cancellation Fee (Paid to Vendor):</span>
+                  <span>- ₹{{ selectedBooking()!.cancellationFee || 0 | number:'1.0-0' }}</span>
+                </div>
+                
+                @if (selectedBooking()!.vendorPenaltyAmount) {
+                  <div class="refund-row d-flex justify-between py-2 border-top text-warning">
+                    <span>Vendor Penalty applied:</span>
+                    <span>₹{{ selectedBooking()!.vendorPenaltyAmount | number:'1.0-0' }}</span>
+                  </div>
+                }
+              </div>
+
+              <div class="refund-status-card mt-3 p-3 rounded-3 d-flex align-items-center gap-3 border" style="background-color: #f8f9fa;">
+                <div class="refund-status-icon px-3 py-2 rounded-3 bg-white border">
+                  @if (selectedBooking()!.refundStatus === 'pending') {
+                    <i class="bi bi-clock-history text-warning fs-3"></i>
+                  } @else if (selectedBooking()!.refundStatus === 'processed') {
+                    <i class="bi bi-check-circle-fill text-success fs-3"></i>
+                  } @else if (selectedBooking()!.refundStatus === 'failed') {
+                    <i class="bi bi-x-circle-fill text-danger fs-3"></i>
+                  } @else {
+                    <i class="bi bi-slash-circle text-muted fs-3"></i>
+                  }
+                </div>
+                <div>
+                  <div class="status-label fw-bold">Refund Status: {{ (selectedBooking()!.refundStatus || 'none') | titlecase }}</div>
+                  <div class="status-desc small text-muted">
+                    @if (selectedBooking()!.refundStatus === 'pending') {
+                      Your refund is being processed and will be credited to your original payment method within 5–7 business days.
+                    } @else if (selectedBooking()!.refundStatus === 'processed') {
+                      Refund has been successfully processed. Transaction ID: {{ selectedBooking()!.refundTransactionId || 'TXN-REFUND-EE' }}.
+                    } @else if (selectedBooking()!.refundStatus === 'failed') {
+                      Refund processing failed. Please contact support.
+                    } @else {
+                      No refund is applicable for this cancellation.
+                    }
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         }
 
@@ -281,6 +353,41 @@
         </div>
       }
 
+      <!-- Vendor Details -->
+      <div class="detail-section-card mb-4">
+        <div class="section-header">
+          <h6 class="section-title"><i class="bi bi-shop-window"></i> Vendor Partner Details</h6>
+        </div>
+        <div class="vendor-details-card d-flex gap-4 align-items-center">
+          <div class="vendor-avatar-placeholder">
+            <i class="bi bi-briefcase-fill text-primary" style="font-size: 2rem;"></i>
+          </div>
+          <div class="vendor-info-content flex-1">
+            <h5 class="fw-bold mb-1 text-gradient">{{ b.vendorName }}</h5>
+            @if (b.vendorDescription) {
+              <p class="small text-muted mb-3">{{ b.vendorDescription }}</p>
+            }
+            <div class="d-flex flex-wrap gap-3 mt-2">
+              @if (b.vendorPhone) {
+                <a href="tel:{{ b.vendorPhone }}" class="contact-pill link-no-style text-decoration-none">
+                  <i class="bi bi-telephone-fill text-success"></i> {{ b.vendorPhone }}
+                </a>
+              }
+              @if (b.vendorEmail) {
+                <a href="mailto:{{ b.vendorEmail }}" class="contact-pill link-no-style text-decoration-none">
+                  <i class="bi bi-envelope-fill text-info"></i> {{ b.vendorEmail }}
+                </a>
+              }
+              @if (b.vendorLocation) {
+                <div class="contact-pill">
+                  <i class="bi bi-geo-alt-fill text-danger"></i> {{ b.vendorLocation }}
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Booked Services -->
       @if (b.services.length) {
         <div class="detail-section-card mb-4">
@@ -388,6 +495,37 @@
           </div>
         </div>
       }
+
+      <!-- Cancellation Rules & Policy Section -->
+      @if (['pending', 'advance_paid', 'confirmed'].includes(selectedBooking()!.status)) {
+        <div class="detail-section-card border-danger-soft mb-4">
+          <div class="section-header bg-danger-soft">
+            <h6 class="section-title text-danger"><i class="bi bi-shield-exclamation text-danger"></i> Cancellation Rules & Policy</h6>
+          </div>
+          <div class="p-4">
+            <p class="small text-muted mb-3">
+              This booking is protected by the platform's cancellation and refund policy. Refunds are processed according to the timeline:
+            </p>
+            <ul class="small text-muted mb-4 ps-3">
+              <li><strong>More than 30 days before event date:</strong> 100% refund of advance payment (minus a 2% platform processing fee capped at ₹2,500).</li>
+              <li><strong>15 to 30 days before event date:</strong> 50% refund of advance payment. 50% retained as cancellation fee.</li>
+              <li><strong>7 to 14 days before event date:</strong> 25% refund of advance payment. 75% retained as cancellation fee.</li>
+              <li><strong>Less than 7 days before event date:</strong> 0% refund (100% advance amount is retained).</li>
+              <li>Once cancelled, the action cannot be undone, and the event slot will be released back to the vendor.</li>
+            </ul>
+            <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 p-3 bg-light rounded-3 border">
+              <div>
+                <span class="fw-bold d-block mb-1 text-danger">Cancel Booking</span>
+                <span class="text-muted small">This will cancel all associated services and notify the vendor.</span>
+              </div>
+              <button class="btn btn-booking-action btn-booking-action-cancel m-0" (click)="showCancelPrompt.set(true)">
+                <i class="bi bi-x-circle-fill"></i> Cancel Booking
+              </button>
+            </div>
+          </div>
+        </div>
+      }
+      <div style="height: 100px;"></div>
       </div>
     </div>
   } @else {
@@ -395,6 +533,88 @@
       <i class="bi bi-calendar-check"></i>
       <h4>Select a Booking</h4>
       <p>Choose an event from the list on the left to track progress, download receipts/invoices, or submit feedback.</p>
+    </div>
+  }
+
+  <!-- Cancel Booking Confirmation Modal -->
+  @if (showCancelPrompt()) {
+    <div class="modal-backdrop-ee fade show"></div>
+    <div class="modal modal-ee fade show d-block" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+          <div class="modal-header-modern bg-gradient-primary">
+            <h5 class="modal-title"><i class="bi bi-exclamation-octagon-fill me-2"></i>Cancel Booking</h5>
+            <button type="button" class="btn-close-white" (click)="showCancelPrompt.set(false)"><i class="bi bi-x-lg"></i></button>
+          </div>
+          <div class="modal-body p-4">
+            <div class="mb-4">
+              <!-- Dynamic Cancellation Preview -->
+              @if (cancellationPreview(); as preview) {
+                <div class="cancellation-preview-card p-3 mb-4 rounded-3 border" style="background-color: #fcfcfc;">
+                  <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+                    <span class="small text-muted fw-bold">Days until event:</span>
+                    <span class="badge bg-secondary-soft text-secondary px-2 py-1 rounded small fw-bold">{{ preview.daysUntilEvent }} days</span>
+                  </div>
+                  
+                  <div class="preview-metric text-center my-3">
+                    <div class="text-muted small">Estimated Refund Amount</div>
+                    <div class="fs-2 fw-bold text-success">₹{{ preview.refundAmount | number:'1.0-0' }}</div>
+                    <div class="small text-muted">({{ preview.refundPercentage }}% of advance paid)</div>
+                  </div>
+
+                  <div class="preview-breakdown border-top pt-2">
+                    <div class="d-flex justify-content-between py-1 small">
+                      <span class="text-muted">Advance Paid:</span>
+                      <span>₹{{ selectedBooking()?.advanceAmount | number:'1.0-0' }}</span>
+                    </div>
+                    
+                    @if (preview.daysUntilEvent > 30) {
+                      <div class="d-flex justify-content-between py-1 small text-danger">
+                        <span class="text-muted">Platform Processing Fee (2%):</span>
+                        <span>- ₹{{ preview.platformCancellationFee | number:'1.0-0' }}</span>
+                      </div>
+                    } @else {
+                      <div class="d-flex justify-content-between py-1 small text-danger">
+                        <span class="text-muted">Platform Fee Retained:</span>
+                        <span>- ₹{{ preview.platformCancellationFee | number:'1.0-0' }}</span>
+                      </div>
+                      <div class="d-flex justify-content-between py-1 small text-danger">
+                        <span class="text-muted">Cancellation Fee (Paid to Vendor):</span>
+                        <span>- ₹{{ preview.cancellationFee | number:'1.0-0' }}</span>
+                      </div>
+                    }
+                  </div>
+
+                  @if (preview.daysUntilEvent <= 7) {
+                    <div class="alert alert-danger py-2 px-3 mt-3 mb-0 rounded-2 small d-flex align-items-center gap-2" style="background-color: rgba(220,53,69,0.05); border-left: 3px solid #dc3545; color: #721c24;">
+                      <i class="bi bi-exclamation-triangle-fill"></i>
+                      <span><strong>Last-Minute Cancellation:</strong> Cancellation fee is 100% of advance amount. No refund will be generated.</span>
+                    </div>
+                  } @else if (preview.daysUntilEvent > 30) {
+                    <div class="alert alert-success py-2 px-3 mt-3 mb-0 rounded-2 small d-flex align-items-center gap-2" style="background-color: rgba(40,167,69,0.05); border-left: 3px solid #28a745; color: #155724;">
+                      <i class="bi bi-patch-check-fill"></i>
+                      <span><strong>Free Cancellation Period:</strong> You are eligible for a full refund of your advance payment (minus platform processing fee).</span>
+                    </div>
+                  } @else {
+                    <div class="alert alert-warning py-2 px-3 mt-3 mb-0 rounded-2 small d-flex align-items-center gap-2" style="background-color: rgba(255,193,7,0.05); border-left: 3px solid #ffc107; color: #856404;">
+                      <i class="bi bi-exclamation-triangle-fill"></i>
+                      <span><strong>Partial Refund Period:</strong> Cancellation fee of {{ 100 - preview.refundPercentage }}% will be retained from your advance payment.</span>
+                    </div>
+                  }
+                </div>
+              }
+
+              <p class="text-muted small mb-3">Please provide a reason for cancellation. This will be shared with the vendor partner and logged in the platform audit.</p>
+              <label class="form-label fw-bold">Reason for Cancellation</label>
+              <textarea class="form-control" rows="3" placeholder="Briefly describe why you need to cancel this booking..." [(ngModel)]="cancelReason"></textarea>
+            </div>
+            <div class="modal-footer border-0 p-0 mt-4 d-flex gap-3">
+              <button type="button" class="btn btn-outline-cancel flex-1 py-3" (click)="showCancelPrompt.set(false)">Cancel</button>
+              <button type="button" class="btn btn-danger flex-1 py-3" (click)="cancelBooking()">Confirm Cancellation</button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   }
 </div>

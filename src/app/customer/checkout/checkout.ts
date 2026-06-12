@@ -9,6 +9,7 @@ import { PackageService } from '../../core/services/package.service';
 import { ToastService } from '../../core/services/toast.service';
 import { LoyaltyService } from '../../core/services/loyalty.service';
 import { GuaranteeService } from '../../core/services/guarantee.service';
+import { VendorService } from '../../core/services/vendor.service';
 
 @Component({
   selector: 'app-checkout',
@@ -27,6 +28,7 @@ export class Checkout implements OnInit {
   private toast = inject(ToastService);
   private loyaltyService = inject(LoyaltyService);
   private guaranteeService = inject(GuaranteeService);
+  private vendorService = inject(VendorService);
 
   guaranteeHighlights = this.guaranteeService.getGuaranteeHighlights();
 
@@ -164,6 +166,7 @@ export class Checkout implements OnInit {
   // Transaction references returned by API
   transactionId = signal('');
   paymentProviderRef = signal('');
+  newlyCreatedBookingId = signal<string | null>(null);
 
   ngOnInit() {
     const pkgId = this.route.snapshot.paramMap.get('packageId');
@@ -395,9 +398,9 @@ export class Checkout implements OnInit {
       this.processingStep.set('initiating');
 
       const paymentPayload = {
-        bookingId: this.cleanGuid(bookingId),
-        paymentMethod: this.paymentMethod().toUpperCase(),
-        couponCode: undefined
+        BookingId: this.cleanGuid(bookingId),
+        PaymentMethod: this.paymentMethod().toUpperCase(),
+        CouponCode: undefined
       };
 
       this.paymentService.initiatePayment(paymentPayload).subscribe({
@@ -409,8 +412,8 @@ export class Checkout implements OnInit {
           this.processingStep.set('verifying');
           setTimeout(() => {
             const confirmPayload = {
-              providerRef: providerRef,
-              status: 'success'
+              ProviderRef: providerRef,
+              Status: 'success'
             };
 
             this.paymentService.confirmPayment(confirmPayload).subscribe({
@@ -439,88 +442,107 @@ export class Checkout implements OnInit {
 
     this.processingStep.set('creating');
 
-    // 1. Create Booking in database (Pending Status)
-    const bookingPayload = {
-      UserId: this.cleanGuid(currentUserId),
-      VendorId: this.cleanGuid(details.vendorId),
-      EventDate: new Date(details.bookingDate).toISOString(),
-      Amount: this.payableAmount(),
-      TotalAmount: this.totalAmount(),
-      AdvanceAmount: this.paymentType() === 'advance' ? this.advanceAmount() : this.totalAmount(),
-      Status: 'Pending',
-      PackageId: this.cleanGuid(details.packageId),
-      PackageName: details.packageName,
-      EventName: details.packageName || 'Event Celebration',
-      Venue: details.bookingCity || 'Banquet Hall',
-      City: details.bookingCity || 'Mumbai',
-      GuestCount: parseInt(details.bookingGuests) || 100,
-      ApplyPlatformFee: true,
-      EscrowStatus: 'held',
-      GuaranteeStatus: 'active',
-    };
+    // Perform real-time availability check first!
+    this.vendorService.checkAvailability(details.vendorId, details.bookingDate).subscribe({
+      next: (availRes) => {
+        if (!availRes.available) {
+          this.isProcessing.set(false);
+          this.processingStep.set('');
+          this.setErrorMessage('The vendor is no longer available on the selected date. Please choose another date.');
+          return;
+        }
 
-    this.bookingService.createBooking(bookingPayload).subscribe({
-      next: (bookingRes) => {
-        const bookingId = bookingRes.id || bookingRes.Id;
-        this.processingStep.set('initiating');
-
-        // 2. Initiate Payment
-        const paymentPayload = {
-          bookingId: bookingId,
-          paymentMethod: this.paymentMethod().toUpperCase(),
-          couponCode: this.appliedCoupon() || undefined
+        // 1. Create Booking in database (Pending Status)
+        const bookingPayload = {
+          UserId: this.cleanGuid(currentUserId),
+          VendorId: this.cleanGuid(details.vendorId),
+          EventDate: new Date(details.bookingDate).toISOString(),
+          Amount: this.payableAmount(),
+          TotalAmount: this.totalAmount(),
+          AdvanceAmount: this.paymentType() === 'advance' ? this.advanceAmount() : this.totalAmount(),
+          Status: 'Pending',
+          PackageId: this.cleanGuid(details.packageId),
+          PackageName: details.packageName,
+          EventName: details.packageName || 'Event Celebration',
+          Venue: details.bookingCity || 'Banquet Hall',
+          City: details.bookingCity || 'Mumbai',
+          GuestCount: parseInt(details.bookingGuests) || 100,
+          ApplyPlatformFee: true,
+          EscrowStatus: 'held',
+          GuaranteeStatus: 'active',
         };
 
-        this.paymentService.initiatePayment(paymentPayload).subscribe({
-          next: (paymentRes) => {
-            const providerRef = paymentRes.providerRef || paymentRes.ProviderRef;
-            this.paymentProviderRef.set(providerRef);
-            this.transactionId.set(paymentRes.paymentId || paymentRes.PaymentId);
-            
-            // Simulate visual bank response verification
-            this.processingStep.set('verifying');
-            setTimeout(() => {
-              
-              // 3. Confirm Payment
-              const confirmPayload = {
-                providerRef: providerRef,
-                status: 'success'
-              };
+        this.bookingService.createBooking(bookingPayload).subscribe({
+          next: (bookingRes) => {
+            const bookingId = bookingRes.id || bookingRes.Id;
+            this.newlyCreatedBookingId.set(bookingId);
+            this.processingStep.set('initiating');
 
-              this.paymentService.confirmPayment(confirmPayload).subscribe({
-                next: (confirmRes) => {
-                  this.processingStep.set('done');
-                  this.checkoutSuccess.set(true);
-                  this.isProcessing.set(false);
+            // 2. Initiate Payment
+            const paymentPayload = {
+              BookingId: bookingId,
+              PaymentMethod: this.paymentMethod().toUpperCase(),
+              CouponCode: this.appliedCoupon() || undefined
+            };
+
+            this.paymentService.initiatePayment(paymentPayload).subscribe({
+              next: (paymentRes) => {
+                const providerRef = paymentRes.providerRef || paymentRes.ProviderRef;
+                this.paymentProviderRef.set(providerRef);
+                this.transactionId.set(paymentRes.paymentId || paymentRes.PaymentId);
+                
+                // Simulate visual bank response verification
+                this.processingStep.set('verifying');
+                setTimeout(() => {
                   
-                  // Redeem points if applied
-                  if (this.pointsToRedeem() > 0 && currentUserId) {
-                    this.loyaltyService.redeemPoints(currentUserId, { bookingId: bookingId, pointsToRedeem: this.pointsToRedeem() }).subscribe();
-                  }
+                  // 3. Confirm Payment
+                  const confirmPayload = {
+                    ProviderRef: providerRef,
+                    Status: 'success'
+                  };
 
-                  // Clear sessionStorage since transaction is done
-                  sessionStorage.removeItem('joinevents_booking_pending');
-                },
-                error: (err) => {
-                  console.error('Payment confirmation error', err);
-                  this.setErrorMessage(err.error?.error || 'Failed to confirm payment on server.');
-                  this.isProcessing.set(false);
-                }
-              });
+                  this.paymentService.confirmPayment(confirmPayload).subscribe({
+                    next: (confirmRes) => {
+                      this.processingStep.set('done');
+                      this.checkoutSuccess.set(true);
+                      this.isProcessing.set(false);
+                      
+                      // Redeem points if applied
+                      if (this.pointsToRedeem() > 0 && currentUserId) {
+                        this.loyaltyService.redeemPoints(currentUserId, { bookingId: bookingId, pointsToRedeem: this.pointsToRedeem() }).subscribe();
+                      }
 
-            }, 2000); // Visual gateway processing delay
+                      // Clear sessionStorage since transaction is done
+                      sessionStorage.removeItem('joinevents_booking_pending');
+                    },
+                    error: (err) => {
+                      console.error('Payment confirmation error', err);
+                      this.setErrorMessage(err.error?.error || 'Failed to confirm payment on server.');
+                      this.isProcessing.set(false);
+                    }
+                  });
+
+                }, 2000); // Visual gateway processing delay
+              },
+              error: (err) => {
+                console.error('Payment initiation error', err);
+                this.setErrorMessage(err.error?.error || 'Failed to initiate payment.');
+                this.isProcessing.set(false);
+              }
+            });
           },
           error: (err) => {
-            console.error('Payment initiation error', err);
-            this.setErrorMessage(err.error?.error || 'Failed to initiate payment.');
+            console.error('Booking creation error', err);
+            this.setErrorMessage(err.error?.error || 'Failed to create booking.');
             this.isProcessing.set(false);
           }
         });
       },
       error: (err) => {
-        console.error('Booking creation error', err);
-        this.setErrorMessage(err.error?.error || 'Failed to create booking.');
+        console.error('Error checking availability at checkout:', err);
         this.isProcessing.set(false);
+        this.processingStep.set('');
+        this.setErrorMessage('Unable to verify vendor availability. Please try again.');
       }
     });
   }

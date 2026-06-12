@@ -223,7 +223,7 @@
                     <button class="btn-accept" (click)="acceptBid(rfp.id, bid.id)">
                       <i class="bi bi-check-lg"></i> Accept Quote
                     </button>
-                    <button class="btn-message">
+                    <button class="btn-message" (click)="messageVendor(bid.vendorId)">
                       <i class="bi bi-chat-dots"></i> Message Vendor
                     </button>
                   </div>

@@ -1,11 +1,22 @@
 import { TestBed } from '@angular/core/testing';
 import { SearchService } from './search.service';
+import { VendorService as VendorApiService } from './vendor.service';
+import { of } from 'rxjs';
 
 describe('SearchService', () => {
   let service: SearchService;
+  let mockVendorService: jasmine.SpyObj<VendorApiService>;
 
   beforeEach(() => {
-    TestBed.configureTestingModule({});
+    mockVendorService = jasmine.createSpyObj('VendorService', ['checkBulkAvailability']);
+    mockVendorService.checkBulkAvailability.and.returnValue(of({}));
+
+    TestBed.configureTestingModule({
+      providers: [
+        SearchService,
+        { provide: VendorApiService, useValue: mockVendorService }
+      ]
+    });
     service = TestBed.inject(SearchService);
   });
 

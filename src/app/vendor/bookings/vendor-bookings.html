@@ -60,12 +60,29 @@
         }
 
         @if (cancelPrompt() === req.id) {
-          <div class="mt-3 p-3 border rounded bg-danger-subtle">
-            <label class="form-label small fw-bold">Reason for Cancellation</label>
-            <textarea #cancelReason class="form-control form-control-sm mb-2"></textarea>
-            <div class="d-flex gap-2 justify-content-end">
-              <button class="btn btn-sm btn-outline-secondary" (click)="cancelPrompt.set(null)">Keep Booking</button>
-              <button class="btn btn-sm btn-danger" (click)="cancelBooking(req.id, cancelReason.value); cancelPrompt.set(null)">Confirm Cancel</button>
+          <div class="mt-3 p-3 border rounded border-danger" style="background-color: rgba(220, 53, 69, 0.03);">
+            <div class="alert alert-danger p-3 rounded-3 mb-3 small d-flex flex-column gap-2" style="background-color: rgba(220,53,69,0.05); border: 1px solid rgba(220,53,69,0.15); color: #721c24;">
+              <div class="fw-bold d-flex align-items-center gap-2">
+                <i class="bi bi-exclamation-triangle-fill text-danger fs-5"></i>
+                <span>Warning: Vendor Cancellation Rules Apply</span>
+              </div>
+              <span>Cancelling a confirmed event booking harms customer trust and violates platform policies. The following will apply:</span>
+              <ul class="ps-3 mb-0 mt-1">
+                <li>A **1 Strike** penalty will be added to your vendor account (3 strikes lead to suspension).</li>
+                @if (cancellationPreview(); as preview) {
+                  <li>A penalty charge of **₹{{ preview.penalty | number:'1.0-0' }}** (10% of total amount) will be debited from your next payout.</li>
+                } @else {
+                  <li>A penalty charge of **10% of booking value** will be debited from your next payout.</li>
+                }
+                <li>Customer will receive a full 100% refund of their advance payment.</li>
+              </ul>
+            </div>
+            
+            <label class="form-label small fw-bold text-dark">Reason for Cancellation (required)</label>
+            <textarea #cancelReason class="form-control form-control-sm mb-2" rows="3" placeholder="Explain the reason for cancellation..."></textarea>
+            <div class="d-flex gap-2 justify-content-end mt-3">
+              <button class="btn btn-sm btn-outline-secondary px-3 py-2 rounded-pill fw-bold" (click)="cancelPrompt.set(null)">Keep Booking</button>
+              <button class="btn btn-sm btn-danger px-3 py-2 rounded-pill fw-bold" (click)="cancelBooking(req.id, cancelReason.value)">Confirm Cancellation</button>
             </div>
           </div>
         }

@@ -12,6 +12,7 @@ import { Booking } from '../../core/models/booking.model';
 import { EventTierService } from '../../core/services/event-tier.service';
 
 import { FavoritesService } from '../../core/services/favorites.service';
+import { VendorService } from '../../core/services/vendor.service';
 
 @Component({
   selector: 'app-customer-booking',
@@ -32,6 +33,7 @@ export class CustomerBooking implements OnInit, OnDestroy, OnChanges {
   private bookingService = inject(BookingService);
   public eventTierService = inject(EventTierService);
   public favoritesService = inject(FavoritesService);
+  private vendorService = inject(VendorService);
 
   userRole = computed(() => this.auth.currentUser()?.role);
 
@@ -99,6 +101,8 @@ export class CustomerBooking implements OnInit, OnDestroy, OnChanges {
   selectedAddons = signal<any[]>([]);
   includeInsurance = signal(false);
   bookingDate = '';
+  isDateAvailable = signal<boolean>(true);
+  checkingAvailability = signal<boolean>(false);
   bookingCity = '';
   bookingGuests = '';
   couponCode = '';
@@ -582,9 +586,41 @@ export class CustomerBooking implements OnInit, OnDestroy, OnChanges {
     }
   }
 
+  onDateChange(date: string) {
+    this.bookingDate = date;
+    const pkg = this.selectedPackage();
+    if (!date || !pkg || !pkg.vendorId) {
+      this.isDateAvailable.set(true);
+      return;
+    }
+    this.checkingAvailability.set(true);
+    this.vendorService.checkAvailability(pkg.vendorId, date).subscribe({
+      next: (res) => {
+        this.isDateAvailable.set(res.available);
+        this.checkingAvailability.set(false);
+      },
+      error: (err) => {
+        console.error('Error checking availability:', err);
+        // Fallback to true if server error, but log it
+        this.isDateAvailable.set(true);
+        this.checkingAvailability.set(false);
+      }
+    });
+  }
+
   confirmBooking() {
     const pkg = this.selectedPackage();
     if (!pkg) return;
+
+    if (!this.bookingDate) {
+      this.toast.error('Please select an event date.');
+      return;
+    }
+
+    if (!this.isDateAvailable()) {
+      this.toast.error('The selected date is no longer available. Please select another date.');
+      return;
+    }
 
     const bookingDetails = {
       packageId: pkg.id,

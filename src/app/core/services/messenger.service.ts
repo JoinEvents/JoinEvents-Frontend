@@ -50,6 +50,8 @@ export class MessengerService extends BaseApiService {
           status: t.Status,
           avatar: t.RecipientAvatar,
           eventTitle: t.EventTitle,
+          vendorId: t.VendorId,
+          bookingId: t.RfpId,
           participants: [
             { id: userId, name: 'Me', role: role },
             { id: t.RecipientId, name: t.RecipientName, role: otherRole }

@@ -1,7 +1,8 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, signal, inject } from '@angular/core';
 import { Observable, of, forkJoin } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { map, catchError } from 'rxjs/operators';
 import { VendorService } from '../models/service.model';
+import { VendorService as VendorApiService } from './vendor.service';
 
 export interface SearchFilters {
   category?: string;
@@ -15,6 +16,7 @@ export interface SearchFilters {
 
 @Injectable({ providedIn: 'root' })
 export class SearchService {
+  private vendorApiService = inject(VendorApiService);
   filters = signal<SearchFilters>({});
   validationError = signal<string | null>(null);
 
@@ -85,35 +87,22 @@ export class SearchService {
       return of(firstFiltered);
     }
 
-    const parts = f.availableDate.split('-');
-    const year = parseInt(parts[0], 10);
-    const month = parseInt(parts[1], 10);
-
-    const checks = firstFiltered.map(s => {
-      // Generate mock calendar inline for availability checks
-      const daysInMonth = new Date(year, month, 0).getDate();
-      const bookedDays = [3, 7, 12, 18, 24, 28];
-      const blockedDays = [1, 15];
-      const calendar = [];
-      for (let d = 1; d <= daysInMonth; d++) {
-        const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-        let status = 'available';
-        if (bookedDays.includes(d)) status = 'booked';
-        else if (blockedDays.includes(d)) status = 'blocked';
-        calendar.push({ date: dateStr, status });
-      }
-
-      const matchedDay = calendar.find(d => d.date === f.availableDate);
-      const isUnavailable = matchedDay && (matchedDay.status === 'booked' || matchedDay.status === 'blocked');
-      return of({ service: s, keep: !isUnavailable });
-    });
-
-    if (checks.length === 0) {
+    const vendorIds = firstFiltered.map(s => s.vendorId).filter(id => !!id);
+    if (vendorIds.length === 0) {
       return of([]);
     }
 
-    return forkJoin(checks).pipe(
-      map(results => results.filter(r => r.keep).map(r => r.service))
+    return this.vendorApiService.checkBulkAvailability(vendorIds, f.availableDate).pipe(
+      map(availabilityMap => {
+        return firstFiltered.filter(s => {
+          // If the bulk endpoint returned a value, use it. Otherwise, default to true.
+          return availabilityMap[s.vendorId] !== false;
+        });
+      }),
+      catchError(err => {
+        console.error('Failed to check bulk availability, falling back to all available:', err);
+        return of(firstFiltered);
+      })
     );
   }
 }

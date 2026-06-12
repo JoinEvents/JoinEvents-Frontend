@@ -5,11 +5,11 @@ import { Observable } from 'rxjs';
 @Injectable({ providedIn: 'root' })
 export class PaymentService extends BaseApiService {
 
-  initiatePayment(req: { bookingId: string; paymentMethod: string; couponCode?: string }): Observable<any> {
+  initiatePayment(req: { BookingId: string; PaymentMethod: string; CouponCode?: string }): Observable<any> {
     return this.post<any>('/payment/initiate', req, false);
   }
 
-  confirmPayment(payload: { providerRef: string; status: string }): Observable<any> {
+  confirmPayment(payload: { ProviderRef: string; Status: string }): Observable<any> {
     return this.post<any>('/payment/confirm', payload, false);
   }
 }

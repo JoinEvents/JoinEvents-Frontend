@@ -20,6 +20,7 @@ export const API_ROUTES = {
     CREATE: '/booking',
     STATUS: (id: string) => `/bookings/${id}/status`,
     CANCEL: (id: string) => `/bookings/${id}/cancel`,
+    CANCELLATION: (id: string) => `/bookings/${id}/cancellation`,
     DAMAGE: (id: string) => `/bookings/${id}/damage`,
     DISPUTE: (id: string) => `/bookings/${id}/dispute`,
     LOGS: (id: string) => `/bookings/${id}/logs`,

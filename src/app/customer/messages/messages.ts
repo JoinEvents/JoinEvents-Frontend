@@ -61,18 +61,25 @@ export class CustomerMessages implements OnInit, AfterViewChecked {
       const bookingId = this.route.snapshot.queryParams['bookingId'];
 
       if (vendorId) {
-        // Look for an existing thread with this vendor
-        const existingThread = t.find(thread => 
-          thread.participants.some(p => p.id === vendorId && p.role === 'vendor')
-        );
+        const targetVendorId = vendorId.toLowerCase();
+        // Look for an existing thread with this vendor and this specific booking (if bookingId provided)
+        const existingThread = t.find(thread => {
+          const matchesVendor = thread.vendorId?.toLowerCase() === targetVendorId ||
+            thread.participants.some(p => p.id.toLowerCase() === targetVendorId && p.role === 'vendor');
+          if (!matchesVendor) return false;
+          if (bookingId) {
+            return thread.bookingId?.toLowerCase() === bookingId.toLowerCase();
+          }
+          return true;
+        });
 
         if (existingThread) {
           this.openThread(existingThread);
           this.clearQueryParams();
         } else {
-          // If no thread exists, initiate a chat request
+          // If no thread exists, initiate a chat request for this booking
           const initialMessage = "Hi, I have booked your service. Let's discuss details.";
-          this.messenger.requestChat(vendorId, null, initialMessage).subscribe({
+          this.messenger.requestChat(vendorId, bookingId || null, initialMessage).subscribe({
             next: (res) => {
               // Reload threads
               this.messenger.getChatThreads(userId).pipe(
