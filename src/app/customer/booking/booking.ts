@@ -459,7 +459,11 @@ export class CustomerBooking implements OnInit, OnDestroy, OnChanges {
 
       let priceRangeStr = '';
       if (customDetails.minPrice && customDetails.maxPrice) {
-        priceRangeStr = `₹${customDetails.minPrice.toLocaleString()} - ₹${customDetails.maxPrice.toLocaleString()}`;
+        if (customDetails.minPrice === customDetails.maxPrice) {
+          priceRangeStr = `₹${customDetails.minPrice.toLocaleString()}`;
+        } else {
+          priceRangeStr = `₹${customDetails.minPrice.toLocaleString()} - ₹${customDetails.maxPrice.toLocaleString()}`;
+        }
       } else if (customDetails.minPrice) {
         priceRangeStr = `Starts from ₹${customDetails.minPrice.toLocaleString()}`;
       }

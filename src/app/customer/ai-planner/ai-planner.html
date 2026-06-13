@@ -15,7 +15,7 @@
     </div>
     <div class="ai-info">
       <h6 class="m-0 fw-800">Roshi</h6>
-      <span class="status">Event Expert</span>
+      <span class="status">AI Event Concierge</span>
     </div>
     <button class="btn-close-chat" (click)="toggleChat()"><i class="bi bi-x-lg"></i></button>
   </div>
@@ -23,6 +23,7 @@
   <div class="chat-body" #chatContainer>
     @for (msg of chatHistory(); track msg.id) {
       
+      <!-- AI Text Message -->
       @if (msg.sender === 'ai' && msg.type === 'text') {
         <div class="msg-row ai">
           <div class="msg-avatar"><i class="bi bi-stars"></i></div>
@@ -30,12 +31,14 @@
         </div>
       }
 
+      <!-- User Message -->
       @if (msg.sender === 'user') {
         <div class="msg-row user">
           <div class="msg-bubble user-bubble">{{ msg.content }}</div>
         </div>
       }
 
+      <!-- Package Cards -->
       @if (msg.sender === 'ai' && msg.type === 'packages' && msg.packages) {
         <div class="msg-row ai-cards">
           <div class="ai-carousel">
@@ -52,13 +55,11 @@
                 </div>
                 <div class="ai-pkg-info">
                   <h6 class="ai-pkg-name">{{ pkg.name }}</h6>
-                  
                   @if (pkg.location) {
                     <div class="ai-pkg-loc">
                       <i class="bi bi-geo-alt-fill"></i> {{ pkg.location }}
                     </div>
                   }
-
                   <div class="d-flex justify-content-between align-items-center mt-2">
                     <div class="ai-pkg-price">
                       {{ pkg.price >= 100000 ? '₹' + (pkg.price / 100000).toFixed(1) + 'L' : '₹' + (pkg.price / 1000).toFixed(0) + 'K' }}
@@ -72,6 +73,110 @@
                   </div>
                 </div>
               </div>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- Booking Cards -->
+      @if (msg.sender === 'ai' && msg.type === 'bookings' && msg.bookings) {
+        <div class="msg-row ai-cards">
+          <div class="ai-carousel">
+            @for (bk of msg.bookings; track bk.id) {
+              <div class="ai-booking-card" (click)="navigateTo('/bookings')">
+                <div class="booking-card-header">
+                  <span class="booking-number">#{{ bk.bookingNumber }}</span>
+                  <span class="booking-status" [class]="getStatusClass(bk.status)">{{ getStatusLabel(bk.status) }}</span>
+                </div>
+                <div class="booking-card-body">
+                  <div class="booking-event-name">{{ bk.eventName || bk.packageName || 'Event' }}</div>
+                  @if (bk.eventDate) {
+                    <div class="booking-detail">
+                      <i class="bi bi-calendar3"></i> {{ bk.eventDate }}
+                    </div>
+                  }
+                  @if (bk.city || bk.venue) {
+                    <div class="booking-detail">
+                      <i class="bi bi-geo-alt"></i> {{ bk.venue || bk.city }}
+                    </div>
+                  }
+                  <div class="booking-amount">
+                    {{ formatCurrency(bk.totalAmount) }}
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- Loyalty Card -->
+      @if (msg.sender === 'ai' && msg.type === 'loyalty' && msg.loyaltyData) {
+        <div class="msg-row ai-cards">
+          <div class="ai-loyalty-card" (click)="navigateTo('/rewards')">
+            <div class="loyalty-header">
+              <span class="loyalty-tier-icon">{{ getTierIcon(msg.loyaltyData.tier) }}</span>
+              <span class="loyalty-tier-name">{{ msg.loyaltyData.tier }} Member</span>
+            </div>
+            <div class="loyalty-points">
+              <span class="points-value">{{ msg.loyaltyData.points }}</span>
+              <span class="points-label">Loyalty Points</span>
+            </div>
+            @if (msg.loyaltyData.pointsToNextTier) {
+              <div class="loyalty-progress-text">
+                {{ msg.loyaltyData.pointsToNextTier }} points to next tier
+              </div>
+            }
+            <div class="loyalty-cta">View Rewards →</div>
+          </div>
+        </div>
+      }
+
+      <!-- RFP Cards -->
+      @if (msg.sender === 'ai' && msg.type === 'rfps' && msg.rfps) {
+        <div class="msg-row ai-cards">
+          <div class="ai-carousel">
+            @for (rfp of msg.rfps; track rfp.id) {
+              <div class="ai-rfp-card" (click)="navigateTo('/get-quotes')">
+                <div class="rfp-card-header">
+                  <span class="rfp-title">{{ rfp.title }}</span>
+                  <span class="rfp-status" [class]="getStatusClass(rfp.status)">{{ getStatusLabel(rfp.status) }}</span>
+                </div>
+                <div class="rfp-card-body">
+                  <div class="rfp-detail">
+                    <i class="bi bi-calendar3"></i> {{ rfp.eventDate }}
+                  </div>
+                  <div class="rfp-detail">
+                    <i class="bi bi-geo-alt"></i> {{ rfp.city }}
+                  </div>
+                  <div class="rfp-detail">
+                    <i class="bi bi-people"></i> {{ rfp.guestCount }} guests
+                  </div>
+                  <div class="rfp-budget">
+                    {{ formatCurrency(rfp.budgetMin) }} - {{ formatCurrency(rfp.budgetMax) }}
+                  </div>
+                  @if (rfp.bids?.length) {
+                    <div class="rfp-bids-count">
+                      <i class="bi bi-inbox"></i> {{ rfp.bids.length }} bid{{ rfp.bids.length > 1 ? 's' : '' }}
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- Navigation Links -->
+      @if (msg.sender === 'ai' && msg.type === 'nav-links' && msg.navLinks) {
+        <div class="msg-row ai-cards">
+          <div class="ai-nav-links">
+            @for (link of msg.navLinks; track link.route) {
+              <button class="ai-nav-btn" (click)="navigateTo(link.route)">
+                <i class="bi" [class]="link.icon"></i>
+                <span>{{ link.label }}</span>
+                <i class="bi bi-arrow-right"></i>
+              </button>
             }
           </div>
         </div>
@@ -101,7 +206,7 @@
     }
     
     <div class="input-wrapper">
-      <input type="text" [(ngModel)]="userInput" (keyup.enter)="sendMessage()" placeholder="Ask me anything..." [disabled]="isThinking()">
+      <input type="text" [(ngModel)]="userInput" (keyup.enter)="sendMessage()" placeholder="Ask Roshi anything..." [disabled]="isThinking()">
       <button class="btn-send" (click)="sendMessage()" [disabled]="!userInput.trim() || isThinking()">
         <i class="bi bi-send-fill"></i>
       </button>

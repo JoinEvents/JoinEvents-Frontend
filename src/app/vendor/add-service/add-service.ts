@@ -1,4 +1,4 @@
-import { Component, signal, OnInit, OnDestroy, inject, computed, ViewChild, ElementRef, NgZone, AfterViewInit, effect } from '@angular/core';
+import { Component, signal, OnInit, OnDestroy, inject, computed, ViewChild, ElementRef, NgZone, AfterViewInit, effect, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
@@ -6,6 +6,8 @@ import { VendorPackageService } from '../../core/services/vendor-package.service
 import { EventCategoryService } from '../../core/services/event-category.service';
 import { ServiceCategoryDef } from '../../core/models/service.model';
 import { EventTierService } from '../../core/services/event-tier.service';
+import { SupportService } from '../../core/services/support.service';
+import { environment } from '../../../environments/environment';
 
 declare var google: any;
 
@@ -16,6 +18,21 @@ interface InclusionDetail {
   images: string[];
   keyFeatures: string[];
   inclusions: string[];
+}
+
+interface CropItem {
+  file: File;
+  dataUrl: string;
+  zoom: number;
+  translateX: number;
+  translateY: number;
+  imageWidth: number;
+  imageHeight: number;
+  zoomValue: number;
+  prevZoom: number;
+  fittedScale: number;
+  imgOriginalWidth: number;
+  imgOriginalHeight: number;
 }
 
 @Component({
@@ -32,6 +49,31 @@ export class VendorAddService implements OnInit, OnDestroy {
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private ngZone = inject(NgZone);
+  private supportService = inject(SupportService);
+
+  // Cropper Fields
+  @ViewChild('cropImage') cropImageRef!: ElementRef<HTMLImageElement>;
+  showCropModal = signal(false);
+  imageSrc = signal<string | null>(null);
+  zoom = signal(1.0);
+  translateX = signal(0);
+  translateY = signal(0);
+  imageWidth = signal(0);
+  imageHeight = signal(0);
+  zoomValue = 1.0;
+  prevZoom = 1.0;
+  cropping = signal(false);
+  
+  private dragStartPos = { x: 0, y: 0 };
+  private isDragging = false;
+  private imgOriginalWidth = 0;
+  private imgOriginalHeight = 0;
+  private fittedScale = 1.0;
+  
+  currentCropTarget = ''; // 'portfolio' or 'inclusion:Catering' etc.
+  uploadQueue: File[] = [];
+  cropItems: CropItem[] = [];
+  currentIndex: number = 0;
 
   constructor() {
     effect(() => {
@@ -145,9 +187,9 @@ export class VendorAddService implements OnInit, OnDestroy {
     hasChangingRooms: false,
     hasParking: false,
 
-    // Spaces
+    // Spaces (repurposed for Day-wise Plan)
     spaces: [
-      { name: 'Main Hall', type: 'Indoor', seating: 0, floating: 0 }
+      { name: 'Welcome & Setup', type: 'Welcome ceremony and setup details.', seating: 0, floating: 0 }
     ],
 
     // Package Includes
@@ -448,19 +490,31 @@ export class VendorAddService implements OnInit, OnDestroy {
           const details: Record<string, InclusionDetail> = {};
           inc.forEach((item: string) => {
             if (parsedInclusionDetails[item]) {
+              let minVal = parsedInclusionDetails[item].minPrice || 0;
+              if (item.toLowerCase() === 'catering' && this.formData.vegPrice) {
+                minVal = this.formData.vegPrice;
+              } else if (item.toLowerCase() === 'venue' && this.formData.rent) {
+                minVal = this.formData.rent;
+              }
               details[item] = {
                 description: parsedInclusionDetails[item].description || '',
-                minPrice: parsedInclusionDetails[item].minPrice || 0,
-                maxPrice: parsedInclusionDetails[item].maxPrice || 0,
+                minPrice: minVal,
+                maxPrice: minVal,
                 images: parsedInclusionDetails[item].images || [],
                 keyFeatures: parsedInclusionDetails[item].keyFeatures || [],
                 inclusions: parsedInclusionDetails[item].inclusions || []
               };
             } else {
+              let minVal = 0;
+              if (item.toLowerCase() === 'catering') {
+                minVal = this.formData.vegPrice;
+              } else if (item.toLowerCase() === 'venue') {
+                minVal = this.formData.rent;
+              }
               details[item] = {
                 description: '',
-                minPrice: 0,
-                maxPrice: 0,
+                minPrice: minVal,
+                maxPrice: minVal,
                 images: [],
                 keyFeatures: [],
                 inclusions: []
@@ -484,7 +538,7 @@ export class VendorAddService implements OnInit, OnDestroy {
   }
 
   nextStep() {
-    if (this.currentStep() < 6) {
+    if (this.currentStep() < 4) {
       this.currentStep.update(s => s + 1);
       window.scrollTo(0, 0);
     }
@@ -498,7 +552,7 @@ export class VendorAddService implements OnInit, OnDestroy {
   }
 
   addSpace() {
-    this.formData.spaces.push({ name: '', type: 'Indoor', seating: 0, floating: 0 });
+    this.formData.spaces.push({ name: '', type: '', seating: 0, floating: 0 });
   }
 
   removeSpace(index: number) {
@@ -514,10 +568,16 @@ export class VendorAddService implements OnInit, OnDestroy {
       if (current[inc]) {
         updated[inc] = current[inc];
       } else {
+        let defaultPrice = 0;
+        if (inc.toLowerCase() === 'catering') {
+          defaultPrice = this.formData.vegPrice || 0;
+        } else if (inc.toLowerCase() === 'venue') {
+          defaultPrice = this.formData.rent || 0;
+        }
         updated[inc] = {
           description: '',
-          minPrice: 0,
-          maxPrice: 0,
+          minPrice: defaultPrice,
+          maxPrice: defaultPrice,
           images: [],
           keyFeatures: [],
           inclusions: []
@@ -601,27 +661,21 @@ export class VendorAddService implements OnInit, OnDestroy {
     const details = this.inclusionDetails()[incName];
     if (!details) return true;
     
-    const min = details.minPrice || 0;
-    const max = details.maxPrice || 0;
+    const val = details.minPrice || 0;
     
-    if (min < 0 || max < 0) {
+    if (val < 0) {
       this.inclusionPriceErrors[incName] = 'Price cannot be negative.';
-      return false;
-    }
-    
-    if (min > max && max > 0) {
-      this.inclusionPriceErrors[incName] = 'Minimum price cannot exceed maximum price.';
       return false;
     }
     
     const limit = this.getInclusionPriceLimit(incName);
     if (limit) {
-      if (min < limit.minPrice) {
-        this.inclusionPriceErrors[incName] = `Minimum price must be at least ₹${limit.minPrice.toLocaleString()}.`;
+      if (val < limit.minPrice) {
+        this.inclusionPriceErrors[incName] = `Price must be at least ₹${limit.minPrice.toLocaleString()}.`;
         return false;
       }
-      if (max > limit.maxPrice) {
-        this.inclusionPriceErrors[incName] = `Maximum price cannot exceed ₹${limit.maxPrice.toLocaleString()}.`;
+      if (val > limit.maxPrice) {
+        this.inclusionPriceErrors[incName] = `Price cannot exceed ₹${limit.maxPrice.toLocaleString()}.`;
         return false;
       }
     }
@@ -631,6 +685,32 @@ export class VendorAddService implements OnInit, OnDestroy {
     return true;
   }
 
+  onInclusionPriceChange(incName: string) {
+    const details = this.inclusionDetails()[incName];
+    if (details) {
+      details.maxPrice = details.minPrice;
+      this.validateInclusionPrices(incName);
+    }
+  }
+
+  onCateringPriceChange(incName: string) {
+    const details = this.inclusionDetails()[incName];
+    if (details) {
+      details.minPrice = this.formData.vegPrice || 0;
+      details.maxPrice = this.formData.vegPrice || 0;
+      this.validateInclusionPrices(incName);
+    }
+  }
+
+  onVenuePriceChange(incName: string) {
+    const details = this.inclusionDetails()[incName];
+    if (details) {
+      details.minPrice = this.formData.rent || 0;
+      details.maxPrice = this.formData.rent || 0;
+      this.validateInclusionPrices(incName);
+    }
+  }
+
   triggerInclusionPhotoUpload(input: HTMLInputElement) {
     input.click();
   }
@@ -638,20 +718,329 @@ export class VendorAddService implements OnInit, OnDestroy {
   onInclusionFileSelected(event: any, incName: string) {
     const details = this.inclusionDetails()[incName];
     if (!details) return;
+
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    const currentCount = details.images.length;
+    const maxAllowed = 5 - currentCount;
+    if (maxAllowed <= 0) {
+      alert('Maximum 5 images allowed for inclusion: ' + incName);
+      event.target.value = '';
+      return;
+    }
+
+    const filesToUpload = Array.from(files).slice(0, maxAllowed) as File[];
+    event.target.value = '';
+    this.loadFilesToCrop(filesToUpload, 'inclusion:' + incName);
+  }
+
+  onPortfolioFileSelected(event: any) {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    const currentCount = this.uploadedPhotos().length;
+    const maxAllowed = 5 - currentCount;
+    if (maxAllowed <= 0) {
+      alert('Maximum 5 images allowed for portfolio.');
+      event.target.value = '';
+      return;
+    }
+
+    const filesToUpload = Array.from(files).slice(0, maxAllowed) as File[];
+    event.target.value = '';
+    this.loadFilesToCrop(filesToUpload, 'portfolio');
+  }
+
+  async loadFilesToCrop(files: File[], target: string) {
+    this.cropItems = [];
+    this.currentIndex = 0;
+    this.cropping.set(false);
+
+    const readPromises = Array.from(files).map((file: File) => {
+      return new Promise<CropItem>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e: any) => {
+          const dataUrl = e.target.result;
+          
+          const tempImg = new Image();
+          tempImg.onload = () => {
+            const originalW = tempImg.naturalWidth;
+            const originalH = tempImg.naturalHeight;
+            
+            const scaleX = 400 / originalW;
+            const scaleY = 300 / originalH;
+            const fitted = Math.max(scaleX, scaleY);
+            
+            const w = originalW * fitted;
+            const h = originalH * fitted;
+            const tx = (400 - w) / 2;
+            const ty = (300 - h) / 2;
+            
+            resolve({
+              file,
+              dataUrl,
+              zoom: 1.0,
+              translateX: tx,
+              translateY: ty,
+              imageWidth: w,
+              imageHeight: h,
+              zoomValue: 1.0,
+              prevZoom: 1.0,
+              fittedScale: fitted,
+              imgOriginalWidth: originalW,
+              imgOriginalHeight: originalH
+            });
+          };
+          tempImg.src = dataUrl;
+        };
+        reader.readAsDataURL(file);
+      });
+    });
+
+    const items = await Promise.all(readPromises);
+    this.cropItems = items;
     
-    // Mock upload of files
-    const mockPhotos = [
-      'https://images.unsplash.com/photo-1555244162-803834f70033?w=400',
-      'https://images.unsplash.com/photo-1530103043960-ef38714abb15?w=400',
-      'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?w=400',
-      'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=400',
-      'https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?w=400'
-    ];
-    
-    if (details.images.length < 5) {
-      const nextIdx = details.images.length % mockPhotos.length;
-      details.images.push(mockPhotos[nextIdx]);
-      this.inclusionDetails.set({ ...this.inclusionDetails() });
+    if (this.cropItems.length > 0) {
+      this.currentCropTarget = target;
+      this.loadState(0);
+      this.showCropModal.set(true);
+      document.body.classList.add('modal-open');
+    }
+  }
+
+  saveCurrentState() {
+    if (this.currentIndex >= 0 && this.currentIndex < this.cropItems.length) {
+      const item = this.cropItems[this.currentIndex];
+      item.zoom = this.zoom();
+      item.translateX = this.translateX();
+      item.translateY = this.translateY();
+      item.imageWidth = this.imageWidth();
+      item.imageHeight = this.imageHeight();
+      item.zoomValue = this.zoomValue;
+      item.prevZoom = this.prevZoom;
+      item.fittedScale = this.fittedScale;
+      item.imgOriginalWidth = this.imgOriginalWidth;
+      item.imgOriginalHeight = this.imgOriginalHeight;
+    }
+  }
+
+  loadState(index: number) {
+    this.currentIndex = index;
+    const item = this.cropItems[index];
+    this.imageSrc.set(item.dataUrl);
+    this.zoom.set(item.zoom);
+    this.translateX.set(item.translateX);
+    this.translateY.set(item.translateY);
+    this.imageWidth.set(item.imageWidth);
+    this.imageHeight.set(item.imageHeight);
+    this.zoomValue = item.zoomValue;
+    this.prevZoom = item.prevZoom;
+    this.fittedScale = item.fittedScale;
+    this.imgOriginalWidth = item.imgOriginalWidth;
+    this.imgOriginalHeight = item.imgOriginalHeight;
+  }
+
+  switchToImage(index: number) {
+    if (index < 0 || index >= this.cropItems.length) return;
+    this.saveCurrentState();
+    this.loadState(index);
+  }
+
+  onCropImageLoaded(event: Event): void {
+    // When the image source updates dynamically on index switch,
+    // we do not want to override fittedScale if it's already calculated.
+    // However, since loadState sets all variables from stored cropItems, we are safe.
+  }
+
+  onZoomChange(): void {
+    const oldZoom = this.prevZoom;
+    const newZoom = this.zoomValue;
+    this.prevZoom = newZoom;
+
+    const oldScale = this.fittedScale * oldZoom;
+    const newScale = this.fittedScale * newZoom;
+
+    const viewCenterX = 200;
+    const viewCenterY = 150;
+
+    const tx = this.translateX();
+    const ty = this.translateY();
+
+    const newTx = viewCenterX - ((viewCenterX - tx) / oldScale) * newScale;
+    const newTy = viewCenterY - ((viewCenterY - ty) / oldScale) * newScale;
+
+    this.translateX.set(newTx);
+    this.translateY.set(newTy);
+    this.zoom.set(newZoom);
+    this.boundPosition();
+  }
+
+  startDrag(event: MouseEvent | TouchEvent): void {
+    event.preventDefault();
+    this.isDragging = true;
+    const clientX = 'touches' in event ? event.touches[0].clientX : event.clientX;
+    const clientY = 'touches' in event ? event.touches[0].clientY : event.clientY;
+    this.dragStartPos = { x: clientX, y: clientY };
+  }
+
+  private drag(event: MouseEvent | TouchEvent): void {
+    if (!this.isDragging) return;
+    const clientX = 'touches' in event ? event.touches[0].clientX : event.clientX;
+    const clientY = 'touches' in event ? event.touches[0].clientY : event.clientY;
+
+    const deltaX = clientX - this.dragStartPos.x;
+    const deltaY = clientY - this.dragStartPos.y;
+
+    this.translateX.set(this.translateX() + deltaX);
+    this.translateY.set(this.translateY() + deltaY);
+    this.boundPosition();
+
+    this.dragStartPos = { x: clientX, y: clientY };
+  }
+
+  private endDrag(): void {
+    if (!this.isDragging) return;
+    this.isDragging = false;
+    this.boundPosition();
+  }
+
+  private boundPosition(): void {
+    const scale = this.fittedScale * this.zoom();
+    const w = this.imgOriginalWidth * scale;
+    const h = this.imgOriginalHeight * scale;
+
+    let tx = this.translateX();
+    let ty = this.translateY();
+
+    if (w >= 400) {
+      if (tx > 0) tx = 0;
+      if (tx < 400 - w) tx = 400 - w;
+    } else {
+      tx = (400 - w) / 2;
+    }
+
+    if (h >= 300) {
+      if (ty > 0) ty = 0;
+      if (ty < 300 - h) ty = 300 - h;
+    } else {
+      ty = (300 - h) / 2;
+    }
+
+    this.translateX.set(tx);
+    this.translateY.set(ty);
+  }
+
+  cancelCrop(): void {
+    this.showCropModal.set(false);
+    this.imageSrc.set(null);
+    this.fittedScale = 1.0;
+    this.imgOriginalWidth = 0;
+    this.imgOriginalHeight = 0;
+    this.cropItems = [];
+    this.currentIndex = 0;
+    document.body.classList.remove('modal-open');
+  }
+
+  saveAllCrops() {
+    this.saveCurrentState(); // Save crop settings of active image first
+    this.cropping.set(true);
+    this.uploadAndSaveAll(this.currentCropTarget, 0);
+  }
+
+  uploadAndSaveAll(target: string, index: number = 0) {
+    if (index >= this.cropItems.length) {
+      this.cropping.set(false);
+      this.cancelCrop();
+      return;
+    }
+
+    const item = this.cropItems[index];
+    const tempImg = new Image();
+    tempImg.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = 800;
+      canvas.height = 600;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        this.uploadAndSaveAll(target, index + 1);
+        return;
+      }
+
+      const ratio = 800 / 400;
+      const scale = item.fittedScale * item.zoom;
+      const destW = item.imgOriginalWidth * scale * ratio;
+      const destH = item.imgOriginalHeight * scale * ratio;
+      const destX = item.translateX * ratio;
+      const destY = item.translateY * ratio;
+
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(0, 0, 800, 600);
+      ctx.drawImage(tempImg, destX, destY, destW, destH);
+
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          this.uploadAndSaveAll(target, index + 1);
+          return;
+        }
+
+        const uniqueName = `cropped_${Date.now()}_${index}_${Math.floor(Math.random() * 10000)}.jpg`;
+        const file = new File([blob], uniqueName, { type: 'image/jpeg' });
+
+        this.supportService.uploadAttachment(file).subscribe({
+          next: (res) => {
+            if (res && res.url) {
+              const base = environment.apiUrl.replace('/api/v1', '');
+              const finalUrl = res.url.startsWith('http') ? res.url : `${base}${res.url}`;
+
+              if (target === 'portfolio') {
+                this.uploadedPhotos.update(p => [...p, finalUrl]);
+              } else if (target.startsWith('inclusion:')) {
+                const incName = target.split(':')[1];
+                const details = this.inclusionDetails()[incName];
+                if (details && details.images.length < 5) {
+                  details.images.push(finalUrl);
+                  this.inclusionDetails.set({ ...this.inclusionDetails() });
+                }
+              }
+            }
+            this.uploadAndSaveAll(target, index + 1);
+          },
+          error: (err) => {
+            console.error('Failed to upload file at index ' + index, err);
+            this.uploadAndSaveAll(target, index + 1);
+          }
+        });
+      }, 'image/jpeg', 0.82);
+    };
+    tempImg.src = item.dataUrl;
+  }
+
+  @HostListener('document:mousemove', ['$event'])
+  onDocumentMouseMove(event: MouseEvent): void {
+    if (this.isDragging) {
+      this.drag(event);
+    }
+  }
+
+  @HostListener('document:mouseup')
+  onDocumentMouseUp(): void {
+    if (this.isDragging) {
+      this.endDrag();
+    }
+  }
+
+  @HostListener('document:touchmove', ['$event'])
+  onDocumentTouchMove(event: TouchEvent): void {
+    if (this.isDragging) {
+      this.drag(event);
+    }
+  }
+
+  @HostListener('document:touchend')
+  onDocumentTouchEnd(): void {
+    if (this.isDragging) {
+      this.endDrag();
     }
   }
 
@@ -702,18 +1091,7 @@ export class VendorAddService implements OnInit, OnDestroy {
       this.inclusionDetails.set({ ...this.inclusionDetails() });
     }
   }
-
-  triggerFileUpload() {
-    // Mock photo upload
-    const mockPhotos = [
-      'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?w=400',
-      'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=400',
-      'https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?w=400'
-    ];
-    if (this.uploadedPhotos().length < 6) {
-      this.uploadedPhotos.update(p => [...p, mockPhotos[p.length % 3]]);
-    }
-  }
+  
 
   removePhoto(index: number) {
     this.uploadedPhotos.update(p => p.filter((_, i) => i !== index));

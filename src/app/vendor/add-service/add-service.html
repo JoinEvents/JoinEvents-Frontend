@@ -20,15 +20,7 @@
       </div>
       <div class="step-item" [class.active]="currentStep() === 4" [class.completed]="currentStep() > 4">
         <div class="step-dot">4</div>
-        <div class="step-label">Pricing</div>
-      </div>
-      <div class="step-item" [class.active]="currentStep() === 5" [class.completed]="currentStep() > 5">
-        <div class="step-dot">5</div>
-        <div class="step-label">Policies</div>
-      </div>
-      <div class="step-item" [class.active]="currentStep() === 6" [class.completed]="currentStep() > 6">
-        <div class="step-dot">6</div>
-        <div class="step-label">Photos</div>
+        <div class="step-label">Day-wise Plan</div>
       </div>
     </div>
   </div>
@@ -210,35 +202,174 @@
                     </div>
 
                     <div class="col-12">
-                      <label class="ee-form-label">Price Range (INR) *</label>
-                      @if (getInclusionPriceLimit(activeTab); as limit) {
-                        <p class="form-hint mb-2 text-warning" style="font-size: 0.78rem;">
-                          <i class="bi bi-info-circle-fill"></i> Allowed range for {{ activeTab }} in tier <strong>{{ formData.theme }}</strong>: 
-                          <strong>₹{{ limit.minPrice | number }} - ₹{{ limit.maxPrice | number }}</strong>
-                        </p>
+                      @if (activeTab.toLowerCase() === 'catering') {
+                        <div class="row g-3">
+                          <div class="col-md-6">
+                            <label class="ee-form-label">Veg Price (Per Plate) *</label>
+                            @if (getInclusionPriceLimit(activeTab); as limit) {
+                              <p class="form-hint mb-2 text-warning" style="font-size: 0.75rem;">
+                                <i class="bi bi-info-circle-fill"></i> Allowed: 
+                                <strong>₹{{ limit.minPrice | number }} - ₹{{ limit.maxPrice | number }}</strong>
+                              </p>
+                            } @else {
+                              <p class="form-hint mb-2" style="font-size: 0.75rem;">Enter veg per plate price</p>
+                            }
+                            <div class="input-group-modern py-2">
+                              <span class="prefix" style="font-size:0.8rem; font-weight:700;">₹</span>
+                              <input type="number" [(ngModel)]="formData.vegPrice" placeholder="Veg price" 
+                                     (ngModelChange)="onCateringPriceChange(activeTab)">
+                            </div>
+                          </div>
+                          <div class="col-md-6">
+                            <label class="ee-form-label">Non-Veg Price (Per Plate)</label>
+                            <p class="form-hint mb-2" style="font-size: 0.75rem; visibility: hidden;">Spacer</p>
+                            <div class="input-group-modern py-2">
+                              <span class="prefix" style="font-size:0.8rem; font-weight:700;">₹</span>
+                              <input type="number" [(ngModel)]="formData.nonVegPrice" placeholder="Non-veg price">
+                            </div>
+                          </div>
+                        </div>
+                        @if (inclusionPriceErrors[activeTab]) {
+                          <div class="text-danger small mt-2 fw-bold" style="font-size: 0.76rem;">
+                            <i class="bi bi-exclamation-circle-fill"></i> {{ inclusionPriceErrors[activeTab] }}
+                          </div>
+                        }
+                      } @else if (activeTab.toLowerCase() === 'venue') {
+                        <div class="row g-3">
+                          <div class="col-md-4">
+                            <label class="ee-form-label">Rent Amount *</label>
+                            @if (getInclusionPriceLimit(activeTab); as limit) {
+                              <p class="form-hint mb-2 text-warning" style="font-size: 0.75rem;">
+                                <i class="bi bi-info-circle-fill"></i> Allowed: 
+                                <strong>₹{{ limit.minPrice | number }} - ₹{{ limit.maxPrice | number }}</strong>
+                              </p>
+                            } @else {
+                              <p class="form-hint mb-2" style="font-size: 0.75rem;">Enter rent amount</p>
+                            }
+                            <div class="input-group-modern py-2">
+                              <span class="prefix" style="font-size:0.8rem; font-weight:700;">₹</span>
+                              <input type="number" [(ngModel)]="formData.rent" placeholder="Rent amount" 
+                                     (ngModelChange)="onVenuePriceChange(activeTab)">
+                            </div>
+                          </div>
+                          <div class="col-md-4">
+                            <label class="ee-form-label">No. of Rooms</label>
+                            <p class="form-hint mb-2" style="font-size: 0.75rem; visibility: hidden;">Spacer</p>
+                            <div class="input-group-modern py-2">
+                              <i class="bi bi-door-open text-primary me-2 ms-1" style="font-size: 1.1rem;"></i>
+                              <input type="number" [(ngModel)]="formData.totalRooms" placeholder="Number of rooms">
+                            </div>
+                          </div>
+                          <div class="col-md-4">
+                            <label class="ee-form-label">Room Price (Avg)</label>
+                            <p class="form-hint mb-2" style="font-size: 0.75rem; visibility: hidden;">Spacer</p>
+                            <div class="input-group-modern py-2">
+                              <span class="prefix" style="font-size:0.8rem; font-weight:700;">₹</span>
+                              <input type="number" [(ngModel)]="formData.roomPrice" placeholder="Avg room price">
+                            </div>
+                          </div>
+                        </div>
+                        @if (inclusionPriceErrors[activeTab]) {
+                          <div class="text-danger small mt-2 fw-bold" style="font-size: 0.76rem;">
+                            <i class="bi bi-exclamation-circle-fill"></i> {{ inclusionPriceErrors[activeTab] }}
+                          </div>
+                        }
+
+                        <!-- Overall Capacity for Venue -->
+                        <div class="row g-3 mt-2">
+                          <div class="col-md-6">
+                            <label class="ee-form-label">Max Guests *</label>
+                            <p class="form-hint mb-2" style="font-size: 0.75rem; visibility: hidden;">Spacer</p>
+                            <div class="input-group-modern py-2">
+                              <i class="bi bi-people-fill text-primary me-2 ms-1" style="font-size: 1.1rem;"></i>
+                              <input type="number" [(ngModel)]="formData.maxCapacity" placeholder="Max guest capacity">
+                            </div>
+                          </div>
+                          <div class="col-md-6">
+                            <label class="ee-form-label">Parking (Cars)</label>
+                            <p class="form-hint mb-2" style="font-size: 0.75rem; visibility: hidden;">Spacer</p>
+                            <div class="input-group-modern py-2">
+                              <i class="bi bi-car-front text-primary me-2 ms-1" style="font-size: 1.1rem;"></i>
+                              <input type="number" [(ngModel)]="formData.parkingCapacity" placeholder="Parking capacity (in cars)">
+                            </div>
+                          </div>
+                        </div>
+
+                        <!-- Core Policies for Venue -->
+                        <div class="row g-3 mt-2">
+                          <div class="col-md-6">
+                            <label class="ee-form-label">Catering Policy</label>
+                            <div class="input-group-modern py-2">
+                              <i class="bi bi-egg-fried text-primary me-2 ms-1" style="font-size: 1.1rem;"></i>
+                              <select class="border-0 bg-transparent w-100 outline-none fw-600" [(ngModel)]="formData.cateringPolicy">
+                                <option>Inhouse Only</option>
+                                <option>Outside Allowed</option>
+                                <option>Both Allowed</option>
+                              </select>
+                            </div>
+                          </div>
+                          <div class="col-md-6">
+                            <label class="ee-form-label">Alcohol Policy</label>
+                            <div class="input-group-modern py-2">
+                              <i class="bi bi-cup-straw text-primary me-2 ms-1" style="font-size: 1.1rem;"></i>
+                              <select class="border-0 bg-transparent w-100 outline-none fw-600" [(ngModel)]="formData.alcoholPolicy">
+                                <option>No Alcohol</option>
+                                <option>Inhouse Served</option>
+                                <option>Outside Allowed</option>
+                              </select>
+                            </div>
+                          </div>
+                        </div>
+
+                        <!-- Available Amenities for Venue -->
+                        <div class="mt-4">
+                          <label class="ee-form-label">Available Amenities</label>
+                          <div class="amenity-grid mt-2">
+                            <div class="amenity-box" [class.active]="formData.hasAc" (click)="formData.hasAc = !formData.hasAc">
+                              <i class="bi bi-snow"></i>
+                              <span>Air Conditioned</span>
+                            </div>
+                            <div class="amenity-box" [class.active]="formData.hasPowerBackup"
+                              (click)="formData.hasPowerBackup = !formData.hasPowerBackup">
+                              <i class="bi bi-lightning-charge"></i>
+                              <span>Power Backup</span>
+                            </div>
+                            <div class="amenity-box" [class.active]="formData.hasChangingRooms"
+                              (click)="formData.hasChangingRooms = !formData.hasChangingRooms">
+                              <i class="bi bi-person-workspace"></i>
+                              <span>Changing Rooms</span>
+                            </div>
+                            <div class="amenity-box" [class.active]="formData.hasParking"
+                              (click)="formData.hasParking = !formData.hasParking">
+                              <i class="bi bi-p-square"></i>
+                              <span>Large Parking</span>
+                            </div>
+                          </div>
+                        </div>
                       } @else {
-                        <p class="form-hint mb-2" style="font-size: 0.78rem;">Enter the estimated cost range for this service inclusion</p>
-                      }
-                      <div class="row g-3">
-                        <div class="col-6">
-                          <div class="input-group-modern py-2">
-                            <span class="prefix" style="font-size:0.8rem; font-weight:700;">Min ₹</span>
-                            <input type="number" [(ngModel)]="details.minPrice" placeholder="Starts from" 
-                                   (ngModelChange)="validateInclusionPrices(activeTab)">
+                        <label class="ee-form-label">Price (INR) *</label>
+                        @if (getInclusionPriceLimit(activeTab); as limit) {
+                          <p class="form-hint mb-2 text-warning" style="font-size: 0.78rem;">
+                            <i class="bi bi-info-circle-fill"></i> Allowed range for {{ activeTab }} in tier <strong>{{ formData.theme }}</strong>: 
+                            <strong>₹{{ limit.minPrice | number }} - ₹{{ limit.maxPrice | number }}</strong>
+                          </p>
+                        } @else {
+                          <p class="form-hint mb-2" style="font-size: 0.78rem;">Enter the price for this service inclusion</p>
+                        }
+                        <div class="row g-3">
+                          <div class="col-12">
+                            <div class="input-group-modern py-2">
+                              <span class="prefix" style="font-size:0.8rem; font-weight:700;">Price ₹</span>
+                              <input type="number" [(ngModel)]="details.minPrice" placeholder="Enter price" 
+                                     (ngModelChange)="onInclusionPriceChange(activeTab)">
+                            </div>
                           </div>
                         </div>
-                        <div class="col-6">
-                          <div class="input-group-modern py-2">
-                            <span class="prefix" style="font-size:0.8rem; font-weight:700;">Max ₹</span>
-                            <input type="number" [(ngModel)]="details.maxPrice" placeholder="Max price"
-                                   (ngModelChange)="validateInclusionPrices(activeTab)">
+                        @if (inclusionPriceErrors[activeTab]) {
+                          <div class="text-danger small mt-2 fw-bold" style="font-size: 0.76rem;">
+                            <i class="bi bi-exclamation-circle-fill"></i> {{ inclusionPriceErrors[activeTab] }}
                           </div>
-                        </div>
-                      </div>
-                      @if (inclusionPriceErrors[activeTab]) {
-                        <div class="text-danger small mt-2 fw-bold" style="font-size: 0.76rem;">
-                          <i class="bi bi-exclamation-circle-fill"></i> {{ inclusionPriceErrors[activeTab] }}
-                        </div>
+                        }
                       }
                     </div>
 
@@ -422,250 +553,86 @@
     </div>
     }
 
-    <!-- Step 4: Pricing & Capacity -->
+    <!-- Step 4: Day-wise Plan -->
     @if (currentStep() === 4) {
     <div class="step-content">
-      <h4 class="step-title">Pricing & Capacity</h4>
-      <p class="step-subtitle">Set your rates and guest limits</p>
+      <h4 class="step-title">Day-wise Plan</h4>
+      <p class="step-subtitle">Outline your day-by-day schedule, service timeline, and event plans</p>
 
-      <div class="section-divider">Event & Base Pricing</div>
-      <div class="row g-4 mb-4">
-        <div class="col-md-4">
-          <label class="ee-form-label">Base Price (Per Event) *</label>
-          <div class="input-group-modern">
-            <span class="prefix">₹</span>
-            <input type="number" [(ngModel)]="formData.basePrice">
+      <div class="row mt-4">
+        <!-- Left Side: Day-wise Schedule Form -->
+        <div class="col-lg-8">
+          <div class="section-divider d-flex justify-content-between align-items-center mt-0">
+            Day-wise Schedule
+            <button class="btn btn-primary rounded-pill px-4 fw-700 shadow-sm" (click)="addSpace()">
+              <i class="bi bi-plus-lg me-2"></i> Add Day Plan
+            </button>
           </div>
-        </div>
-        <div class="col-md-4">
-          <label class="ee-form-label">Pricing Unit *</label>
-          <div class="input-group-modern">
-            <i class="bi bi-tag-fill text-primary"></i>
-            <select class="border-0 bg-transparent w-100 outline-none fw-600" [(ngModel)]="formData.unit">
-              <option value="per event">Per Event</option>
-              <option value="per day">Per Day</option>
-              <option value="per hour">Per Hour</option>
-              <option value="per plate">Per Plate</option>
-              <option value="per session">Per Session</option>
-            </select>
-          </div>
-        </div>
-        <div class="col-md-4">
-          <label class="ee-form-label">Rent Amount</label>
-          <div class="input-group-modern">
-            <span class="prefix">₹</span>
-            <input type="number" [(ngModel)]="formData.rent">
-          </div>
-        </div>
-      </div>
 
-      <div class="section-divider">Additional Pricing</div>
-      <div class="row g-4">
-        <div class="col-md-4">
-          <label class="ee-form-label">Veg (Per Plate) *</label>
-          <div class="input-group-modern">
-            <span class="prefix">₹</span>
-            <input type="number" [(ngModel)]="formData.vegPrice">
-          </div>
-        </div>
-        <div class="col-md-4">
-          <label class="ee-form-label">Non-Veg (Per Plate)</label>
-          <div class="input-group-modern">
-            <span class="prefix">₹</span>
-            <input type="number" [(ngModel)]="formData.nonVegPrice">
-          </div>
-        </div>
-        <div class="col-md-4">
-          <label class="ee-form-label">Room Price (Avg)</label>
-          <div class="input-group-modern">
-            <span class="prefix">₹</span>
-            <input type="number" [(ngModel)]="formData.roomPrice">
-          </div>
-        </div>
-      </div>
+          <div class="spaces-container mt-4">
+            @for (space of formData.spaces; track $index) {
+            <div class="area-card-premium mb-4">
+              <div class="area-card-header">
+                <div class="area-type-icon">
+                  <i class="bi bi-calendar3 text-primary" style="font-size: 1.25rem;"></i>
+                </div>
+                <div class="area-info">
+                  <input type="text" class="area-name-input" [(ngModel)]="space.name"
+                    placeholder="Day Title / Theme (e.g. Welcome Ceremony & Sangeet)">
+                  <span class="area-tag">Day #{{ $index + 1 }}</span>
+                </div>
+                @if (formData.spaces.length > 1) {
+                <button class="btn-remove-area" (click)="removeSpace($index)">
+                  <i class="bi bi-x-lg"></i>
+                </button>
+                }
+              </div>
 
-      <div class="section-divider">Overall Capacity</div>
-      <div class="row g-4">
-        <div class="col-md-4">
-          <label class="ee-form-label">Max Guests *</label>
-          <input type="number" class="ee-form-control" [(ngModel)]="formData.maxCapacity">
-        </div>
-        <div class="col-md-4">
-          <label class="ee-form-label">Parking (Cars)</label>
-          <input type="number" class="ee-form-control" [(ngModel)]="formData.parkingCapacity">
-        </div>
-        <div class="col-md-4">
-          <label class="ee-form-label">Total Rooms</label>
-          <input type="number" class="ee-form-control" [(ngModel)]="formData.totalRooms">
-        </div>
-      </div>
-    </div>
-    }
-
-    <!-- Step 5: Policies & Amenities -->
-    @if (currentStep() === 5) {
-    <div class="step-content">
-      <h4 class="step-title">Policies & Amenities</h4>
-      <p class="step-subtitle">Define your working rules and facilities</p>
-
-      <div class="section-divider">Core Policies</div>
-      <div class="row g-4 mb-5">
-        <div class="col-md-6">
-          <label class="ee-form-label">Catering Policy</label>
-          <select class="ee-form-control" [(ngModel)]="formData.cateringPolicy">
-            <option>Inhouse Only</option>
-            <option>Outside Allowed</option>
-            <option>Both Allowed</option>
-          </select>
-        </div>
-        <div class="col-md-6">
-          <label class="ee-form-label">Alcohol Policy</label>
-          <select class="ee-form-control" [(ngModel)]="formData.alcoholPolicy">
-            <option>No Alcohol</option>
-            <option>Inhouse Served</option>
-            <option>Outside Allowed</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="section-divider">Available Amenities</div>
-      <div class="amenity-grid">
-        <div class="amenity-box" [class.active]="formData.hasAc" (click)="formData.hasAc = !formData.hasAc">
-          <i class="bi bi-snow"></i>
-          <span>Air Conditioned</span>
-        </div>
-        <div class="amenity-box" [class.active]="formData.hasPowerBackup"
-          (click)="formData.hasPowerBackup = !formData.hasPowerBackup">
-          <i class="bi bi-lightning-charge"></i>
-          <span>Power Backup</span>
-        </div>
-        <div class="amenity-box" [class.active]="formData.hasChangingRooms"
-          (click)="formData.hasChangingRooms = !formData.hasChangingRooms">
-          <i class="bi bi-person-workspace"></i>
-          <span>Changing Rooms</span>
-        </div>
-        <div class="amenity-box" [class.active]="formData.hasParking"
-          (click)="formData.hasParking = !formData.hasParking">
-          <i class="bi bi-p-square"></i>
-          <span>Large Parking</span>
-        </div>
-      </div>
-    </div>
-    }
-
-    <!-- Step 6: Photos & Spaces -->
-    @if (currentStep() === 6) {
-    <div class="step-content">
-      <h4 class="step-title">Visuals & Space Details</h4>
-      <p class="step-subtitle">Upload photos and define specific event areas</p>
-
-      <div class="section-divider">Portfolio Photos</div>
-
-      <div class="photo-management-grid">
-        <!-- Main Upload Area -->
-        <div class="photo-upload-main" (click)="triggerFileUpload()">
-          <div class="upload-inner">
-            <i class="bi bi-cloud-arrow-up fs-1"></i>
-            <h6 class="mt-3 fw-800">Add Service Photos</h6>
-            <p class="text-muted small">Drag & drop or click to browse<br>(JPG, PNG up to 5MB)</p>
-          </div>
-        </div>
-
-        <!-- Preview Grid -->
-        @for (photo of uploadedPhotos(); track $index) {
-        <div class="photo-preview-item">
-          <img [src]="photo" alt="Preview">
-          <div class="photo-overlay">
-            <button class="btn-remove-photo" (click)="removePhoto($index)"><i class="bi bi-trash"></i></button>
-            @if ($index === 0) {
-            <span class="badge-main">Main Image</span>
+              <div class="area-card-body mt-4">
+                <div class="row g-3">
+                  <div class="col-12">
+                    <label class="ee-form-label">What will you do on this day? *</label>
+                    <textarea class="ee-form-control py-3" style="min-height: 100px; border-radius: 12px; resize: vertical;" 
+                              [(ngModel)]="space.type" 
+                              placeholder="Describe what you will do (e.g. Pre-wedding shoots, setup, decoration, main catering service, etc.)"></textarea>
+                  </div>
+                </div>
+              </div>
+            </div>
             }
           </div>
         </div>
-        }
 
-        <!-- Empty Slots (to maintain grid) -->
-        @if (uploadedPhotos().length < 6) { @for (slot of [].constructor(5 - uploadedPhotos().length); track $index) {
-          <div class="photo-empty-slot">
-          <i class="bi bi-image text-muted opacity-25"></i>
-      </div>
-      }
-      }
-    </div>
-    <div class="alert alert-info mt-3 border-0 rounded-4 py-3">
-      <div class="d-flex gap-3">
-        <i class="bi bi-info-circle-fill fs-4 text-primary"></i>
-        <div class="small">
-          <strong class="d-block mb-1">Photography Tips:</strong>
-          • Upload at least 5 photos for 2x more visibility.<br>
-          • Use bright, well-lit photos of the venue interior and stage.<br>
-          • Avoid blurry images or watermarked photos.
-        </div>
-      </div>
-    </div>
-
-    <div class="section-divider d-flex justify-content-between align-items-center">
-      Space Management
-      <button class="btn btn-primary rounded-pill px-4 fw-700 shadow-sm" (click)="addSpace()">
-        <i class="bi bi-plus-lg me-2"></i> Add New Area
-      </button>
-    </div>
-
-    <div class="spaces-container mt-4">
-      @for (space of formData.spaces; track $index) {
-      <div class="area-card-premium">
-        <div class="area-card-header">
-          <div class="area-type-icon">
-            @if (space.type === 'Indoor') { <i class="bi bi-house-door-fill"></i> }
-            @else if (space.type === 'Outdoor') { <i class="bi bi-tree-fill"></i> }
-            @else { <i class="bi bi-building-fill-up"></i> }
-          </div>
-          <div class="area-info">
-            <input type="text" class="area-name-input" [(ngModel)]="space.name"
-              placeholder="Name this space (e.g. Royal Hall)">
-            <span class="area-tag">Space #{{ $index + 1 }}</span>
-          </div>
-          @if (formData.spaces.length > 1) {
-          <button class="btn-remove-area" (click)="removeSpace($index)">
-            <i class="bi bi-x-lg"></i>
-          </button>
-          }
-        </div>
-
-        <div class="area-card-body mt-4">
-          <div class="row g-3">
-            <div class="col-md-4">
-              <label class="ee-form-label-sm">Space Category</label>
-              <div class="type-selector-modern">
-                <select class="ee-form-control-sm border-0" [(ngModel)]="space.type">
-                  <option>Indoor</option>
-                  <option>Outdoor</option>
-                  <option>Terrace</option>
-                  <option>Poolside</option>
-                </select>
-              </div>
+        <!-- Right Side: Hints Panel -->
+        <div class="col-lg-4">
+          <div class="card border-0 rounded-4 p-4 shadow-sm" style="background: rgba(99, 102, 241, 0.05); position: sticky; top: 24px;">
+            <div class="d-flex align-items-center gap-2 mb-3">
+              <i class="bi bi-lightbulb-fill fs-4 text-primary"></i>
+              <h5 class="fw-800 mb-0 text-dark" style="font-size: 1rem;">Scheduling Tips</h5>
             </div>
-            <div class="col-md-4">
-              <label class="ee-form-label-sm">Seating Capacity</label>
-              <div class="capacity-input-box">
-                <i class="bi bi-people"></i>
-                <input type="number" [(ngModel)]="space.seating" placeholder="0">
+            <div class="small text-secondary" style="line-height: 1.6;">
+              <p class="mb-3 text-dark fw-600">Need inspiration on what to add in your Day-wise Plan?</p>
+              
+              <div class="mb-3">
+                <strong class="text-dark d-block mb-1">📅 Day 1 (Welcome & Pre-events)</strong>
+                <span style="font-size: 0.8rem;">Highlight pre-event activities such as guest arrival, welcome decor setup, Haldi/Sangeet rituals, light/sound checks, and welcome catering.</span>
               </div>
-            </div>
-            <div class="col-md-4">
-              <label class="ee-form-label-sm">Floating Capacity</label>
-              <div class="capacity-input-box">
-                <i class="bi bi-person-walking"></i>
-                <input type="number" [(ngModel)]="space.floating" placeholder="0">
+
+              <div class="mb-3">
+                <strong class="text-dark d-block mb-1">💍 Day 2 (Main Event / Wedding)</strong>
+                <span style="font-size: 0.8rem;">Detail the core service execution—main wedding ceremonies, primary photography/cinematography coverage, bridal styling, or the main reception buffet.</span>
+              </div>
+
+              <div class="mb-0">
+                <strong class="text-dark d-block mb-1">🎁 Day 3 (Post-events & Wrap-up)</strong>
+                <span style="font-size: 0.8rem;">Mention any post-wedding brunch, guest checkout assistance, final deliverables distribution, and site clean-up.</span>
               </div>
             </div>
           </div>
         </div>
       </div>
-      }
     </div>
-  </div>
-  }
+    }
 
   <div class="form-footer-modern d-flex justify-content-between">
     <button class="btn btn-link text-decoration-none fw-700 color-navy" (click)="prevStep()"
@@ -673,7 +640,7 @@
       <i class="bi bi-chevron-left me-1"></i> Back
     </button>
 
-    @if (currentStep() < 6) { <button class="btn-ee-primary px-5" (click)="nextStep()">
+    @if (currentStep() < 4) { <button class="btn-ee-primary px-5" (click)="nextStep()">
       Continue <i class="bi bi-chevron-right ms-1"></i>
       </button>
       } @else {
@@ -700,6 +667,90 @@
         <div class="modal-actions">
           <button class="btn-cancel" (click)="cancelSaveService()">No, keep editing</button>
           <button class="btn-confirm" (click)="confirmSaveService()">Yes, submit & launch</button>
+        </div>
+      </div>
+    </div>
+  }
+  <!-- 4:3 Crop Modal Overlay -->
+  @if (showCropModal()) {
+    <div class="modal-overlay" (click)="$event.stopPropagation()">
+      <div class="cropper-modal-card-large">
+        <div class="cropper-header">
+          <h5>Crop Image ({{ currentIndex + 1 }} of {{ cropItems.length }})</h5>
+          <button class="btn-close-custom" (click)="cancelCrop()"><i class="bi bi-x-lg"></i></button>
+        </div>
+        
+        <div class="cropper-body-side">
+          <!-- Left Column: Viewport -->
+          <div class="cropper-left-col">
+            <div class="crop-viewport-wrapper">
+              <div class="crop-viewport"
+                   (mousedown)="startDrag($event)"
+                   (touchstart)="startDrag($event)">
+                <img #cropImage
+                     [src]="imageSrc() || ''"
+                     [style.width.px]="imageWidth()"
+                     [style.height.px]="imageHeight()"
+                     [style.transform]="'translate(' + translateX() + 'px, ' + translateY() + 'px) scale(' + zoom() + ')'"
+                     class="crop-image"
+                     (load)="onCropImageLoaded($event)"
+                     draggable="false" />
+                <div class="crop-rect-overlay"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Column: Controls & Actions -->
+          <div class="cropper-right-col">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <div class="cropper-section-title m-0">Select Active Image</div>
+              <span class="badge bg-light text-secondary border px-2 py-1" style="font-size: 0.68rem; font-weight: 800; border-radius: 6px;">4:3 Ratio</span>
+            </div>
+            <!-- Image Navigation Dots -->
+            @if (cropItems.length > 1) {
+              <div class="crop-thumbnails mb-4">
+                @for (item of cropItems; track $index) {
+                  <button type="button" class="crop-thumb-dot" [class.active]="$index === currentIndex" (click)="switchToImage($index)">
+                    {{ $index + 1 }}
+                  </button>
+                }
+              </div>
+            }
+
+            <div class="cropper-section-title mt-2">Adjust Zoom</div>
+            <div class="zoom-control mb-4">
+              <i class="bi bi-zoom-out text-muted"></i>
+              <input type="range" min="1" max="4" step="0.05" [(ngModel)]="zoomValue" (input)="onZoomChange()" />
+              <i class="bi bi-zoom-in text-muted"></i>
+            </div>
+            
+            <div class="cropper-section-title">Navigation & Drag</div>
+            <p class="crop-instruction mb-2">Drag image in the viewport to reposition, use slider to zoom</p>
+            @if (cropItems.length > 1) {
+              <div class="d-flex align-items-center justify-content-between w-100 gap-3 mb-4">
+                <button type="button" class="btn btn-sm btn-outline-secondary px-3 flex-grow-1" 
+                  [disabled]="currentIndex === 0" (click)="switchToImage(currentIndex - 1)">
+                  <i class="bi bi-chevron-left"></i> Prev
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-secondary px-3 flex-grow-1" 
+                  [disabled]="currentIndex === cropItems.length - 1" (click)="switchToImage(currentIndex + 1)">
+                  Next <i class="bi bi-chevron-right"></i>
+                </button>
+              </div>
+            }
+
+            <!-- Action Buttons -->
+            <div class="cropper-actions-right mt-auto">
+              <button class="btn btn-outline-secondary px-4 border-0 w-100 mb-1" (click)="cancelCrop()" [disabled]="cropping()">Cancel</button>
+              <button class="btn btn-primary px-4 bg-primary-ee border-0 w-100" (click)="saveAllCrops()" [disabled]="cropping()">
+                @if (cropping()) {
+                  <span class="spinner-border spinner-border-sm me-2"></span>Saving...
+                } @else {
+                  Save All ({{ cropItems.length }} Photos)
+                }
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

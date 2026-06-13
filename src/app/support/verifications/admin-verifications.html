@@ -242,24 +242,23 @@
           <p class="text-secondary fs-6 mb-3" style="line-height:1.6;">{{ pkg.description }}</p>
           
           @if (pkg.spaces && pkg.spaces.length > 0) {
-            <h6 class="section-mini-heading" style="font-size:0.8rem;">Submitted Venue Spaces</h6>
+            <h6 class="section-mini-heading" style="font-size:0.8rem;">Event Schedule & Day-wise Plan</h6>
             <div class="table-responsive">
               <table class="pkg-spaces-table mb-3">
                 <thead>
                   <tr>
-                    <th>Space Name</th>
-                    <th>Type</th>
-                    <th>Seating Capacity</th>
-                    <th>Floating Capacity</th>
+                    <th style="width: 25%;">Day / Title</th>
+                    <th>What the Vendor will do</th>
                   </tr>
                 </thead>
                 <tbody>
-                  @for (space of pkg.spaces; track space.name) {
+                  @for (space of pkg.spaces; track space.name; let idx = $index) {
                     <tr>
-                      <td><strong>{{ space.name }}</strong></td>
-                      <td>{{ space.type }}</td>
-                      <td>{{ space.seatingCapacity }} Guests</td>
-                      <td>{{ space.floatingCapacity }} Guests</td>
+                      <td>
+                        <span class="badge bg-primary-subtle text-primary border-0 fw-700 px-2 py-1 mb-1" style="font-size: 0.65rem;">DAY {{ idx + 1 }}</span>
+                        <div class="fw-800 text-dark">{{ space.name }}</div>
+                      </td>
+                      <td style="white-space: pre-line; line-height: 1.5; font-size: 0.85rem;" class="text-secondary">{{ space.type }}</td>
                     </tr>
                   }
                 </tbody>

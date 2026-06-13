@@ -238,29 +238,20 @@
         </div>
       }
 
-      <!-- Available Spaces & Layouts -->
+      <!-- Day-wise Event Schedule -->
       @if (selectedPackage()?.spaces?.length) {
         <div class="detail-card spaces-card">
-          <div class="card-label">Available Spaces & Layouts</div>
-          <div class="spaces-vertical-list">
-            @for (space of selectedPackage()?.spaces; track space.name) {
-              <div class="space-list-item">
-                <div class="space-item-meta">
-                  <span class="space-item-name">{{ space.name }}</span>
-                  <span class="space-item-badge" [class.indoor]="space.type === 'Indoor'" [class.outdoor]="space.type === 'Outdoor'">
-                    <i class="bi" [class.bi-house-door-fill]="space.type === 'Indoor'" [class.bi-tree-fill]="space.type === 'Outdoor'"></i>
-                    {{ space.type }}
-                  </span>
-                </div>
-                <div class="space-item-caps">
-                  <div class="cap-indicator">
-                    <span class="cap-title">Seating Capacity</span>
-                    <span class="cap-number">{{ space.seatingCapacity || 'Flexible' }}</span>
+          <div class="card-label">Event Schedule & Day-wise Plan</div>
+          <div class="timeline-container mt-4" style="position: relative; padding-left: 20px; border-left: 2px dashed var(--border-color);">
+            @for (space of selectedPackage()?.spaces; track space.name; let idx = $index) {
+              <div class="timeline-item mb-4" style="position: relative;">
+                <div class="timeline-dot" style="position: absolute; left: -27px; top: 4px; width: 12px; height: 12px; border-radius: 50%; background: var(--primary); border: 2px solid var(--bg-card);"></div>
+                <div class="d-flex flex-column gap-1">
+                  <div class="d-flex align-items-center gap-2">
+                    <span class="fw-800 color-navy" style="font-size: 1.05rem;">{{ space.name }}</span>
+                    <span class="badge rounded-pill bg-primary-subtle text-primary border-0 fw-700 px-2.5 py-1" style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px;">Day {{ idx + 1 }}</span>
                   </div>
-                  <div class="cap-indicator">
-                    <span class="cap-title">Floating Capacity</span>
-                    <span class="cap-number">{{ space.floatingCapacity || 'Flexible' }}</span>
-                  </div>
+                  <p class="text-secondary small mb-0 mt-1" style="line-height: 1.5; white-space: pre-line;">{{ space.type }}</p>
                 </div>
               </div>
             }
