@@ -7,11 +7,11 @@
 <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-4">
   <!-- Filter Chips -->
   <div class="filter-bar mb-0">
-    <button class="filter-chip" [class.active]="activeFilter() === 'all'" (click)="activeFilter.set('all')">
+    <button class="filter-chip" [class.active]="activeFilter() === 'all'" (click)="setFilter('all')">
       All <span class="chip-count">{{ bookings().length }}</span>
     </button>
     @for (step of filterTabs; track step.key) {
-      <button class="filter-chip" [class.active]="activeFilter() === step.key" (click)="activeFilter.set(step.key)">
+      <button class="filter-chip" [class.active]="activeFilter() === step.key" (click)="setFilter(step.key)">
         {{ step.label }}
         <span class="chip-count">{{ getCountByStatus(step.key) }}</span>
       </button>
@@ -21,9 +21,9 @@
   <!-- Sort Dropdown -->
   <div class="d-flex align-items-center gap-2">
     <span class="text-muted small fw-bold"><i class="bi bi-sort-down-alt"></i> Sort by:</span>
-    <select class="form-select form-select-sm py-1.5 px-3 border rounded-3" style="width: auto; font-size: 0.82rem; font-weight: 700; cursor: pointer;" [ngModel]="sortBy()" (ngModelChange)="sortBy.set($event)">
-      <option value="date-desc">Newest Event First</option>
-      <option value="date-asc">Oldest Event First</option>
+    <select class="form-select form-select-sm py-1.5 px-3 border rounded-3" style="width: auto; font-size: 0.82rem; font-weight: 700; cursor: pointer;" [ngModel]="sortBy()" (ngModelChange)="setSort($event)">
+      <option value="date-desc">Newest Booking First</option>
+      <option value="date-asc">Oldest Booking First</option>
       <option value="price-desc">Price: High to Low</option>
       <option value="price-asc">Price: Low to High</option>
     </select>
@@ -98,9 +98,11 @@
                 <i class="bi bi-flag-fill"></i> Raise Dispute
               </button>
             }
-            <button class="btn-booking-action-modern btn-chat-modern" [routerLink]="['/messages']" [queryParams]="{ vendorId: b.vendorId || 'v1', bookingId: b.id }">
-              <i class="bi bi-chat-dots-fill"></i> Chat with Vendor
-            </button>
+            @if (selectedBooking()!.status !== 'cancelled') {
+              <button class="btn-booking-action-modern btn-chat-modern" [routerLink]="['/messages']" [queryParams]="{ vendorId: b.vendorId || 'v1', bookingId: b.id }">
+                <i class="bi bi-chat-dots-fill"></i> Chat with Vendor
+              </button>
+            }
           </div>
         </div>
       </div>
@@ -409,7 +411,9 @@
                       Included
                     }
                   </span>
-                  <span class="srv-status {{ s.status === 'confirmed' || s.status === 'included' ? 'confirmed' : '' }}">{{ s.status === 'included' ? 'Included' : (s.status | titlecase) }}</span>
+                  <span class="srv-status {{ s.status }}" [class.confirmed]="s.status === 'confirmed' || s.status === 'included' || s.status === 'completed'">
+                    {{ s.status === 'included' ? 'Pending' : (s.status === 'in_progress' ? 'In Progress' : (s.status | titlecase)) }}
+                  </span>
                 </div>
               </div>
             }

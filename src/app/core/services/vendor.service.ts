@@ -37,7 +37,11 @@ export class VendorService extends BaseApiService {
       map(days => days.map(d => ({
         date: d.Date || d.date,
         status: d.Status || d.status,
-        bookingId: d.BookingId || d.bookingId
+        bookingId: d.BookingId || d.bookingId,
+        eventName: d.EventName || d.eventName,
+        customerName: d.CustomerName || d.customerName,
+        totalAmount: d.TotalAmount || d.totalAmount,
+        packageName: d.PackageName || d.packageName
       })))
     );
   }
@@ -49,6 +53,26 @@ export class VendorService extends BaseApiService {
         status: d.Status || d.status,
         bookingId: d.BookingId || d.bookingId
       }))
+    );
+  }
+
+  bulkBlockDates(dates: string[], reason?: string): Observable<CalendarDay[]> {
+    return this.post<any[]>('/vendor/calendar/bulk-block', { dates, reason }, false).pipe(
+      map(days => days.map(d => ({
+        date: d.Date || d.date,
+        status: d.Status || d.status,
+        bookingId: d.BookingId || d.bookingId
+      })))
+    );
+  }
+
+  bulkReleaseDates(dates: string[]): Observable<CalendarDay[]> {
+    return this.post<any[]>('/vendor/calendar/bulk-release', { dates }, false).pipe(
+      map(days => days.map(d => ({
+        date: d.Date || d.date,
+        status: d.Status || d.status,
+        bookingId: d.BookingId || d.bookingId
+      })))
     );
   }
 

@@ -2,11 +2,11 @@
 .cal-month-title{font-family:var(--font-heading);font-weight:700;font-size:1.1rem;color:var(--text-main);margin:0;}
 .cal-nav-btn{background:var(--bg-light);border:1px solid var(--border-color);border-radius:var(--radius-sm);width:36px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all var(--transition);color:var(--text-muted);}
 .cal-nav-btn:hover{background:var(--primary);color:white;border-color:transparent;}
-.cal-weekdays{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:8px;}
+.cal-weekdays{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;margin-bottom:8px;}
 .cal-wd{text-align:center;font-size:0.72rem;font-weight:600;color:var(--text-soft);padding:6px 0;}
-.cal-grid-custom{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
+.cal-grid-custom{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;}
 .cal-blank{aspect-ratio:1;}
-.cal-day-cell{aspect-ratio:1;border-radius:var(--radius-sm);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all var(--transition);position:relative;border:1.5px solid transparent;}
+.cal-day-cell{aspect-ratio:1;border-radius:var(--radius-sm);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all var(--transition);position:relative;border:1.5px solid transparent;min-width:0;}
 .cal-day-cell:hover{border-color:var(--primary);transform:scale(1.05);}
 .cal-day-cell.booked{cursor:not-allowed;}
 .cal-day-cell.booked:hover{transform:none;border-color:transparent;}
@@ -14,7 +14,7 @@
 .cal-day-cell.booked .cal-day-num{color:var(--danger);}
 .cal-day-cell.blocked .cal-day-num{color:var(--text-muted);}
 .cal-day-cell.available .cal-day-num{color:var(--success);}
-.cal-day-badge{font-size:0.5rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-top:2px;}
+.cal-day-badge{font-size:0.5rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-top:2px;max-width:90%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;}
 .cal-day-badge.booked{color:var(--danger);}
 .cal-day-badge.blocked{color:var(--text-muted);}
 .cal-legend{display:flex;gap:20px;margin-top:16px;justify-content:center;}
@@ -33,3 +33,326 @@
 .blocked-color{color:var(--text-muted);}
 .usage-tips{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:12px;}
 .usage-tips li{font-size:0.82rem;color:var(--text-muted);}
+
+/* Month Nav Wrapper and actions */
+.cal-month-nav-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.cal-month-nav {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 0;
+}
+
+.cal-nav-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+/* Today Button */
+.btn-today-nav {
+  background: var(--bg-light);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 8px 16px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  color: var(--text-main);
+  transition: all var(--transition);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-today-nav:hover {
+  background: var(--primary);
+  color: white;
+  border-color: transparent;
+  transform: translateY(-1px);
+}
+
+/* Bulk Toggle Button */
+.btn-bulk-toggle {
+  background: var(--bg-light);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 8px 16px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  color: var(--text-main);
+  transition: all var(--transition);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-bulk-toggle:hover {
+  background: var(--primary);
+  color: white;
+  border-color: transparent;
+  transform: translateY(-1px);
+}
+
+.btn-bulk-toggle.active {
+  background: var(--danger);
+  color: white;
+  border-color: transparent;
+}
+
+/* Selected calendar day highlight */
+.cal-day-cell.selected-day {
+  border: 2px solid var(--primary) !important;
+  box-shadow: 0 0 10px rgba(255, 107, 53, 0.4);
+}
+
+.selected-indicator {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  color: var(--primary);
+  font-size: 0.75rem;
+  line-height: 1;
+}
+
+/* Floating Actions Banner Container */
+.bulk-actions-banner-container {
+  position: fixed;
+  bottom: 24px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  z-index: 1000;
+}
+
+/* Floating Actions Banner */
+.bulk-actions-banner {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  padding: 16px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+  width: 90%;
+  max-width: 700px;
+  animation: slideUp 0.3s cubic-bezier(0.19, 1, 0.22, 1) forwards;
+}
+
+:host-context(.dark-theme) .bulk-actions-banner {
+  background: rgba(30, 41, 59, 0.85);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.selection-count {
+  font-size: 0.95rem;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.selection-count i {
+  color: var(--primary);
+  font-size: 1.2rem;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-bulk-action {
+  border-radius: 12px;
+  padding: 10px 20px;
+  font-size: 0.85rem;
+  font-weight: 750;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-bulk-action.block {
+  background: var(--text-soft);
+  color: var(--bg-card);
+}
+
+.btn-bulk-action.block:hover {
+  background: var(--text-main);
+}
+
+.btn-bulk-action.release {
+  background: var(--primary);
+  color: white;
+}
+
+.btn-bulk-action.release:hover {
+  background: #ff5500;
+  transform: translateY(-1px);
+}
+
+.btn-bulk-action.cancel {
+  background: transparent;
+  color: var(--text-soft);
+  border: 1px solid var(--border-color);
+}
+
+.btn-bulk-action.cancel:hover {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+:host-context(.dark-theme) .btn-bulk-action.cancel:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Today's day highlighting */
+.cal-day-cell.today-day {
+  border: 2px dashed var(--primary) !important;
+  box-shadow: inset 0 0 8px rgba(255, 107, 53, 0.15);
+}
+
+:host-context(.dark-theme) .cal-day-cell.today-day {
+  border-color: var(--primary) !important;
+}
+
+.today-badge-dot {
+  position: absolute;
+  bottom: 8px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--primary);
+}
+
+/* Booked details sidebar card */
+.booked-detail-card {
+  border-left: 4px solid var(--primary) !important;
+}
+
+.card-header-custom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 12px;
+  margin-bottom: 16px;
+}
+
+.btn-close-mini {
+  background: transparent;
+  border: none;
+  color: var(--text-soft);
+  cursor: pointer;
+  font-size: 0.95rem;
+  transition: color var(--transition);
+  padding: 0;
+}
+
+.btn-close-mini:hover {
+  color: var(--danger);
+}
+
+.booked-info-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+}
+
+.info-label {
+  color: var(--text-soft);
+  font-weight: 500;
+}
+
+.info-value {
+  color: var(--text-main);
+  font-weight: 700;
+  text-align: right;
+}
+
+.info-value.highlight-text {
+  color: var(--primary);
+}
+
+.info-value.highlight-amount {
+  color: var(--success);
+  font-size: 0.95rem;
+}
+
+.actions-row {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-detail-action {
+  flex: 1;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-align: center;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all var(--transition);
+}
+
+.btn-detail-action.view-btn {
+  background: var(--bg-light);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+}
+
+.btn-detail-action.view-btn:hover {
+  background: var(--primary);
+  color: white;
+  border-color: transparent;
+}
+
+.btn-detail-action.chat-btn {
+  background: rgba(255, 107, 53, 0.1);
+  color: var(--primary);
+}
+
+.btn-detail-action.chat-btn:hover {
+  background: var(--primary);
+  color: white;
+}
+
+
+

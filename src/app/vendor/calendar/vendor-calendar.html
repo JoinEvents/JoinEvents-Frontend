@@ -4,10 +4,19 @@
   <div class="col-12 col-lg-8">
     <div class="ee-card p-4">
       <!-- Month Nav -->
-      <div class="cal-month-nav">
-        <button class="cal-nav-btn" (click)="prevMonth()"><i class="bi bi-chevron-left"></i></button>
-        <h5 class="cal-month-title">{{ getMonthLabel() }}</h5>
-        <button class="cal-nav-btn" (click)="nextMonth()"><i class="bi bi-chevron-right"></i></button>
+      <div class="cal-month-nav-container">
+        <div class="cal-month-nav">
+          <button class="cal-nav-btn" (click)="prevMonth()"><i class="bi bi-chevron-left"></i></button>
+          <h5 class="cal-month-title">{{ getMonthLabel() }}</h5>
+          <button class="cal-nav-btn" (click)="nextMonth()"><i class="bi bi-chevron-right"></i></button>
+        </div>
+        <div class="cal-nav-actions">
+          <button class="btn-today-nav" (click)="goToday()"><i class="bi bi-calendar-event me-1"></i>Today</button>
+          <button class="btn-bulk-toggle" [class.active]="selectionMode()" (click)="toggleSelectionMode()">
+            <i class="bi" [class.bi-list-check]="!selectionMode()" [class.bi-x-circle]="selectionMode()"></i>
+            {{ selectionMode() ? 'Exit Bulk Select' : 'Bulk Select' }}
+          </button>
+        </div>
       </div>
 
       <!-- Weekday Headers -->
@@ -25,10 +34,18 @@
         @for (day of days(); track day.date) {
           <div class="cal-day-cell" [class.booked]="day.status === 'booked'" [class.blocked]="day.status === 'blocked'"
                [class.available]="day.status === 'available'" [style.background]="getStatusColor(day.status)"
+               [class.selected-day]="selectedDates().includes(day.date)"
+               [class.today-day]="isToday(day.date)"
                (click)="toggleDay(day)" [title]="day.status">
             <span class="cal-day-num">{{ day.date.split('-')[2] }}</span>
-            @if (day.status === 'booked') { <div class="cal-day-badge booked">Booked</div> }
+            @if (day.status === 'booked') {
+              <div class="cal-day-badge booked" style="max-width: 95%; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; font-size: 0.52rem; text-transform: none; font-weight: 700; color: var(--danger);" [title]="day.eventName || 'Booked'">
+                {{ day.eventName || 'Booked' }}
+              </div>
+            }
             @else if (day.status === 'blocked') { <div class="cal-day-badge blocked">Blocked</div> }
+            @if (isToday(day.date)) { <div class="today-badge-dot"></div> }
+            @if (selectedDates().includes(day.date)) { <div class="selected-indicator"><i class="bi bi-check-circle-fill"></i></div> }
           </div>
         }
       </div>
@@ -51,6 +68,50 @@
         <div class="cal-stat-item"><span class="csi-val blocked-color">{{ stats.blocked }}</span><span class="csi-label">Blocked</span></div>
       </div>
     </div>
+    
+    @if (selectedBookedDay()) {
+      <div class="ee-card p-4 mb-3 booked-detail-card fade-in-up">
+        <div class="card-header-custom">
+          <h6 class="section-mini-title mb-0">Booking Details</h6>
+          <button class="btn-close-mini" (click)="selectedBookedDay.set(null)"><i class="bi bi-x-lg"></i></button>
+        </div>
+        <div class="booked-info-body">
+          <div class="info-row">
+            <span class="info-label">Date:</span>
+            <span class="info-value">{{ selectedBookedDay()?.date }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Customer:</span>
+            <span class="info-value highlight-text">{{ selectedBookedDay()?.customerName || 'Anonymous' }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Event:</span>
+            <span class="info-value">{{ selectedBookedDay()?.eventName || 'Event Celebration' }}</span>
+          </div>
+          @if (selectedBookedDay()?.packageName) {
+            <div class="info-row">
+              <span class="info-label">Package:</span>
+              <span class="info-value">{{ selectedBookedDay()?.packageName }}</span>
+            </div>
+          }
+          @if (selectedBookedDay()?.totalAmount) {
+            <div class="info-row">
+              <span class="info-label">Amount:</span>
+              <span class="info-value highlight-amount">₹{{ selectedBookedDay()?.totalAmount?.toLocaleString('en-IN') }}</span>
+            </div>
+          }
+          <div class="actions-row mt-3">
+            <a [routerLink]="['/vendor/bookings']" [queryParams]="{ id: selectedBookedDay()?.bookingId }" class="btn-detail-action view-btn">
+              <i class="bi bi-eye-fill"></i> View
+            </a>
+            <a [routerLink]="['/vendor/messages']" [queryParams]="{ threadId: selectedBookedDay()?.bookingId }" class="btn-detail-action chat-btn">
+              <i class="bi bi-chat-dots-fill"></i> Chat
+            </a>
+          </div>
+        </div>
+      </div>
+    }
+
     <div class="ee-card p-4">
       <h6 class="section-mini-title">How to use</h6>
       <ul class="usage-tips">
@@ -61,3 +122,26 @@
     </div>
   </div>
 </div>
+
+<!-- Floating Bulk Actions Banner -->
+@if (selectedDates().length > 0) {
+  <div class="bulk-actions-banner-container">
+    <div class="bulk-actions-banner fade-in-up">
+      <div class="selection-count">
+        <i class="bi bi-calendar-check-fill"></i>
+        <span><strong>{{ selectedDates().length }}</strong> dates selected</span>
+      </div>
+      <div class="action-buttons">
+        <button class="btn-bulk-action block" (click)="blockSelectedDates()">
+          <i class="bi bi-lock-fill"></i> Block Selected
+        </button>
+        <button class="btn-bulk-action release" (click)="releaseSelectedDates()">
+          <i class="bi bi-unlock-fill"></i> Release Selected
+        </button>
+        <button class="btn-bulk-action cancel" (click)="clearSelection()">
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+}

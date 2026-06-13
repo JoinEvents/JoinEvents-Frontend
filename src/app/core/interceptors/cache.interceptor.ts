@@ -6,8 +6,10 @@ const cache = new Map<string, { response: HttpResponse<any>; expiry: number }>()
 const TTL_MS = 60000; // 1 minute TTL
 
 export const cacheInterceptor: HttpInterceptorFn = (req, next) => {
-  // Only cache GET requests, and bypass cache for messenger/chat, verification, support, and dashboard endpoints
+  // Only cache GET requests, and bypass cache for bookings, messenger/chat, verification, support, and dashboard endpoints
   if (req.method !== 'GET' || 
+      req.url.includes('/bookings') || 
+      req.url.includes('/booking') || 
       req.url.includes('/messenger') || 
       req.url.includes('/verification') || 
       req.url.includes('/support') || 

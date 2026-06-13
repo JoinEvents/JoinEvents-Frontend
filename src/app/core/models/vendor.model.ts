@@ -42,4 +42,8 @@ export interface CalendarDay {
   date: string;
   status: 'available' | 'booked' | 'blocked' | 'unavailable';
   bookingId?: string;
+  eventName?: string;
+  customerName?: string;
+  totalAmount?: number;
+  packageName?: string;
 }

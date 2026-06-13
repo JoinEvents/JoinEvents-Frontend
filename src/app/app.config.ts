@@ -14,7 +14,7 @@ export function checkBackendAvailability(errorHandler: ErrorHandler) {
   return () => {
     // Standard GET on a public endpoint is more robust than an explicit OPTIONS call
     // which may be rejected (405) by many backend configurations.
-    return fetch(`${environment.apiUrl}${API_ROUTES.PACKAGES.SEARCH}`)
+    return fetch(`${environment.apiUrl}/service-categories`)
       .catch(error => {
         globalHandler.lastError.set({
           title: 'Backend Server Unavailable',

@@ -7,7 +7,7 @@ export interface BookingService {
   vendorId: string;
   vendorName: string;
   price: number;
-  status: 'pending' | 'confirmed' | 'completed' | 'included';
+  status: 'pending' | 'confirmed' | 'completed' | 'included' | 'in_progress';
 }
 
 export interface Booking {

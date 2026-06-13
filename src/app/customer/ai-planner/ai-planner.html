@@ -26,7 +26,7 @@
       @if (msg.sender === 'ai' && msg.type === 'text') {
         <div class="msg-row ai">
           <div class="msg-avatar"><i class="bi bi-stars"></i></div>
-          <div class="msg-bubble ai-bubble">{{ msg.content }}</div>
+          <div class="msg-bubble ai-bubble" [innerHTML]="msg.content"></div>
         </div>
       }
 
@@ -41,16 +41,35 @@
           <div class="ai-carousel">
             @for (pkg of msg.packages; track pkg.id) {
               <div class="ai-pkg-card" [routerLink]="['/book', pkg.id]">
-                <img [src]="pkg.image" alt="pkg">
-                <div class="ai-pkg-info">
-                  <div class="d-flex justify-content-between align-items-center mb-1">
+                <div class="ai-pkg-img-wrapper">
+                  <img [src]="pkg.image" alt="pkg">
+                  <div class="ai-pkg-meta-badges">
                     <span class="ai-pkg-tier">{{ pkg.tier }}</span>
                     @if (pkg.sustainabilityTags?.length) {
-                      <span class="text-success small fw-bold"><i class="bi bi-leaf-fill"></i> Eco</span>
+                      <span class="badge-eco"><i class="bi bi-leaf-fill"></i> Eco</span>
                     }
                   </div>
+                </div>
+                <div class="ai-pkg-info">
                   <h6 class="ai-pkg-name">{{ pkg.name }}</h6>
-                  <div class="ai-pkg-price">₹{{ (pkg.price / 100000).toFixed(1) }}L</div>
+                  
+                  @if (pkg.location) {
+                    <div class="ai-pkg-loc">
+                      <i class="bi bi-geo-alt-fill"></i> {{ pkg.location }}
+                    </div>
+                  }
+
+                  <div class="d-flex justify-content-between align-items-center mt-2">
+                    <div class="ai-pkg-price">
+                      {{ pkg.price >= 100000 ? '₹' + (pkg.price / 100000).toFixed(1) + 'L' : '₹' + (pkg.price / 1000).toFixed(0) + 'K' }}
+                    </div>
+                    @if (pkg.rating) {
+                      <div class="ai-pkg-rating">
+                        <i class="bi bi-star-fill text-warning"></i> {{ pkg.rating }}
+                        <span class="rating-count">({{ pkg.totalReviews || 0 }})</span>
+                      </div>
+                    }
+                  </div>
                 </div>
               </div>
             }
@@ -70,9 +89,20 @@
   </div>
 
   <div class="chat-footer">
+    <!-- Suggestion Chips -->
+    @if (suggestionChips().length > 0) {
+      <div class="suggestion-chips-container">
+        @for (chip of suggestionChips(); track chip) {
+          <button class="suggestion-chip" (click)="selectChip(chip)" [disabled]="isThinking()">
+            {{ chip }}
+          </button>
+        }
+      </div>
+    }
+    
     <div class="input-wrapper">
       <input type="text" [(ngModel)]="userInput" (keyup.enter)="sendMessage()" placeholder="Ask me anything..." [disabled]="isThinking()">
-      <button class="btn-send" (click)="sendMessage()" [disabled]="!userInput().trim() || isThinking()">
+      <button class="btn-send" (click)="sendMessage()" [disabled]="!userInput.trim() || isThinking()">
         <i class="bi bi-send-fill"></i>
       </button>
     </div>

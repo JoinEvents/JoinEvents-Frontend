@@ -1,12 +1,4 @@
 <div class="dashboard-wrapper">
-  @if (loading()) {
-    <div class="loading-state text-center py-5" style="min-height: 70vh; display: flex; flex-direction: column; justify-content: center; align-items: center;">
-      <div class="spinner-border text-primary mb-3" role="status" style="width: 3.5rem; height: 3.5rem;">
-        <span class="visually-hidden">Loading...</span>
-      </div>
-      <h5 class="text-muted fw-semibold">Personalizing your marketplace...</h5>
-    </div>
-  } @else {
 
     <!-- ============================================================
          HERO SECTION: Welcome Card + Campaign Slider
@@ -23,16 +15,17 @@
           <!-- Search Capsule -->
           <div class="search-box-premium mt-auto pt-4">
             <div class="location-select-box">
-              <i class="bi bi-geo-alt-fill text-primary"></i>
+              <i class="bi bi-geo-alt-fill text-primary" style="font-size: 1.05rem;"></i>
               <select [ngModel]="selectedCity()" (ngModelChange)="selectedCity.set($event); onCityChange()" class="location-dropdown">
                 @for (city of cities; track city) {
                   <option [value]="city">{{ city }}</option>
                 }
               </select>
+              <i class="bi bi-chevron-down dropdown-chevron"></i>
             </div>
             <div class="vertical-spacer d-none d-md-block"></div>
             <div class="search-input-box-wrapper">
-              <i class="bi bi-search text-soft"></i>
+              <i class="bi bi-search text-soft" style="font-size: 1.05rem;"></i>
               <input 
                 type="text" 
                 [ngModel]="searchQuery()" 
@@ -119,16 +112,28 @@
            (mousemove)="onMouseMove($event)"
            (mouseup)="onMouseUp()"
            (mouseleave)="onMouseLeave()">
-        @for (et of eventTypes(); track et.id) {
-          <div (click)="goToVendors(et.category)" class="category-pill-card">
-            <div class="category-icon-box" [style.background]="et.gradient">
-              <i class="bi {{ et.icon }}"></i>
+        @if (eventTypesLoading()) {
+          @for (i of [1, 2, 3, 4, 5, 6]; track i) {
+            <div class="category-pill-card skeleton-item">
+              <div class="category-icon-box skeleton-block" style="width: 48px; height: 48px; border-radius: 50%; flex-shrink: 0;"></div>
+              <div class="category-text-box flex-grow-1" style="display: flex; flex-direction: column; gap: 8px;">
+                <div class="skeleton-block" style="width: 70px; height: 14px; border-radius: 4px;"></div>
+                <div class="skeleton-block" style="width: 45px; height: 10px; border-radius: 3px;"></div>
+              </div>
             </div>
-            <div class="category-text-box">
-              <span class="category-pill-name">{{ et.name }}</span>
-              <span class="category-pill-price">From ₹{{ (et.startingPrice || 0) / 1000 }}k</span>
+          }
+        } @else {
+          @for (et of eventTypes(); track et.id) {
+            <div (click)="goToVendors(et.category)" class="category-pill-card">
+              <div class="category-icon-box" [style.background]="et.gradient">
+                <i class="bi {{ et.icon }}"></i>
+              </div>
+              <div class="category-text-box">
+                <span class="category-pill-name">{{ et.name }}</span>
+                <span class="category-pill-price">From ₹{{ (et.startingPrice || 0) / 1000 }}k</span>
+              </div>
             </div>
-          </div>
+          }
         }
       </div>
     </div>
@@ -151,62 +156,92 @@
           </div>
 
           <div class="row g-3">
-            @for (p of trendingPackages(); track p.id) {
-              <div class="col-12 col-md-6">
-                <div class="package-card-v2" [routerLink]="['/book', p.id]" style="cursor: pointer;" (mouseenter)="startCardCarousel(p.id, p.images.length)" (mouseleave)="stopCardCarousel(p.id)">
-                  <div class="card-img-wrap">
-                    <img [src]="p.images[activeCardCarouselIndex()[p.id] || 0] || p.image" class="card-img" [alt]="p.name" loading="lazy" style="transition: opacity 0.4s ease-in-out;">
-                    <div class="price-badge-v2">{{ formatPriceLakh(p.price) }}</div>
-                    <button class="fav-btn" [class.active]="isFavorite(p.id)" (click)="toggleFavorite($event, p)">
-                      <i class="bi" [class.bi-heart-fill]="isFavorite(p.id)" [class.bi-heart]="!isFavorite(p.id)"></i>
-                    </button>
-                    @if (p.images && p.images.length > 1) {
-                      <div class="carousel-indicators-mini">
-                        @for (img of p.images; track img; let i = $index) {
-                          <span class="dot-mini" [class.active]="i === (activeCardCarouselIndex()[p.id] || 0)"></span>
-                        }
+            @if (packagesLoading()) {
+              @for (i of [1, 2]; track i) {
+                <div class="col-12 col-md-6">
+                  <div class="package-card-v2 skeleton-item" style="border: 1px solid rgba(0,0,0,0.05); border-radius: 12px; overflow: hidden; background: #fff; display: flex; flex-direction: column; height: 100%;">
+                    <div class="card-img-wrap skeleton-block" style="height: 200px;"></div>
+                    <div class="card-content-v2" style="padding: 16px; display: flex; flex-direction: column; gap: 12px; flex-grow: 1;">
+                      <div class="d-flex justify-content-between">
+                        <div class="skeleton-block" style="width: 80px; height: 16px; border-radius: 4px;"></div>
+                        <div class="skeleton-block" style="width: 50px; height: 16px; border-radius: 4px;"></div>
                       </div>
-                    }
-                  </div>
-                  <div class="card-content-v2">
-                    <div class="pkg-meta">
-                      <div class="d-flex align-items-center gap-2">
-                        <span class="pkg-label" [style.background]="eventTierService.getGradientForTier(p.tier)" style="color: white; border: none; font-weight: 800;">{{ p.tier | titlecase }}</span>
+                      <div class="skeleton-block" style="width: 140px; height: 20px; border-radius: 4px;"></div>
+                      <div class="skeleton-block" style="width: 100px; height: 14px; border-radius: 4px;"></div>
+                      <div class="d-flex gap-2">
+                        <div class="skeleton-block" style="width: 60px; height: 18px; border-radius: 10px;"></div>
+                        <div class="skeleton-block" style="width: 60px; height: 18px; border-radius: 10px;"></div>
                       </div>
-                      <span class="pkg-rating"><i class="bi bi-star-fill"></i> {{ (p.rating || 0).toFixed(1) }} ({{ p.totalReviews || 0 }})</span>
-                    </div>
-                    <h3 class="pkg-title-v2">{{ p.vendorName }}</h3>
-                    <div class="pkg-loc-v2 mb-2">
-                      <i class="bi bi-geo-alt"></i> {{ p.location }}
-                    </div>
-                    @if (p.services && p.services.length) {
-                      <div class="d-flex flex-wrap gap-1 mb-3" style="min-height: 22px;">
-                        @for (svc of p.services.slice(0, 3); track svc) {
-                          <span class="service-pill">
-                            <i class="bi bi-check2 text-success me-1"></i>{{ svc }}
-                          </span>
-                        }
-                        @if (p.services.length > 3) {
-                          <span class="service-pill more-pill">+{{ p.services.length - 3 }} more</span>
-                        }
-                      </div>
-                    }
-                    <div class="pkg-features">
-                      <div class="feat-item" title="Capacity">
-                        <i class="bi bi-people-fill text-primary"></i> <span>{{ p.maxGuests }} Pax</span>
-                      </div>
-                      @if (p.roomCount > 0) {
-                        <div class="feat-item" title="Accommodation">
-                          <i class="bi bi-door-closed-fill text-success"></i> <span>{{ p.roomCount }} Rms</span>
-                        </div>
-                      }
-                      <div class="feat-item" title="Cuisine">
-                        <i class="bi bi-egg-fried text-warning"></i> <span>{{ p.vegOnly ? 'Veg' : 'Mix' }}</span>
+                      <div class="d-flex justify-content-between pt-2 border-top mt-auto" style="border-top: 1px solid rgba(0,0,0,0.05) !important;">
+                        <div class="skeleton-block" style="width: 50px; height: 14px; border-radius: 4px;"></div>
+                        <div class="skeleton-block" style="width: 50px; height: 14px; border-radius: 4px;"></div>
+                        <div class="skeleton-block" style="width: 50px; height: 14px; border-radius: 4px;"></div>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
+              }
+            } @else {
+              @for (p of trendingPackages(); track p.id) {
+                <div class="col-12 col-md-6">
+                  <div class="package-card-v2" [routerLink]="['/book', p.id]" style="cursor: pointer;" (mouseenter)="startCardCarousel(p.id, p.images.length)" (mouseleave)="stopCardCarousel(p.id)">
+                    <div class="card-img-wrap">
+                      <img [src]="p.images[activeCardCarouselIndex()[p.id] || 0] || p.image" class="card-img" [alt]="p.name" loading="lazy" style="transition: opacity 0.4s ease-in-out;">
+                      <div class="price-badge-v2">{{ formatPriceLakh(p.price) }}</div>
+                      <button class="fav-btn" [class.active]="isFavorite(p.id)" (click)="toggleFavorite($event, p)">
+                        <i class="bi" [class.bi-heart-fill]="isFavorite(p.id)" [class.bi-heart]="!isFavorite(p.id)"></i>
+                      </button>
+                      @if (p.images && p.images.length > 1) {
+                        <div class="carousel-indicators-mini">
+                          @for (img of p.images; track img; let i = $index) {
+                            <span class="dot-mini" [class.active]="i === (activeCardCarouselIndex()[p.id] || 0)"></span>
+                          }
+                        </div>
+                      }
+                    </div>
+                    <div class="card-content-v2">
+                      <div class="pkg-meta">
+                        <div class="d-flex align-items-center gap-2">
+                          <span class="pkg-label" [style.background]="eventTierService.getGradientForTier(p.tier)" style="color: white; border: none; font-weight: 800;">{{ p.tier | titlecase }}</span>
+                        </div>
+                        <span class="pkg-rating"><i class="bi bi-star-fill"></i> {{ (p.rating || 0).toFixed(1) }} ({{ p.totalReviews || 0 }})</span>
+                      </div>
+                      <h3 class="pkg-title-v2 text-truncate" style="margin-bottom: 4px;" [title]="p.name">{{ p.name }}</h3>
+                      <div class="pkg-vendor-subtitle" style="font-size: 0.82rem; font-weight: 600; color: var(--text-muted); display: flex; align-items: center; gap: 6px; margin-bottom: 8px;">
+                        <i class="bi bi-shop text-primary" style="font-size: 0.9rem;"></i> {{ p.vendorName || 'JoinEvents Partner' }}
+                      </div>
+                      <div class="pkg-loc-v2 mb-2">
+                        <i class="bi bi-geo-alt"></i> {{ p.location }}
+                      </div>
+                      @if (p.services && p.services.length) {
+                        <div class="d-flex flex-wrap gap-1 mb-3" style="min-height: 22px;">
+                          @for (svc of p.services.slice(0, 3); track svc) {
+                            <span class="service-pill">
+                              <i class="bi bi-check2 text-success me-1"></i>{{ svc }}
+                            </span>
+                          }
+                          @if (p.services.length > 3) {
+                            <span class="service-pill more-pill">+{{ p.services.length - 3 }} more</span>
+                          }
+                        </div>
+                      }
+                      <div class="pkg-features">
+                        <div class="feat-item" title="Capacity">
+                          <i class="bi bi-people-fill text-primary"></i> <span>{{ p.maxGuests }} Pax</span>
+                        </div>
+                        @if (p.roomCount > 0) {
+                          <div class="feat-item" title="Accommodation">
+                            <i class="bi bi-door-closed-fill text-success"></i> <span>{{ p.roomCount }} Rms</span>
+                          </div>
+                        }
+                        <div class="feat-item" title="Cuisine">
+                          <i class="bi bi-egg-fried text-warning"></i> <span>{{ p.vegOnly ? 'Veg' : 'Mix' }}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              }
             }
           </div>
         </div>
@@ -224,68 +259,98 @@
           </div>
 
           <div class="row g-3">
-            @for (p of popularPackages(); track p.id) {
-              <div class="col-12 col-md-6">
-                <div class="package-card-v2" [routerLink]="['/book', p.id]" style="cursor: pointer;" (mouseenter)="startCardCarousel(p.id, p.images.length)" (mouseleave)="stopCardCarousel(p.id)">
-                  <div class="card-img-wrap">
-                    <img [src]="p.images[activeCardCarouselIndex()[p.id] || 0] || p.image" class="card-img" [alt]="p.name" loading="lazy" style="transition: opacity 0.4s ease-in-out;">
-                    <div class="price-badge-v2">{{ formatPriceLakh(p.price) }}</div>
-                    <button class="fav-btn" [class.active]="isFavorite(p.id)" (click)="toggleFavorite($event, p)">
-                      <i class="bi" [class.bi-heart-fill]="isFavorite(p.id)" [class.bi-heart]="!isFavorite(p.id)"></i>
-                    </button>
-                    @if (p.images && p.images.length > 1) {
-                      <div class="carousel-indicators-mini">
-                        @for (img of p.images; track img; let i = $index) {
-                          <span class="dot-mini" [class.active]="i === (activeCardCarouselIndex()[p.id] || 0)"></span>
-                        }
+            @if (packagesLoading()) {
+              @for (i of [1, 2]; track i) {
+                <div class="col-12 col-md-6">
+                  <div class="package-card-v2 skeleton-item" style="border: 1px solid rgba(0,0,0,0.05); border-radius: 12px; overflow: hidden; background: #fff; display: flex; flex-direction: column; height: 100%;">
+                    <div class="card-img-wrap skeleton-block" style="height: 200px;"></div>
+                    <div class="card-content-v2" style="padding: 16px; display: flex; flex-direction: column; gap: 12px; flex-grow: 1;">
+                      <div class="d-flex justify-content-between">
+                        <div class="skeleton-block" style="width: 80px; height: 16px; border-radius: 4px;"></div>
+                        <div class="skeleton-block" style="width: 50px; height: 16px; border-radius: 4px;"></div>
                       </div>
-                    }
-                  </div>
-                  <div class="card-content-v2">
-                    <div class="pkg-meta">
-                      <div class="d-flex align-items-center gap-2">
-                        <span class="pkg-label" [style.background]="eventTierService.getGradientForTier(p.tier)" style="color: white; border: none; font-weight: 800;">{{ p.tier | titlecase }}</span>
+                      <div class="skeleton-block" style="width: 140px; height: 20px; border-radius: 4px;"></div>
+                      <div class="skeleton-block" style="width: 100px; height: 14px; border-radius: 4px;"></div>
+                      <div class="d-flex gap-2">
+                        <div class="skeleton-block" style="width: 60px; height: 18px; border-radius: 10px;"></div>
+                        <div class="skeleton-block" style="width: 60px; height: 18px; border-radius: 10px;"></div>
                       </div>
-                      <span class="pkg-rating"><i class="bi bi-star-fill"></i> {{ (p.rating || 0).toFixed(1) }} ({{ p.totalReviews || 0 }})</span>
-                    </div>
-                    <h3 class="pkg-title-v2">{{ p.vendorName }}</h3>
-                    <div class="pkg-loc-v2 mb-2">
-                      <i class="bi bi-geo-alt"></i> {{ p.location }}
-                    </div>
-                    @if (p.services && p.services.length) {
-                      <div class="d-flex flex-wrap gap-1 mb-3" style="min-height: 22px;">
-                        @for (svc of p.services.slice(0, 3); track svc) {
-                          <span class="service-pill">
-                            <i class="bi bi-check2 text-success me-1"></i>{{ svc }}
-                          </span>
-                        }
-                        @if (p.services.length > 3) {
-                          <span class="service-pill more-pill">+{{ p.services.length - 3 }} more</span>
-                        }
-                      </div>
-                    }
-                    <div class="pkg-features">
-                      <div class="feat-item" title="Capacity">
-                        <i class="bi bi-people-fill text-primary"></i> <span>{{ p.maxGuests }} Pax</span>
-                      </div>
-                      @if (p.roomCount > 0) {
-                        <div class="feat-item" title="Accommodation">
-                          <i class="bi bi-door-closed-fill text-success"></i> <span>{{ p.roomCount }} Rms</span>
-                        </div>
-                      }
-                      <div class="feat-item" title="Cuisine">
-                        <i class="bi bi-egg-fried text-warning"></i> <span>{{ p.vegOnly ? 'Veg' : 'Mix' }}</span>
+                      <div class="d-flex justify-content-between pt-2 border-top mt-auto" style="border-top: 1px solid rgba(0,0,0,0.05) !important;">
+                        <div class="skeleton-block" style="width: 50px; height: 14px; border-radius: 4px;"></div>
+                        <div class="skeleton-block" style="width: 50px; height: 14px; border-radius: 4px;"></div>
+                        <div class="skeleton-block" style="width: 50px; height: 14px; border-radius: 4px;"></div>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            } @empty {
-              <div class="col-12 text-center py-5 ee-card">
-                <i class="bi bi-pin-map fs-1 text-soft mb-2"></i>
-                <h6 class="text-muted">No custom packages found for {{ selectedCity() }} yet.</h6>
-                <p class="small text-soft">Check back later or browse other trending nationwide options!</p>
-              </div>
+              }
+            } @else {
+              @for (p of popularPackages(); track p.id) {
+                <div class="col-12 col-md-6">
+                  <div class="package-card-v2" [routerLink]="['/book', p.id]" style="cursor: pointer;" (mouseenter)="startCardCarousel(p.id, p.images.length)" (mouseleave)="stopCardCarousel(p.id)">
+                    <div class="card-img-wrap">
+                      <img [src]="p.images[activeCardCarouselIndex()[p.id] || 0] || p.image" class="card-img" [alt]="p.name" loading="lazy" style="transition: opacity 0.4s ease-in-out;">
+                      <div class="price-badge-v2">{{ formatPriceLakh(p.price) }}</div>
+                      <button class="fav-btn" [class.active]="isFavorite(p.id)" (click)="toggleFavorite($event, p)">
+                        <i class="bi" [class.bi-heart-fill]="isFavorite(p.id)" [class.bi-heart]="!isFavorite(p.id)"></i>
+                      </button>
+                      @if (p.images && p.images.length > 1) {
+                        <div class="carousel-indicators-mini">
+                          @for (img of p.images; track img; let i = $index) {
+                            <span class="dot-mini" [class.active]="i === (activeCardCarouselIndex()[p.id] || 0)"></span>
+                          }
+                        </div>
+                      }
+                    </div>
+                    <div class="card-content-v2">
+                      <div class="pkg-meta">
+                        <div class="d-flex align-items-center gap-2">
+                          <span class="pkg-label" [style.background]="eventTierService.getGradientForTier(p.tier)" style="color: white; border: none; font-weight: 800;">{{ p.tier | titlecase }}</span>
+                        </div>
+                        <span class="pkg-rating"><i class="bi bi-star-fill"></i> {{ (p.rating || 0).toFixed(1) }} ({{ p.totalReviews || 0 }})</span>
+                      </div>
+                      <h3 class="pkg-title-v2 text-truncate" style="margin-bottom: 4px;" [title]="p.name">{{ p.name }}</h3>
+                      <div class="pkg-vendor-subtitle" style="font-size: 0.82rem; font-weight: 600; color: var(--text-muted); display: flex; align-items: center; gap: 6px; margin-bottom: 8px;">
+                        <i class="bi bi-shop text-primary" style="font-size: 0.9rem;"></i> {{ p.vendorName || 'JoinEvents Partner' }}
+                      </div>
+                      <div class="pkg-loc-v2 mb-2">
+                        <i class="bi bi-geo-alt"></i> {{ p.location }}
+                      </div>
+                      @if (p.services && p.services.length) {
+                        <div class="d-flex flex-wrap gap-1 mb-3" style="min-height: 22px;">
+                          @for (svc of p.services.slice(0, 3); track svc) {
+                            <span class="service-pill">
+                              <i class="bi bi-check2 text-success me-1"></i>{{ svc }}
+                            </span>
+                          }
+                          @if (p.services.length > 3) {
+                            <span class="service-pill more-pill">+{{ p.services.length - 3 }} more</span>
+                          }
+                        </div>
+                      }
+                      <div class="pkg-features">
+                        <div class="feat-item" title="Capacity">
+                          <i class="bi bi-people-fill text-primary"></i> <span>{{ p.maxGuests }} Pax</span>
+                        </div>
+                        @if (p.roomCount > 0) {
+                          <div class="feat-item" title="Accommodation">
+                            <i class="bi bi-door-closed-fill text-success"></i> <span>{{ p.roomCount }} Rms</span>
+                          </div>
+                        }
+                        <div class="feat-item" title="Cuisine">
+                          <i class="bi bi-egg-fried text-warning"></i> <span>{{ p.vegOnly ? 'Veg' : 'Mix' }}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              } @empty {
+                <div class="col-12 text-center py-5 ee-card">
+                  <i class="bi bi-pin-map fs-1 text-soft mb-2"></i>
+                  <h6 class="text-muted">No custom packages found for {{ selectedCity() }} yet.</h6>
+                  <p class="small text-soft">Check back later or browse other trending nationwide options!</p>
+                </div>
+              }
             }
           </div>
         </div>
@@ -328,44 +393,59 @@
       <div class="col-12 col-lg-4">
         
         <!-- Active Booking Timeline -->
-        @if (bookings().length > 0) {
+        @if (bookingsLoading() || bookings().length > 0) {
           <div class="dashboard-sidebar-widget mb-4">
             <div class="widget-header">
               <i class="bi bi-journal-text header-icon text-primary"></i>
               <span class="widget-title">Active Booking Timeline</span>
             </div>
             <div class="widget-body p-3">
-              @for (b of bookings().slice(0, 1); track b.id) {
-                <div class="active-timeline-item" [routerLink]="['/bookings']" [queryParams]="{ bookingId: b.id }" style="cursor: pointer;">
-                  <div class="d-flex justify-content-between mb-2">
-                    <h6 class="event-title mb-0 fw-bold text-truncate" style="max-width: 70%">{{ b.eventName }}</h6>
-                    <span class="badge {{ getStatusBadgeClass(b.status) }}">{{ getStatusLabel(b.status) }}</span>
+              @if (bookingsLoading()) {
+                <div class="active-timeline-item skeleton-item">
+                  <div class="d-flex justify-content-between mb-3">
+                    <div class="skeleton-block" style="width: 60%; height: 18px; border-radius: 4px;"></div>
+                    <div class="skeleton-block" style="width: 25%; height: 18px; border-radius: 4px;"></div>
                   </div>
-                  <div class="small text-muted mb-3">
-                    <i class="bi bi-calendar-event me-1 text-primary"></i> {{ b.eventDate | date:'mediumDate' }}<br/>
-                    <i class="bi bi-geo-alt me-1 text-primary"></i> {{ b.venue }}, {{ b.city }}
+                  <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px;">
+                    <div class="skeleton-block" style="width: 80%; height: 14px; border-radius: 4px;"></div>
+                    <div class="skeleton-block" style="width: 50%; height: 14px; border-radius: 4px;"></div>
                   </div>
-                  
-                  <div class="planning-progress">
-                    <div class="d-flex justify-content-between small text-soft mb-1">
-                      <span>Planning Status</span>
-                      <span class="fw-bold text-primary">
-                        @if (b.status === 'pending') { 25% }
-                        @else if (b.status === 'advance_paid') { 50% }
-                        @else if (b.status === 'confirmed') { 75% }
-                        @else { 100% }
-                      </span>
-                    </div>
-                    <div class="progress" style="height: 5px; background: var(--bg-light); border-radius: 10px;">
-                      <div 
-                        class="progress-bar" 
-                        [style.width.%]="b.status === 'pending' ? 25 : (b.status === 'advance_paid' ? 50 : (b.status === 'confirmed' ? 75 : 100))"
-                        [style.background]="'var(--gradient-primary)'"
-                        style="border-radius: 10px;"
-                      ></div>
-                    </div>
-                  </div>
+                  <div class="skeleton-block" style="width: 100%; height: 6px; border-radius: 10px;"></div>
                 </div>
+              } @else {
+                @for (b of bookings().slice(0, 1); track b.id) {
+                  <div class="active-timeline-item" [routerLink]="['/bookings']" [queryParams]="{ bookingId: b.id }" style="cursor: pointer;">
+                    <div class="d-flex justify-content-between mb-2">
+                      <h6 class="event-title mb-0 fw-bold text-truncate" style="max-width: 70%">{{ b.eventName }}</h6>
+                      <span class="badge {{ getStatusBadgeClass(b.status) }}">{{ getStatusLabel(b.status) }}</span>
+                    </div>
+                    <div class="small text-muted mb-3">
+                      <i class="bi bi-calendar-event me-1 text-primary"></i> {{ b.eventDate | date:'mediumDate' }}<br/>
+                      <i class="bi bi-geo-alt me-1 text-primary"></i> {{ b.venue }}, {{ b.city }}
+                    </div>
+                    
+                    <div class="planning-progress">
+                      <div class="d-flex justify-content-between small text-soft mb-1">
+                        <span>Planning Status</span>
+                        <span class="fw-bold text-primary">
+                          @if (b.status === 'pending') { 25% }
+                          @else if (b.status === 'advance_paid') { 50% }
+                          @else if (b.status === 'confirmed') { 75% }
+                          @else if (b.status === 'cancelled') { 0% }
+                          @else { 100% }
+                        </span>
+                      </div>
+                      <div class="progress" style="height: 5px; background: var(--bg-light); border-radius: 10px;">
+                        <div 
+                          class="progress-bar" 
+                          [style.width.%]="b.status === 'pending' ? 25 : (b.status === 'advance_paid' ? 50 : (b.status === 'confirmed' ? 75 : (b.status === 'cancelled' ? 0 : 100)))"
+                          [style.background]="'var(--gradient-primary)'"
+                          style="border-radius: 10px;"
+                        ></div>
+                      </div>
+                    </div>
+                  </div>
+                }
               }
               <button class="btn-ee-outline w-100 mt-3 py-2 btn-sm text-center justify-content-center" routerLink="/bookings">
                 Manage Bookings
@@ -405,31 +485,48 @@
 
         <!-- Loyalty Rewards Card -->
         <div class="loyalty-premium-card mb-4" [style.background]="'var(--gradient-dark)'" routerLink="/rewards" style="cursor: pointer;">
-          <div class="loyalty-icon-circle"><i class="bi bi-gem"></i></div>
-          <div class="loyalty-info text-center mt-3">
-            <div class="loyalty-label text-white-50">Loyalty Tier</div>
-            <div class="loyalty-tier text-white">
-              {{ loyaltyBalance()?.tier || 'Bronze' }} Member
-            </div>
-            <div class="loyalty-progress mt-4">
-              <div class="d-flex justify-content-between small text-white-50 mb-2">
-                @if ((loyaltyBalance()?.pointsToNextTier || 0) > 0) {
-                  <span>Progress to Next Tier</span>
-                  <span>{{ loyaltyBalance()?.points || 0 }} pts</span>
-                } @else {
-                  <span>Highest Tier Reached!</span>
-                  <span>{{ loyaltyBalance()?.points || 0 }} pts</span>
-                }
-              </div>
-              <div class="progress" style="height: 5px; background: rgba(255,255,255,0.1); border-radius: 10px;">
-                <div class="progress-bar bg-white" [style.width.%]="(loyaltyBalance()?.pointsToNextTier || 0) > 0 ? ((loyaltyBalance()?.points || 0) / (loyaltyBalance()?.points + loyaltyBalance()?.pointsToNextTier)) * 100 : 100" style="border-radius: 10px;"></div>
+          @if (loyaltyLoading()) {
+            <div class="skeleton-item" style="display: flex; flex-direction: column; align-items: center; width: 100%; padding: 15px 0;">
+              <div class="loyalty-icon-circle skeleton-block" style="border: none; background: rgba(255,255,255,0.08); width: 44px; height: 44px; border-radius: 50%;"></div>
+              <div class="loyalty-info text-center mt-3 w-100" style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+                <div class="skeleton-block" style="width: 80px; height: 12px; border-radius: 4px;"></div>
+                <div class="skeleton-block" style="width: 120px; height: 20px; border-radius: 4px;"></div>
+                <div class="w-100 mt-4" style="display: flex; flex-direction: column; gap: 8px;">
+                  <div class="d-flex justify-content-between">
+                    <div class="skeleton-block" style="width: 100px; height: 10px; border-radius: 3px;"></div>
+                    <div class="skeleton-block" style="width: 40px; height: 10px; border-radius: 3px;"></div>
+                  </div>
+                  <div class="skeleton-block" style="width: 100%; height: 5px; border-radius: 10px;"></div>
+                </div>
               </div>
             </div>
-          </div>
+          } @else {
+            <div class="loyalty-icon-circle"><i class="bi bi-gem"></i></div>
+            <div class="loyalty-info text-center mt-3">
+              <div class="loyalty-label text-white-50">Loyalty Tier</div>
+              <div class="loyalty-tier text-white">
+                {{ loyaltyBalance()?.tier || 'Bronze' }} Member
+              </div>
+              <div class="loyalty-progress mt-4">
+                <div class="d-flex justify-content-between small text-white-50 mb-2">
+                  @if ((loyaltyBalance()?.pointsToNextTier || 0) > 0) {
+                    <span>Progress to Next Tier</span>
+                    <span>{{ loyaltyBalance()?.points || 0 }} pts</span>
+                  } @else {
+                    <span>Highest Tier Reached!</span>
+                    <span>{{ loyaltyBalance()?.points || 0 }} pts</span>
+                  }
+                </div>
+                <div class="progress" style="height: 5px; background: rgba(255,255,255,0.1); border-radius: 10px;">
+                  <div class="progress-bar bg-white" [style.width.%]="(loyaltyBalance()?.pointsToNextTier || 0) > 0 ? ((loyaltyBalance()?.points || 0) / (loyaltyBalance()?.points + loyaltyBalance()?.pointsToNextTier)) * 100 : 100" style="border-radius: 10px;"></div>
+                </div>
+              </div>
+            </div>
+          }
         </div>
 
         <!-- Recent Messages -->
-        @if (recentMessages().length > 0) {
+        @if (messagesLoading() || recentMessages().length > 0) {
           <div class="dashboard-sidebar-widget mb-4">
             <div class="widget-header d-flex justify-content-between align-items-center">
               <div class="d-flex align-items-center gap-2">
@@ -440,22 +537,37 @@
             </div>
             <div class="widget-body p-3">
               <div class="message-preview-list">
-                @for (msg of recentMessages(); track msg.id) {
-                  <div class="msg-preview-item" [routerLink]="['/messages']" [queryParams]="{ threadId: msg.id }">
-                    <div class="msg-avatar" [ngClass]="msg.unreadCount > 0 ? 'bg-primary text-white' : 'bg-light text-dark'">
-                      {{ msg.participants?.[1]?.name?.charAt(0) || 'U' }}
-                    </div>
-                    <div class="msg-content">
-                      <div class="msg-sender d-flex justify-content-between">
-                        <span class="text-truncate" style="max-width: 140px;">{{ msg.participants?.[1]?.name || 'Unknown' }}</span>
-                        @if (msg.unreadCount > 0) {
-                          <span class="badge bg-danger rounded-pill" style="font-size: 0.62rem;">{{ msg.unreadCount }}</span>
-                        }
+                @if (messagesLoading()) {
+                  @for (i of [1, 2, 3]; track i) {
+                    <div class="msg-preview-item skeleton-item" style="border-bottom: 1px solid rgba(0,0,0,0.03); display: flex; gap: 12px; align-items: center; padding: 10px 0;">
+                      <div class="msg-avatar skeleton-block" style="width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;"></div>
+                      <div class="msg-content flex-grow-1" style="display: flex; flex-direction: column; gap: 6px; min-width: 0;">
+                        <div class="d-flex justify-content-between">
+                          <div class="skeleton-block" style="width: 80px; height: 14px; border-radius: 3px;"></div>
+                          <div class="skeleton-block" style="width: 40px; height: 10px; border-radius: 2px;"></div>
+                        </div>
+                        <div class="skeleton-block" style="width: 100%; height: 12px; border-radius: 3px;"></div>
                       </div>
-                      <div class="msg-text text-truncate">{{ msg.lastMessage }}</div>
-                      <div class="msg-time">{{ msg.lastMessageTime | date:'shortTime' }}</div>
                     </div>
-                  </div>
+                  }
+                } @else {
+                  @for (msg of recentMessages(); track msg.id) {
+                    <div class="msg-preview-item" [routerLink]="['/messages']" [queryParams]="{ threadId: msg.id }">
+                      <div class="msg-avatar" [ngClass]="msg.unreadCount > 0 ? 'bg-primary text-white' : 'bg-light text-dark'">
+                        {{ msg.participants?.[1]?.name?.charAt(0) || 'U' }}
+                      </div>
+                      <div class="msg-content">
+                        <div class="msg-sender d-flex justify-content-between">
+                          <span class="text-truncate" style="max-width: 140px;">{{ msg.participants?.[1]?.name || 'Unknown' }}</span>
+                          @if (msg.unreadCount > 0) {
+                            <span class="badge bg-danger rounded-pill" style="font-size: 0.62rem;">{{ msg.unreadCount }}</span>
+                          }
+                        </div>
+                        <div class="msg-text text-truncate">{{ msg.lastMessage }}</div>
+                        <div class="msg-time">{{ msg.lastMessageTime | date:'shortTime' }}</div>
+                      </div>
+                    </div>
+                  }
                 }
               </div>
             </div>
@@ -476,5 +588,4 @@
 
       </div>
     </div>
-  }
 </div>

@@ -170,9 +170,44 @@
               <div class="col-6"><i class="bi bi-people me-1"></i> Guests: Approx. 150</div>
               <div class="col-6"><i class="bi bi-shield-lock me-1"></i> Contact: Via JoinEvents Chat <span class="badge bg-success bg-opacity-25 text-success x-small ms-1">Protected</span></div>
             </div>
-            <div class="p-2 rounded bg-light border small text-dark" style="background: rgba(0,0,0,0.02) !important;">
+            <div class="p-2 rounded bg-light border small text-dark mb-3" style="background: rgba(0,0,0,0.02) !important;">
               <strong class="d-block mb-1">Vendor Instructions:</strong> 
               Please ensure that the services match the premium package quality standard. Customer expects setup to be complete 2 hours before the event.
+            </div>
+            <div class="services-progress pt-3 border-top">
+              <h6 class="fw-bold mb-2 small text-dark d-flex align-items-center gap-1">
+                <i class="bi bi-card-checklist text-primary"></i> 
+                <span>Included Services Tracker</span>
+              </h6>
+              <div class="d-flex flex-column gap-2 mt-2">
+                @for (service of req.services; track service.serviceId) {
+                  <div class="d-flex align-items-center justify-content-between p-2 rounded border bg-light bg-opacity-25" style="font-size: 0.85rem;">
+                    <div class="d-flex align-items-center gap-2">
+                      @if (service.status === 'completed') {
+                        <i class="bi bi-check-circle-fill text-success fs-6"></i>
+                      } @else if (service.status === 'in_progress') {
+                        <i class="bi bi-play-circle-fill text-primary fs-6"></i>
+                      } @else {
+                        <i class="bi bi-circle text-muted fs-6"></i>
+                      }
+                      <span class="fw-semibold text-dark">{{ service.serviceName }}</span>
+                      <span class="badge bg-secondary bg-opacity-10 text-secondary x-small" style="font-size: 0.65rem;">{{ service.category }}</span>
+                    </div>
+                    
+                    <div>
+                      <select class="form-select form-select-sm py-0 px-2 text-capitalize" style="font-size: 0.75rem; width: auto; height: 26px;" 
+                              [value]="service.status" 
+                              (change)="changeServiceStatus(req.id, service.serviceId, $any($event.target).value)">
+                        <option value="pending">Pending</option>
+                        <option value="in_progress">In Progress</option>
+                        <option value="completed">Completed</option>
+                      </select>
+                    </div>
+                  </div>
+                } @empty {
+                  <div class="text-muted small text-center py-2">No services registered for this booking.</div>
+                }
+              </div>
             </div>
           </div>
         }

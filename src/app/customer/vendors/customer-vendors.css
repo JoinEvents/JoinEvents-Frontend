@@ -197,8 +197,8 @@
 
 .price-badge-v2 {
     position: absolute;
-    top: 20px;
-    left: 20px;
+    top: 24px;
+    left: 24px;
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(10px);
     padding: 10px 20px;
@@ -211,8 +211,8 @@
 
 .fav-btn {
     position: absolute;
-    top: 20px;
-    right: 20px;
+    top: 24px;
+    right: 24px;
     width: 48px;
     height: 48px;
     border-radius: 50%;

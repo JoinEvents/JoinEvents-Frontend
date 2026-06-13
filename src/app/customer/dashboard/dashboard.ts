@@ -35,7 +35,15 @@ export class CustomerDashboard implements OnInit, OnDestroy {
   public eventTierService = inject(EventTierService);
 
   user = this.auth.currentUser;
-  loading = signal<boolean>(true);
+  loading = signal<boolean>(false);
+  
+  // Asynchronous Loading Signals
+  bookingsLoading = signal<boolean>(true);
+  eventTypesLoading = signal<boolean>(true);
+  loyaltyLoading = signal<boolean>(true);
+  messagesLoading = signal<boolean>(true);
+  packagesLoading = signal<boolean>(true);
+
   eventTypes = signal<EventType[]>([]);
   bookings = signal<Booking[]>([]);
   customerProfile = signal<any>(null);
@@ -116,10 +124,16 @@ export class CustomerDashboard implements OnInit, OnDestroy {
   ]);
 
   ngOnInit() {
-    this.loading.set(true);
+    this.loading.set(false);
     
     // Load Event Categories
-    this.dashboardService.getEventCategories().subscribe(t => this.eventTypes.set(t));
+    this.dashboardService.getEventCategories().subscribe({
+      next: t => {
+        this.eventTypes.set(t);
+        this.eventTypesLoading.set(false);
+      },
+      error: () => this.eventTypesLoading.set(false)
+    });
     
     const user = this.auth.currentUser();
     const userId = user?.id ?? 'c1';
@@ -138,18 +152,21 @@ export class CustomerDashboard implements OnInit, OnDestroy {
     });
 
     // Load Bookings
-    this.dashboardService.getBookings().subscribe(b => {
-      this.bookings.set(b);
-      const upcoming = b.filter(book => book.status === 'confirmed' || book.status === 'pending' || book.status === 'in_progress').length;
-      const active = b.filter(book => book.status === 'confirmed' || book.status === 'in_progress').length;
-      
-      this.stats.update(s => {
-        const updated = [...s];
-        updated[0].value = upcoming.toString();
-        updated[1].value = active.toString();
-        return updated;
-      });
-      this.checkLoadingState();
+    this.dashboardService.getBookings().subscribe({
+      next: b => {
+        this.bookings.set(b);
+        const upcoming = b.filter(book => book.status === 'confirmed' || book.status === 'pending' || book.status === 'in_progress').length;
+        const active = b.filter(book => book.status === 'confirmed' || book.status === 'in_progress').length;
+        
+        this.stats.update(s => {
+          const updated = [...s];
+          updated[0].value = upcoming.toString();
+          updated[1].value = active.toString();
+          return updated;
+        });
+        this.bookingsLoading.set(false);
+      },
+      error: () => this.bookingsLoading.set(false)
     });
 
     // Load RFPs
@@ -163,14 +180,20 @@ export class CustomerDashboard implements OnInit, OnDestroy {
 
     // Load Loyalty
     if (userId && userId !== 'c1') {
-      this.loyaltyService.getBalance(userId).subscribe(bal => {
-        this.loyaltyBalance.set(bal);
-        this.stats.update(s => {
-          const updated = [...s];
-          updated[3].value = bal.points.toLocaleString();
-          return updated;
-        });
+      this.loyaltyService.getBalance(userId).subscribe({
+        next: bal => {
+          this.loyaltyBalance.set(bal);
+          this.stats.update(s => {
+            const updated = [...s];
+            updated[3].value = bal.points.toLocaleString();
+            return updated;
+          });
+          this.loyaltyLoading.set(false);
+        },
+        error: () => this.loyaltyLoading.set(false)
       });
+    } else {
+      this.loyaltyLoading.set(false);
     }
 
     // Load Chats
@@ -181,25 +204,32 @@ export class CustomerDashboard implements OnInit, OnDestroy {
         }
         return of([]);
       })
-    ).subscribe(threads => {
-      const validThreads = (threads || []).filter(t => t && t.lastMessage);
-      this.recentMessages.set(validThreads.slice(0, 3));
-      const unread = validThreads.filter(t => t.unreadCount > 0).length;
-      if (unread > 0) {
-        this.toast.info(`You have ${unread} unread message(s) waiting!`);
-      }
+    ).subscribe({
+      next: threads => {
+        const validThreads = (threads || []).filter(t => t && t.lastMessage);
+        this.recentMessages.set(validThreads.slice(0, 3));
+        const unread = validThreads.filter(t => t.unreadCount > 0).length;
+        if (unread > 0) {
+          this.toast.info(`You have ${unread} unread message(s) waiting!`);
+        }
+        this.messagesLoading.set(false);
+      },
+      error: () => this.messagesLoading.set(false)
     });
 
     // Load Packages for Trending & Popular Near You
-    this.packageService.getPackages().subscribe(pkgs => {
-      const mapped = pkgs.map(p => ({
-        ...p,
-        images: p.images && p.images.length > 0 ? p.images : (p.image ? [p.image] : []),
-        activeImageIndex: 0
-      }));
-      this.allPackages.set(mapped);
-      this.filterPackages();
-      this.checkLoadingState();
+    this.packageService.getPackages().subscribe({
+      next: pkgs => {
+        const mapped = pkgs.map(p => ({
+          ...p,
+          images: p.images && p.images.length > 0 ? p.images : (p.image ? [p.image] : []),
+          activeImageIndex: 0
+        }));
+        this.allPackages.set(mapped);
+        this.filterPackages();
+        this.packagesLoading.set(false);
+      },
+      error: () => this.packagesLoading.set(false)
     });
 
     // Start Campaign Auto-sliding timer (every 6 seconds)

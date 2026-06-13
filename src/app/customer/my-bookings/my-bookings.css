@@ -759,6 +759,9 @@
   margin-top: 2px;
 }
 .srv-status.confirmed { color: var(--success); }
+.srv-status.in_progress { color: var(--primary); }
+.srv-status.completed { color: var(--success); }
+.srv-status.pending { color: var(--warning); }
 
 /* NOTES */
 .notes-text {

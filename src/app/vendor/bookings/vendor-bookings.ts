@@ -1,68 +1,45 @@
 import { Component, signal, computed, OnInit, inject } from '@angular/core';
 import { TitleCasePipe, DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { of, Observable } from 'rxjs';
-import { delay } from 'rxjs/operators';
 import { BookingService } from '../../core/services/booking.service';
-import { VendorDashboardService } from '../../core/services/vendor-dashboard.service';
+import { ReviewService } from '../../core/services/review.service';
 import { BookingStatus } from '../../core/models/booking.model';
 import { ToastService } from '../../core/services/toast.service';
 import { FormsModule } from '@angular/forms';
 
-interface VendorBookingReq { id: string; bookingId: string; customerName: string; eventDate: string; eventName: string; amount: number; status: BookingStatus; review?: any; }
+interface VendorBookingReq { id: string; bookingId: string; customerName: string; eventDate: string; eventName: string; amount: number; status: BookingStatus; review?: any; services?: any[]; }
 
 @Component({ selector: 'app-vendor-bookings', standalone: true, imports: [TitleCasePipe, DecimalPipe, RouterLink, FormsModule], templateUrl: './vendor-bookings.html', styleUrl: './vendor-bookings.css' })
 export class VendorBookings implements OnInit {
   private bookingService = inject(BookingService);
-  private vendorDashboard = inject(VendorDashboardService);
+  private reviewService = inject(ReviewService);
   private toast = inject(ToastService);
   requestsData = signal<VendorBookingReq[]>([]);
   filter = signal('all');
 
-  // TODO: Replace with real ReviewService when backend GET reviews endpoints exist
-  reviewsList = signal<any[]>([
-    { 
-      id: 'rev1', 
-      bookingId: 'bk002', 
-      vendorId: 'v1', 
-      customerName: 'Rajesh Kumar', 
-      eventName: "Daughter's Birthday", 
-      rating: 5, 
-      comment: "Fantastic service! The decor was exactly as requested and the food was delicious. Highly recommend this vendor.", 
-      date: '2025-11-22',
-      status: 'published', // 'published', 'flagged', 'removed'
-      disputeReason: ''
-    },
-    { 
-      id: 'rev2', 
-      bookingId: 'bk009', 
-      vendorId: 'v1', 
-      customerName: 'Anita Singh', 
-      eventName: "Corporate Gala", 
-      rating: 1, 
-      comment: "Worst service ever. They didn't show up on time and the food was cold. Completely ruined the event.", 
-      date: '2026-02-14',
-      status: 'flagged', 
-      disputeReason: 'Fake review. This customer cancelled the booking 2 days prior and we never provided service.'
-    }
-  ]);
-
   requests = computed(() => {
-    const globalRevs = this.reviewsList();
-    return this.requestsData().map(req => {
-      const rev = globalRevs.find(r => r.bookingId === req.bookingId && r.vendorId === 'v1');
-      return { ...req, review: rev };
-    });
+    return this.requestsData();
   });
 
   ngOnInit() {
-    this.vendorDashboard.getDashboardData().subscribe(d => {
-      const allReqs: VendorBookingReq[] = [...d.recentRequests, 
-        { id: 'br3', bookingId: 'bk005', customerName: 'Anand Reddy', eventDate: '2026-07-15', eventName: 'Upanayanam Ceremony', amount: 35000, status: 'in_progress' }, 
-        { id: 'br4', bookingId: 'bk002', customerName: 'Rajesh Kumar', eventDate: '2025-11-20', eventName: "Daughter's Birthday", amount: 18000, status: 'completed' },
-        { id: 'br6', bookingId: 'bk001', customerName: 'Rajesh Kumar', eventDate: '2025-12-15', eventName: "Wedding Reception", amount: 250000, status: 'confirmed' }
-      ];
-      this.requestsData.set(allReqs);
+    this.bookingService.getVendorBookings().subscribe({
+      next: (bookings) => {
+        const mapped: VendorBookingReq[] = (bookings || []).map(b => ({
+          id: b.id,
+          bookingId: b.bookingNumber || `BK-${b.id.substring(0, 8).toUpperCase()}`,
+          customerName: b.customerName || 'Customer',
+          eventDate: b.eventDate,
+          eventName: b.eventName,
+          amount: b.totalAmount,
+          status: b.status,
+          review: b.review,
+          services: b.services
+        }));
+        this.requestsData.set(mapped);
+      },
+      error: () => {
+        this.toast.error('Failed to load booking requests.');
+      }
     });
   }
 
@@ -145,23 +122,37 @@ export class VendorBookings implements OnInit {
   disputingReviewId = signal<string | null>(null);
   isSubmittingDispute = signal(false);
 
-  flagReview(reviewId: string, reason: string): Observable<boolean> {
-    this.reviewsList.update(reviews => 
-      reviews.map(r => r.id === reviewId ? { ...r, status: 'flagged', disputeReason: reason } : r)
-    );
-    return of(true).pipe(delay(200));
-  }
-
   submitDispute(reviewId: string, reason: string) {
     if (!reason.trim()) {
       alert('Please provide a reason for the dispute.');
       return;
     }
     this.isSubmittingDispute.set(true);
-    // TODO: Replace with real ReviewService.flagReview() or BookingService.raiseDispute() when backend endpoints exist
-    this.flagReview(reviewId, reason).subscribe(() => {
-      this.isSubmittingDispute.set(false);
-      this.disputingReviewId.set(null);
+    this.reviewService.flagReview(reviewId, reason).subscribe({
+      next: () => {
+        this.requestsData.update(rs =>
+          rs.map(r => {
+            if (r.review && r.review.id === reviewId) {
+              return {
+                ...r,
+                review: {
+                  ...r.review,
+                  status: 'flagged',
+                  disputeReason: reason
+                }
+              };
+            }
+            return r;
+          })
+        );
+        this.isSubmittingDispute.set(false);
+        this.disputingReviewId.set(null);
+        this.toast.success('Review flagged for admin review.');
+      },
+      error: () => {
+        this.isSubmittingDispute.set(false);
+        this.toast.error('Failed to submit review dispute.');
+      }
     });
   }
 
@@ -190,5 +181,27 @@ export class VendorBookings implements OnInit {
       settled: 'Fully Settled'
     }; 
     return m[s] || s; 
+  }
+
+  changeServiceStatus(bookingId: string, serviceId: string, status: string) {
+    this.bookingService.updateBookingServiceStatus(bookingId, serviceId, status).subscribe({
+      next: () => {
+        this.requestsData.update(rs => 
+          rs.map(r => {
+            if (r.id === bookingId && r.services) {
+              const updatedServices = r.services.map((s: any) => 
+                s.serviceId === serviceId ? { ...s, status } : s
+              );
+              return { ...r, services: updatedServices };
+            }
+            return r;
+          })
+        );
+        this.toast.success(`Service status updated to ${status}.`);
+      },
+      error: () => {
+        this.toast.error('Failed to update service status.');
+      }
+    });
   }
 }

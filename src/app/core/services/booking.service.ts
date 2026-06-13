@@ -24,6 +24,22 @@ export class BookingService extends BaseApiService {
     );
   }
 
+  getVendorBookings(): Observable<Booking[]> {
+    return this.get<Booking[]>(API_ROUTES.BOOKINGS.VENDOR).pipe(
+      tap(bookings => {
+        if (bookings) {
+          this.globalBookings.set(bookings);
+        }
+      })
+    );
+  }
+
+  updateBookingServiceStatus(bookingId: string, serviceId: string, status: string): Observable<boolean> {
+    return this.patch<any>(`${API_ROUTES.BOOKINGS.BASE}/${bookingId}/services/${serviceId}/status`, { status }, false).pipe(
+      map(() => true)
+    );
+  }
+
   getAdminBookings(): Observable<Booking[]> {
     return this.get<Booking[]>(API_ROUTES.ADMIN.BOOKINGS).pipe(
       tap(apiBookings => {

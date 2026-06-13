@@ -26,7 +26,19 @@ export class MyBookings implements OnInit {
   bookings = this.bookingService.globalBookings;
   selectedBooking = signal<Booking | null>(null);
   activeFilter = signal<string>('all');
-  
+
+  setFilter(filter: string) {
+    this.activeFilter.set(filter);
+    const list = this.filteredBookings();
+    this.selectedBooking.set(list.length ? list[0] : null);
+  }
+
+  setSort(sort: string) {
+    this.sortBy.set(sort);
+    const list = this.filteredBookings();
+    this.selectedBooking.set(list.length ? list[0] : null);
+  }
+
   cancellationPreview = computed(() => {
     const b = this.selectedBooking();
     if (!b) return null;
@@ -88,8 +100,8 @@ export class MyBookings implements OnInit {
     
     // 2. Sort
     result.sort((x, y) => {
-      const tx = x.eventDate ? new Date(x.eventDate).getTime() : 0;
-      const ty = y.eventDate ? new Date(y.eventDate).getTime() : 0;
+      const tx = x.createdAt ? new Date(x.createdAt).getTime() : 0;
+      const ty = y.createdAt ? new Date(y.createdAt).getTime() : 0;
       
       if (sort === 'date-desc') return ty - tx;
       if (sort === 'date-asc') return tx - ty;

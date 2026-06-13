@@ -367,6 +367,109 @@
 :host-context(.dark-theme) .ai-chat-widget { border-color: rgba(255,255,255,0.1); }
 :host-context(.dark-theme) .input-wrapper { background: rgba(30,41,59,0.5); }
 
+/* Suggestion Chips & Enhanced Cards */
+.ai-pkg-img-wrapper {
+  position: relative;
+  overflow: hidden;
+  height: 100px;
+}
+
+.ai-pkg-meta-badges {
+  position: absolute;
+  bottom: 6px;
+  left: 6px;
+  right: 6px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  pointer-events: none;
+}
+
+.badge-eco {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  font-weight: 800;
+  color: #10B981;
+  background: rgba(16, 185, 129, 0.2);
+  padding: 2px 6px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  backdrop-filter: blur(4px);
+}
+
+.ai-pkg-loc {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ai-pkg-loc i {
+  color: var(--primary);
+  font-size: 0.75rem;
+}
+
+.ai-pkg-rating {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.rating-count {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.suggestion-chips-container {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 4px 2px 8px 2px;
+  margin-bottom: 4px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.suggestion-chips-container::-webkit-scrollbar {
+  display: none;
+}
+
+.suggestion-chip {
+  flex-shrink: 0;
+  background: var(--bg-main);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.suggestion-chip:hover:not(:disabled) {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: rgba(255, 107, 53, 0.05);
+  transform: translateY(-1px);
+}
+
+.suggestion-chip:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 @media (max-width: 576px) {
   .ai-chat-widget {
     width: 100%;
