@@ -1,4 +1,4 @@
-import { Component, signal, OnInit, OnDestroy, inject, ChangeDetectionStrategy } from '@angular/core';
+import { Component, signal, OnInit, OnDestroy, inject, HostListener, ChangeDetectionStrategy } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { DashboardService } from '../../core/services/dashboard.service';
@@ -58,6 +58,7 @@ export class CustomerDashboard implements OnInit, OnDestroy {
   popularPackages = signal<any[]>([]);
   activeCampaignIndex = signal<number>(0);
   activeCardCarouselIndex = signal<Record<string, number>>({});
+  isLocationDropdownOpen = signal<boolean>(false);
 
   private campaignTimer: any;
   private hoverTimers: Record<string, any> = {};
@@ -276,6 +277,23 @@ export class CustomerDashboard implements OnInit, OnDestroy {
 
   onCityChange() {
     this.filterPackages();
+  }
+
+  toggleLocationDropdown(event: MouseEvent) {
+    event.stopPropagation();
+    this.isLocationDropdownOpen.update(v => !v);
+  }
+
+  onSelectCity(event: MouseEvent, city: string) {
+    event.stopPropagation();
+    this.selectedCity.set(city);
+    this.isLocationDropdownOpen.set(false);
+    this.onCityChange();
+  }
+
+  @HostListener('document:click')
+  onDocumentClick() {
+    this.isLocationDropdownOpen.set(false);
   }
 
   onSearch() {

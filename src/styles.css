@@ -92,7 +92,7 @@
   
   --text-main: #F8FAFC;
   --text-muted: #CBD5E1;
-  --text-soft: #64748B;
+  --text-soft: #94A3B8; /* Lighter slate-400 for high contrast (5.8:1) */
   
   --border-color: rgba(255,255,255,0.08);
   --border-glass: rgba(0,0,0,0.2);
@@ -103,12 +103,23 @@
   
   --navy: #F8FAFC;
   --slate: #CBD5E1;
-  --slate-light: #64748B;
+  --slate-light: #94A3B8;
   
   --gradient-hero: linear-gradient(135deg, #1E293B 0%, #111827 100%);
   --text-hero: #FFFFFF;
   --cream: rgba(255,255,255,0.05);
   --rc: var(--primary-light);
+
+  /* Lighter semantic state colors for high dark mode contrast (>4.5:1) */
+  --success: #4ade80;
+  --warning: #facc15;
+  --danger: #f87171;
+  --info: #38bdf8;
+}
+
+/* Global Dark Theme Text Primary Override */
+.dark-theme .text-primary {
+  color: var(--primary-light) !important;
 }
 
 /* Global Dark Mode Input Visibility Fix */

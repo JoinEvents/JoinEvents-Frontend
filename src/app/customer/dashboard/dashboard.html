@@ -7,21 +7,32 @@
       <!-- Left: Welcome & Search -->
       <div class="col-12 col-xl-7 d-flex">
         <div class="ee-card hero-welcome-card p-4 p-lg-5 flex-grow-1 d-flex flex-column justify-content-between">
+          <div class="hero-welcome-bg-glow"></div>
           <div class="welcome-text-group">
             <h1 class="welcome-heading">{{ getGreeting() }}, <span class="text-primary">{{ user()?.name }}</span> 👋</h1>
             <p class="welcome-subheading">Discover and book verified venues, catering, decor, and entertainment for your next celebration.</p>
           </div>
           
           <!-- Search Capsule -->
-          <div class="search-box-premium mt-auto pt-4">
-            <div class="location-select-box">
-              <i class="bi bi-geo-alt-fill text-primary" style="font-size: 1.05rem;"></i>
-              <select [ngModel]="selectedCity()" (ngModelChange)="selectedCity.set($event); onCityChange()" class="location-dropdown">
-                @for (city of cities; track city) {
-                  <option [value]="city">{{ city }}</option>
-                }
-              </select>
-              <i class="bi bi-chevron-down dropdown-chevron"></i>
+          <div class="search-box-premium mt-auto">
+            <div class="location-select-box" (click)="toggleLocationDropdown($event)">
+              <i class="bi bi-geo-alt-fill text-primary" style="font-size: 1.05rem; flex-shrink: 0;"></i>
+              <span class="location-current-value">{{ selectedCity() }}</span>
+              <i class="bi bi-chevron-down dropdown-chevron" [class.rotated]="isLocationDropdownOpen()"></i>
+              
+              @if (isLocationDropdownOpen()) {
+                <div class="custom-dropdown-menu">
+                  @for (city of cities; track city) {
+                    <div class="custom-dropdown-item" [class.active]="city === selectedCity()" (click)="onSelectCity($event, city)">
+                      <i class="bi bi-geo-alt dropdown-item-icon"></i>
+                      <span class="dropdown-item-text">{{ city }}</span>
+                      @if (city === selectedCity()) {
+                        <i class="bi bi-check-lg ms-auto text-primary check-icon"></i>
+                      }
+                    </div>
+                  }
+                </div>
+              }
             </div>
             <div class="vertical-spacer d-none d-md-block"></div>
             <div class="search-input-box-wrapper">
