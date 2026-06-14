@@ -1,7 +1,8 @@
 import { Injectable } from '@angular/core';
 import { BaseApiService } from './base-api.service';
-import { Observable } from 'rxjs';
+import { Observable, throwError } from 'rxjs';
 import { map } from 'rxjs/operators';
+import { validateFileUpload } from '../utils/input-sanitizer.util';
 import { CalendarDay } from '../models/vendor.model';
 
 @Injectable({
@@ -22,6 +23,11 @@ export class VendorService extends BaseApiService {
   }
 
   uploadVerificationDocument(file: File, documentType: string): Observable<any> {
+    const validation = validateFileUpload(file, ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'], 10 * 1024 * 1024);
+    if (!validation.valid) {
+      return throwError(() => new Error(validation.error));
+    }
+
     const formData = new FormData();
     formData.append('file', file);
     formData.append('documentType', documentType);

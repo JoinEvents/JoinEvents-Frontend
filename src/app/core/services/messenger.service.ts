@@ -122,14 +122,16 @@ export class MessengerService extends BaseApiService {
   }
 
   requestChat(vendorId: string, rfpId?: string | null, message?: string | null): Observable<{ threadId: string, status: string }> {
-    let url = `${API_ROUTES.MESSENGER.REQUEST}?vendorId=${vendorId}`;
-    if (rfpId) {
-      url += `&rfpId=${rfpId}`;
-    }
+    // Security: Send sensitive IDs in POST body instead of query params to avoid URL/log exposure
+    const body = {
+      vendorId,
+      ...(rfpId ? { rfpId } : {}),
+      ...(message ? { message } : {})
+    };
     const headers = { 'Content-Type': 'application/json', 'X-Suppress-Errors': 'true' };
     return this.http.post<{ threadId: string, status: string }>(
-      `${this.baseUrl}${url}`,
-      message ? JSON.stringify(message) : null,
+      `${this.baseUrl}${API_ROUTES.MESSENGER.REQUEST}`,
+      body,
       { headers }
     );
   }

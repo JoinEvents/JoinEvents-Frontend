@@ -27,7 +27,7 @@
       @if (msg.sender === 'ai' && msg.type === 'text') {
         <div class="msg-row ai">
           <div class="msg-avatar"><i class="bi bi-stars"></i></div>
-          <div class="msg-bubble ai-bubble" [innerHTML]="msg.content"></div>
+          <div class="msg-bubble ai-bubble" [innerHTML]="sanitizeHtml(msg.content)"></div>
         </div>
       }
 

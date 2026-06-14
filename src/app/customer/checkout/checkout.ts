@@ -10,6 +10,7 @@ import { ToastService } from '../../core/services/toast.service';
 import { LoyaltyService } from '../../core/services/loyalty.service';
 import { GuaranteeService } from '../../core/services/guarantee.service';
 import { VendorService } from '../../core/services/vendor.service';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-checkout',
@@ -336,10 +337,12 @@ export class Checkout implements OnInit {
   }
 
   autofillCardDetails() {
-    this.cardHolder.set('John Doe');
-    this.cardNumber.set('4111 1111 1111 1111');
-    this.cardExpiry.set('12/29');
-    this.cardCvv.set('123');
+    if (!environment.production) {
+      this.cardHolder.set('John Doe');
+      this.cardNumber.set('4111 1111 1111 1111');
+      this.cardExpiry.set('12/29');
+      this.cardCvv.set('123');
+    }
   }
 
   setErrorMessage(msg: string) {

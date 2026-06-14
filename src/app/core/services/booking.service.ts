@@ -1,4 +1,5 @@
 import { inject, Injectable, signal } from '@angular/core';
+import { HttpHeaders, HttpParams } from '@angular/common/http';
 import { BaseApiService } from './base-api.service';
 import { API_ROUTES } from '../constants/api.constants';
 import { Booking, BookingStatus } from '../models/booking.model';
@@ -15,7 +16,13 @@ export class BookingService extends BaseApiService {
   globalBookings = signal<Booking[]>([]);
 
   getBookings(userId: string): Observable<Booking[]> {
-    return this.get<Booking[]>(API_ROUTES.BOOKINGS.BASE, { userId }).pipe(
+    // Security: Ideally, userId should be derived from the JWT token on the server side
+    // rather than being passed as a query parameter. The X-User-Context header provides
+    // additional context while the backend is updated to use token-based user resolution.
+    const params = new HttpParams().set('userId', userId);
+    const headers = new HttpHeaders()
+      .set('X-User-Context', userId);
+    return this.http.get<Booking[]>(`${this.baseUrl}${API_ROUTES.BOOKINGS.BASE}`, { params, headers }).pipe(
       tap(bookings => {
         if (bookings) {
           this.globalBookings.set(bookings); // Fill the empty container with API data

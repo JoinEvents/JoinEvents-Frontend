@@ -1,8 +1,9 @@
 import { Injectable } from '@angular/core';
 import { BaseApiService } from './base-api.service';
 import { API_ROUTES } from '../constants/api.constants';
-import { Observable } from 'rxjs';
+import { Observable, throwError } from 'rxjs';
 import { map } from 'rxjs/operators';
+import { validateFileUpload } from '../utils/input-sanitizer.util';
 import { SupportTicket } from '../models/message.model';
 import { Vendor } from '../models/vendor.model';
 import { Booking } from '../models/booking.model';
@@ -114,6 +115,11 @@ export class SupportService extends BaseApiService {
   }
 
   uploadAttachment(file: File): Observable<{ url: string }> {
+    const validation = validateFileUpload(file, ['application/pdf', 'image/jpeg', 'image/png', 'image/webp', 'text/plain'], 10 * 1024 * 1024);
+    if (!validation.valid) {
+      return throwError(() => new Error(validation.error));
+    }
+
     const formData = new FormData();
     formData.append('file', file);
     return this.post<{ url: string }>('/support/upload', formData, false);

@@ -290,11 +290,13 @@ export class NotificationService {
   }
 
   private simulateEmail(n: NotificationItem) {
-    const recipient = n.targetRole === 'customer' ? 'customer@demo.com' : n.targetRole === 'vendor' ? 'vendor@demo.com' : 'admin@demo.com';
-    console.log('%c[Email Simulation]', 'color: #3b82f6; font-weight: bold;', {
-      recipient,
-      subject: `JoinEvents Notification: ${n.title}`,
-      body: n.message
-    });
+    if (!environment.production) {
+      const recipient = n.targetRole === 'customer' ? 'customer@demo.com' : n.targetRole === 'vendor' ? 'vendor@demo.com' : 'admin@demo.com';
+      console.log('%c[Email Simulation]', 'color: #3b82f6; font-weight: bold;', {
+        recipient,
+        subject: `JoinEvents Notification: ${n.title}`,
+        body: n.message
+      });
+    }
   }
 }

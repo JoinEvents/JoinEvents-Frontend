@@ -1,4 +1,5 @@
 import { Component, signal, OnInit, OnDestroy, inject, computed } from '@angular/core';
+import { environment } from '../../../environments/environment';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -29,7 +30,7 @@ export class VendorMyServices implements OnInit, OnDestroy {
   private carouselInterval: any;
 
   openPreview(svc: VendorService) {
-    console.log('Opening preview for service:', svc.id, svc.name);
+    if (!environment.production) { console.log('Opening preview for service:', svc.id, svc.name); }
     this.router.navigate(['/book', svc.id]);
   }
 
@@ -113,11 +114,11 @@ export class VendorMyServices implements OnInit, OnDestroy {
     this.api.getMyPackages().subscribe({
       next: (res: any) => {
         clearTimeout(timeout);
-        console.log('API Response for MyPackages:', res);
+        if (!environment.production) { console.log('API Response for MyPackages:', res); }
         
         // Defensive: Check for both 'packages' and 'Packages'
         const rawPackages = res?.packages || res?.Packages || (Array.isArray(res) ? res : []);
-        console.log('Processing raw packages:', rawPackages);
+        if (!environment.production) { console.log('Processing raw packages:', rawPackages); }
         
         const mappedServices: VendorService[] = rawPackages.map((p: any) => ({
           id: p.id || p.Id,
@@ -176,7 +177,7 @@ export class VendorMyServices implements OnInit, OnDestroy {
       },
       error: (err) => {
         clearTimeout(timeout);
-        console.error('Error loading services:', err);
+        if (!environment.production) { console.error('Error loading services:', err); }
         this.errorMessage.set('Failed to load your services. Please check your connection and try again.');
         this.isLoading.set(false);
       }
@@ -203,7 +204,7 @@ export class VendorMyServices implements OnInit, OnDestroy {
           active: this.services().filter(x => x.isActive).length
         }));
       },
-      error: (err) => console.error('Failed to toggle status', err)
+      error: (err) => { if (!environment.production) { console.error('Failed to toggle status', err); } }
     });
   }
 
@@ -217,7 +218,7 @@ export class VendorMyServices implements OnInit, OnDestroy {
             total: this.services().length
           }));
         },
-        error: (err) => console.error('Failed to delete service', err)
+        error: (err) => { if (!environment.production) { console.error('Failed to delete service', err); } }
       });
     }
   }

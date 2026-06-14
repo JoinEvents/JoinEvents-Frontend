@@ -5,20 +5,10 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { tap, map, catchError } from 'rxjs/operators';
 import { AuthUser, UserRole } from '../models/user.model';
-
-const MOCK_USERS: Record<string, AuthUser & { password: string }> = {
-  'user@test.com':     { id: 'c1', name: 'Test User',     email: 'user@test.com',     role: 'customer', phone: '9999999999', password: 'JoinEvents@2025', token: '' },
-  'vendor@test.com':   { id: 'v1', name: 'Vendor Owner',  email: 'vendor@test.com',   role: 'vendor',   phone: '8888888888', password: 'JoinEvents@2025', token: '' },
-  'admin@test.com':    { id: 'a1', name: 'Priya Nair',    email: 'admin@test.com',    role: 'admin',    phone: '9988776655', password: 'JoinEvents@2025', token: '' },
-  'support@test.com':  { id: 's1', name: 'Rahul Support', email: 'support@test.com',  role: 'support',  phone: '9900011223', password: 'JoinEvents@2025', token: '' },
-  // Legacy demo aliases kept for backward compatibility
-  'customer@demo.com': { id: 'c1', name: 'Rajesh Kumar',  email: 'customer@demo.com', role: 'customer', phone: '+91 98765 43210', password: 'JoinEvents@2025', token: '' },
-  'vendor@demo.com':   { id: 'v1', name: 'Amit Sharma',   email: 'vendor@demo.com',   role: 'vendor',   phone: '+91 91234 56789', password: 'JoinEvents@2025', token: '' },
-  'admin@demo.com':    { id: 'a1', name: 'Priya Nair',    email: 'admin@demo.com',    role: 'admin',    phone: '+91 99887 76655', password: 'JoinEvents@2025', token: '' },
-};
-
 import { environment } from '../../../environments/environment';
- 
+
+// [SECURITY] Mock users removed — hardcoded credentials must never ship in production bundles.
+
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private router = inject(Router);
@@ -27,8 +17,29 @@ export class AuthService {
 
   currentUser = signal<AuthUser | null>(this.loadFromStorage());
 
+  /**
+   * Checks whether a JWT token has expired by decoding its payload.
+   * Returns true if the token is expired or malformed.
+   * Includes a 30-second buffer to account for clock skew.
+   */
   private isTokenExpired(token: string): boolean {
-    return false; // Bypassed: tokens do not automatically expire on frontend
+    try {
+      const parts = token.split('.');
+      if (parts.length !== 3) return true; // Not a valid JWT
+
+      // Decode the payload (Base64Url → JSON)
+      const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+
+      if (!payload.exp) return false; // No expiry claim — let backend decide
+
+      // Compare with current time (exp is in seconds, Date.now() in ms)
+      const bufferSeconds = 30;
+      const nowInSeconds = Math.floor(Date.now() / 1000);
+      return payload.exp < (nowInSeconds + bufferSeconds);
+    } catch {
+      // If token can't be decoded, treat as expired for safety
+      return true;
+    }
   }
 
   private loadFromStorage(): AuthUser | null {
@@ -43,6 +54,17 @@ export class AuthService {
       }
       return user;
     } catch { return null; }
+  }
+
+  /**
+   * Validates that a return URL is safe for internal navigation.
+   * Prevents open redirect attacks by ensuring the URL is a relative path.
+   */
+  private isValidReturnUrl(url: string): boolean {
+    if (!url) return false;
+    // Must start with a single slash (relative path)
+    // Must NOT start with // (protocol-relative URL) or contain ://
+    return url.startsWith('/') && !url.startsWith('//') && !url.includes('://');
   }
 
   login(email: string, password: string, role: UserRole, returnUrl?: string): Observable<{ success: boolean; message: string }> {
@@ -64,7 +86,8 @@ export class AuthService {
           localStorage.setItem('joinevents_user', JSON.stringify(user));
           this.currentUser.set(user);
           
-          if (returnUrl) {
+          // [SECURITY] Validate returnUrl to prevent open redirect attacks
+          if (returnUrl && this.isValidReturnUrl(returnUrl)) {
             this.router.navigateByUrl(returnUrl);
           } else {
             const path = user.role === 'customer' ? '/dashboard' : `/${user.role}/dashboard`;
@@ -113,10 +136,27 @@ export class AuthService {
     );
   }
 
+  /** [SECURITY] Server-side token invalidation + local cleanup */
   logout(): void {
+    const token = this.currentUser()?.token;
+    // Attempt server-side logout to invalidate the token
+    if (token) {
+      this.http.post(`${this.apiUrl}/auth/logout`, {}).subscribe({
+        error: () => { /* Logout API may not exist yet — fail silently */ }
+      });
+    }
     localStorage.removeItem('joinevents_user');
     this.currentUser.set(null);
     this.router.navigate(['/login']);
+  }
+
+  /** Centralized method to update user profile in localStorage and signal */
+  updateUserProfile(updates: Partial<AuthUser>): void {
+    const current = this.currentUser();
+    if (!current) return;
+    const updated = { ...current, ...updates };
+    localStorage.setItem('joinevents_user', JSON.stringify(updated));
+    this.currentUser.set(updated);
   }
 
   isAuthenticated(): boolean { return this.currentUser() !== null; }

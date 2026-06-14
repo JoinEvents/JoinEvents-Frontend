@@ -30,6 +30,10 @@ export const appConfig: ApplicationConfig = {
     provideBrowserGlobalErrorListeners(),
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(routes, withInMemoryScrolling({ scrollPositionRestoration: 'top' })),
+    // [SECURITY] CSRF/XSRF: This app uses Bearer token authentication via the Authorization
+    // header (not cookies), which provides inherent CSRF protection since browsers do not
+    // automatically attach custom headers to cross-origin requests. If cookie-based auth is
+    // ever added, configure withXsrfConfiguration() here.
     provideHttpClient(withInterceptors([authInterceptor, cacheInterceptor])),
     { provide: ErrorHandler, useClass: GlobalErrorHandler },
     {

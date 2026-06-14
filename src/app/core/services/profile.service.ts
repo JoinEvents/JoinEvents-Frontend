@@ -1,8 +1,9 @@
 import { Injectable } from '@angular/core';
 import { BaseApiService } from './base-api.service';
-import { Observable, of } from 'rxjs';
+import { Observable, of, throwError } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
 import { API_ROUTES } from '../constants/api.constants';
+import { validateFileUpload } from '../utils/input-sanitizer.util';
 
 @Injectable({ providedIn: 'root' })
 export class ProfileService extends BaseApiService {
@@ -44,6 +45,11 @@ export class ProfileService extends BaseApiService {
   }
 
   uploadAvatar(file: File): Observable<any> {
+    const validation = validateFileUpload(file, ['image/jpeg', 'image/png', 'image/webp', 'image/gif'], 5 * 1024 * 1024);
+    if (!validation.valid) {
+      return throwError(() => new Error(validation.error));
+    }
+
     const formData = new FormData();
     formData.append('file', file);
     return this.post<any>('/profile/avatar', formData).pipe(

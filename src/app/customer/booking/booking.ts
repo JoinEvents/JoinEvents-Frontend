@@ -1,4 +1,5 @@
 import { Component, signal, computed, OnInit, OnDestroy, inject, effect, Input, SimpleChanges, OnChanges } from '@angular/core';
+import { environment } from '../../../environments/environment';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -340,7 +341,7 @@ export class CustomerBooking implements OnInit, OnDestroy, OnChanges {
           this.userBookings.set(bookings || []);
         },
         error: (err) => {
-          console.error('Error loading user bookings:', err);
+          if (!environment.production) { console.error('Error loading user bookings:', err); }
           this.userBookings.set([]);
         }
       });
@@ -368,7 +369,7 @@ export class CustomerBooking implements OnInit, OnDestroy, OnChanges {
       next: (pkg) => {
         this.isLoading.set(false);
         if (pkg) {
-          console.log('Loaded Package Data:', pkg);
+          if (!environment.production) { console.log('Loaded Package Data:', pkg); }
           this.selectedPackage.set(pkg);
           const combinedImages = this.getCombinedImages(pkg);
           this.selectedImage.set(combinedImages[0] || pkg.image);
@@ -395,7 +396,7 @@ export class CustomerBooking implements OnInit, OnDestroy, OnChanges {
       },
       error: (err) => {
         this.isLoading.set(false);
-        console.error('Error loading package:', err);
+        if (!environment.production) { console.error('Error loading package:', err); }
         const role = this.userRole();
         const target = role === 'customer' ? '/dashboard' : `/${role}/dashboard`;
         this.router.navigate([target]);
@@ -700,7 +701,7 @@ export class CustomerBooking implements OnInit, OnDestroy, OnChanges {
         this.checkingAvailability.set(false);
       },
       error: (err) => {
-        console.error('Error checking availability:', err);
+        if (!environment.production) { console.error('Error checking availability:', err); }
         // Fallback to true if server error, but log it
         this.isDateAvailable.set(true);
         this.checkingAvailability.set(false);

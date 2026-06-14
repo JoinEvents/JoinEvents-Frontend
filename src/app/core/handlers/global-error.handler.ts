@@ -1,4 +1,5 @@
 import { ErrorHandler, Injectable, signal } from '@angular/core';
+import { environment } from '../../../environments/environment';
 
 /**
  * Global error boundary for the entire application.
@@ -18,8 +19,8 @@ export class GlobalErrorHandler implements ErrorHandler {
   readonly lastError = signal<any>(null);
 
   handleError(error: any): void {
-    // Always log to console for dev visibility
-    console.error('[GlobalErrorHandler]', error);
+    // Log to console for dev visibility (suppressed in production)
+    if (!environment.production) { console.error('[GlobalErrorHandler]', error); }
 
     // Chunk-loading failures (lazy routes) are common after deploys —
     // a full page reload usually fixes them.

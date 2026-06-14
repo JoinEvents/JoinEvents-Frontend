@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { HttpHeaders, HttpParams } from '@angular/common/http';
 import { BaseApiService } from './base-api.service';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
@@ -41,7 +42,14 @@ export class LoyaltyService extends BaseApiService {
   }
 
   getBalance(userId: string): Observable<LoyaltyBalance> {
-    return this.get<any>(API_ROUTES.LOYALTY.BALANCE, { userId: this.cleanGuid(userId) }).pipe(
+    // Security: Ideally, userId should be derived from the JWT token on the server side
+    // rather than being passed as a query parameter. The X-User-Context header provides
+    // additional context while the backend is updated to use token-based user resolution.
+    const cleanId = this.cleanGuid(userId);
+    const params = new HttpParams().set('userId', cleanId);
+    const headers = new HttpHeaders()
+      .set('X-User-Context', cleanId);
+    return this.http.get<any>(`${this.baseUrl}${API_ROUTES.LOYALTY.BALANCE}`, { params, headers }).pipe(
       map(res => ({
         points: res.Points ?? res.points ?? 0,
         tier: res.Tier ?? res.tier ?? 'Bronze',
@@ -51,7 +59,12 @@ export class LoyaltyService extends BaseApiService {
   }
 
   getHistory(userId: string): Observable<LoyaltyTransaction[]> {
-    return this.get<any[]>(API_ROUTES.LOYALTY.HISTORY, { userId: this.cleanGuid(userId) }).pipe(
+    // Security: userId should ideally be derived from JWT on the server side.
+    const cleanId = this.cleanGuid(userId);
+    const params = new HttpParams().set('userId', cleanId);
+    const headers = new HttpHeaders()
+      .set('X-User-Context', cleanId);
+    return this.http.get<any[]>(`${this.baseUrl}${API_ROUTES.LOYALTY.HISTORY}`, { params, headers }).pipe(
       map(arr => arr.map(t => ({
         id: t.Id ?? t.id,
         date: t.Date ?? t.date,

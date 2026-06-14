@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { BaseApiService } from './base-api.service';
@@ -14,7 +15,13 @@ export interface ApiResponse<T> {
 export class RfpService extends BaseApiService {
 
   getRfps(customerId: string): Observable<EventRfp[]> {
-    return this.get<ApiResponse<EventRfp[]>>('/quotes', { customerId })
+    // Security: Ideally, customerId should be derived from the JWT token on the server side
+    // rather than being passed as a query parameter. The X-User-Context header provides
+    // additional context while the backend is updated to use token-based user resolution.
+    const params = new HttpParams().set('customerId', customerId);
+    const headers = new HttpHeaders()
+      .set('X-User-Context', customerId);
+    return this.http.get<ApiResponse<EventRfp[]>>(`${this.baseUrl}/quotes`, { params, headers })
       .pipe(map(res => res.data || []));
   }
 

@@ -1,4 +1,5 @@
 import { Component, signal, inject, ViewChild, ElementRef, AfterViewChecked, OnInit } from '@angular/core';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink, Router } from '@angular/router';
@@ -57,6 +58,12 @@ export class AiPlanner implements AfterViewChecked, OnInit {
   private rfpService = inject(RfpService);
   private authService = inject(AuthService);
   private router = inject(Router);
+  private sanitizer = inject(DomSanitizer);
+
+  sanitizeHtml(content: string): SafeHtml {
+    // Use SecurityContext.HTML for strict sanitization - strips dangerous elements
+    return this.sanitizer.sanitize(1, content) || '';
+  }
 
   @ViewChild('chatContainer') private chatContainer!: ElementRef;
 

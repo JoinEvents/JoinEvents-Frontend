@@ -503,12 +503,7 @@ export class AvatarCropperComponent {
             this.toast.success('Profile photo updated successfully! 📸');
             
             const cacheBustedUrl = res.avatarUrl + '?t=' + new Date().getTime();
-            const currentUser = this.authService.currentUser();
-            if (currentUser) {
-              const updatedUser = { ...currentUser, avatar: cacheBustedUrl };
-              localStorage.setItem('joinevents_user', JSON.stringify(updatedUser));
-              this.authService.currentUser.set(updatedUser);
-            }
+            this.authService.updateUserProfile({ avatar: cacheBustedUrl });
 
             this.uploadSuccess.emit(cacheBustedUrl);
             this.cancelCrop();

@@ -85,17 +85,11 @@ export class SupportProfile implements OnInit, OnDestroy {
         if (res) {
           this.isEditing.set(false);
           this.toast.success('Profile updated successfully! ✨');
-          const currentUser = this.auth.currentUser();
-          if (currentUser) {
-            const updatedUser = {
-              ...currentUser,
-              name: res.name || currentUser.name,
-              email: res.email || currentUser.email,
-              avatar: res.avatar || currentUser.avatar
-            };
-            localStorage.setItem('joinevents_user', JSON.stringify(updatedUser));
-            this.auth.currentUser.set(updatedUser);
-          }
+          this.auth.updateUserProfile({
+            name: res.name || this.auth.currentUser()?.name,
+            email: res.email || this.auth.currentUser()?.email,
+            avatar: res.avatar || this.auth.currentUser()?.avatar
+          });
         } else {
           this.toast.error('Failed to update profile. Please try again.');
         }

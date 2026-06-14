@@ -403,16 +403,7 @@ export class AuditService {
   }
 
   private initLogs() {
-    const cached = localStorage.getItem('admin_audit_logs');
-    if (cached) {
-      try {
-        this.dynamicLogs.set(JSON.parse(cached));
-      } catch (e) {
-        this.resetToMock();
-      }
-    } else {
-      this.resetToMock();
-    }
+    this.resetToMock();
   }
 
   private resetToMock() {
@@ -420,7 +411,6 @@ export class AuditService {
       (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
     );
     this.dynamicLogs.set(sorted);
-    localStorage.setItem('admin_audit_logs', JSON.stringify(sorted));
   }
 
   logEvent(
@@ -450,7 +440,6 @@ export class AuditService {
     };
 
     this.dynamicLogs.update(list => [newLog, ...list]);
-    localStorage.setItem('admin_audit_logs', JSON.stringify(this.dynamicLogs()));
   }
 
   getAuditLogs(): Observable<AuditLog[]> {

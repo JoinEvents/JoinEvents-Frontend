@@ -264,7 +264,7 @@ export class VendorAddService implements OnInit, OnDestroy {
         }
       },
       error: (err) => {
-        console.error('Failed to verify vendor status', err);
+        if (!environment.production) { console.error('Failed to verify vendor status', err); }
         this.isCheckingKyc.set(false);
       }
     });
@@ -284,7 +284,7 @@ export class VendorAddService implements OnInit, OnDestroy {
         }
       },
       error: (err) => {
-        console.error('Failed to load tiers from API, using fallback themes:', err);
+        if (!environment.production) { console.error('Failed to load tiers from API, using fallback themes:', err); }
       }
     });
 
@@ -330,7 +330,7 @@ export class VendorAddService implements OnInit, OnDestroy {
       });
     };
     script.onerror = (err) => {
-      console.error('Failed to load Google Maps script dynamically:', err);
+      if (!environment.production) { console.error('Failed to load Google Maps script dynamically:', err); }
     };
     document.head.appendChild(script);
   }
@@ -338,11 +338,11 @@ export class VendorAddService implements OnInit, OnDestroy {
   initAutocomplete() {
     if (this.autocomplete) return;
     if (!this.addressSearchElement || !this.addressSearchElement.nativeElement) {
-      console.warn('Skipping Google Autocomplete: Element not found in DOM.');
+      if (!environment.production) { console.warn('Skipping Google Autocomplete: Element not found in DOM.'); }
       return;
     }
     if (typeof google === 'undefined' || !google.maps || !google.maps.places) {
-      console.warn('Google Maps API not loaded yet for autocomplete.');
+      if (!environment.production) { console.warn('Google Maps API not loaded yet for autocomplete.'); }
       return;
     }
     try {
@@ -361,18 +361,18 @@ export class VendorAddService implements OnInit, OnDestroy {
         });
       });
     } catch (err) {
-      console.error('Failed to initialize Google Autocomplete:', err);
+      if (!environment.production) { console.error('Failed to initialize Google Autocomplete:', err); }
     }
   }
 
   initMap() {
     if (this.map) return;
     if (!this.mapElement || !this.mapElement.nativeElement) {
-      console.warn('Skipping Google Map: Map container element not found in DOM.');
+      if (!environment.production) { console.warn('Skipping Google Map: Map container element not found in DOM.'); }
       return;
     }
     if (typeof google === 'undefined' || !google.maps) {
-      console.warn('Google Maps API not loaded yet for map.');
+      if (!environment.production) { console.warn('Google Maps API not loaded yet for map.'); }
       return;
     }
     try {
@@ -404,7 +404,7 @@ export class VendorAddService implements OnInit, OnDestroy {
         }
       });
     } catch (err) {
-      console.error('Failed to initialize Google Map:', err);
+      if (!environment.production) { console.error('Failed to initialize Google Map:', err); }
     }
   }
 
@@ -449,7 +449,7 @@ export class VendorAddService implements OnInit, OnDestroy {
   loadServiceData(id: string) {
     this.api.getPackageById(id).subscribe((svc: any) => {
       if (svc) {
-        console.log('Loaded service for editing:', svc);
+        if (!environment.production) { console.log('Loaded service for editing:', svc); }
         // Hydrate form thoroughly - handle both PascalCase and camelCase
         this.formData.name = svc.name || svc.Name || '';
         this.formData.category = svc.category || svc.Category || '';
@@ -467,7 +467,7 @@ export class VendorAddService implements OnInit, OnDestroy {
           try {
             parsedInclusionDetails = JSON.parse(parts[1]) || {};
           } catch (e) {
-            console.error('Failed to parse inclusion details JSON in loadServiceData', e);
+            if (!environment.production) { console.error('Failed to parse inclusion details JSON in loadServiceData', e); }
           }
         }
         this.formData.description = cleanedDesc;
@@ -1217,7 +1217,7 @@ export class VendorAddService implements OnInit, OnDestroy {
             this.uploadAndSaveAll(target, index + 1);
           },
           error: (err) => {
-            console.error('Failed to upload file at index ' + index, err);
+            if (!environment.production) { console.error('Failed to upload file at index ' + index, err); }
             this.uploadAndSaveAll(target, index + 1);
           }
         });
@@ -1404,7 +1404,7 @@ export class VendorAddService implements OnInit, OnDestroy {
           this.router.navigate(['/vendor/my-services']);
         },
         error: (err) => {
-          console.error('Failed to update service', err);
+          if (!environment.production) { console.error('Failed to update service', err); }
           this.isSubmitting.set(false);
         }
       });
@@ -1415,7 +1415,7 @@ export class VendorAddService implements OnInit, OnDestroy {
           this.router.navigate(['/vendor/my-services']);
         },
         error: (err) => {
-          console.error('Failed to create service', err);
+          if (!environment.production) { console.error('Failed to create service', err); }
           this.isSubmitting.set(false);
         }
       });
