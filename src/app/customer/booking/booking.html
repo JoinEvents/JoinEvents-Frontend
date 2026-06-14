@@ -32,9 +32,9 @@
         </div>
       </div>
       
-      @if (selectedPackage()?.images?.length > 1) {
+      @if (allGalleryImages().length > 1) {
         <div class="hero-thumbnails">
-          @for (img of selectedPackage()?.images; track img) {
+          @for (img of allGalleryImages(); track img) {
             <div class="thumb-item" [class.active]="selectedImage() === img" (click)="selectGalleryImage(img)">
               <img [src]="img" alt="Thumbnail"
                 (error)="handleImageFallback($event, 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&q=80&w=200')">
@@ -108,6 +108,7 @@
           }
         </div>
       </div>
+
 
       <!-- Available Amenities -->
       <div class="detail-card">
@@ -252,6 +253,16 @@
                     <span class="badge rounded-pill bg-primary-subtle text-primary border-0 fw-700 px-2.5 py-1" style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px;">Day {{ idx + 1 }}</span>
                   </div>
                   <p class="text-secondary small mb-0 mt-1" style="line-height: 1.5; white-space: pre-line;">{{ space.type }}</p>
+                  @if (space.seatingCapacity || space.floatingCapacity) {
+                    <div class="d-flex gap-3 mt-1.5 text-muted small" style="font-size: 0.8rem;">
+                      @if (space.seatingCapacity) {
+                        <span><i class="bi bi-chair-fill text-primary me-1"></i> Seating: <strong>{{ space.seatingCapacity }}</strong></span>
+                      }
+                      @if (space.floatingCapacity) {
+                        <span><i class="bi bi-people-fill text-success me-1"></i> Floating: <strong>{{ space.floatingCapacity }}</strong></span>
+                      }
+                    </div>
+                  }
                 </div>
               </div>
             }
@@ -352,6 +363,11 @@
           </div>
           <button class="btn-chat"><i class="bi bi-chat-dots-fill"></i></button>
         </div>
+        @if (selectedPackage()?.vendorDescription) {
+          <p class="vendor-description mt-3 text-secondary small" style="line-height: 1.5; border-top: 1px solid var(--border-color); padding-top: 12px; margin-bottom: 0;">
+            {{ selectedPackage()?.vendorDescription }}
+          </p>
+        }
       </div>
 
       <!-- Customer Reviews & Ratings Section -->
@@ -793,12 +809,12 @@
         <div class="service-modal-scroll-area">
           <div class="service-gallery">
           <div class="main-img-wrapper">
-            <img [src]="selectedServiceDetail().images[0]" [alt]="selectedServiceDetail().name">
+            <img [src]="selectedModalImage() || selectedServiceDetail().images[0]" [alt]="selectedServiceDetail().name">
           </div>
           @if (selectedServiceDetail().images.length > 1) {
             <div class="thumb-grid">
               @for (img of selectedServiceDetail().images; track img) {
-                <div class="thumb-item">
+                <div class="thumb-item" [class.active]="(selectedModalImage() || selectedServiceDetail().images[0]) === img" (click)="selectedModalImage.set(img)" style="cursor: pointer;">
                   <img [src]="img" alt="Thumbnail">
                 </div>
               }

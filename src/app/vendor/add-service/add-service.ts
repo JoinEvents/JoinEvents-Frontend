@@ -7,7 +7,11 @@ import { EventCategoryService } from '../../core/services/event-category.service
 import { ServiceCategoryDef } from '../../core/models/service.model';
 import { EventTierService } from '../../core/services/event-tier.service';
 import { SupportService } from '../../core/services/support.service';
+import { ToastService } from '../../core/services/toast.service';
+import { VendorService } from '../../core/services/vendor.service';
+import { ProfileService } from '../../core/services/profile.service';
 import { environment } from '../../../environments/environment';
+import { forkJoin } from 'rxjs';
 
 declare var google: any;
 
@@ -50,6 +54,15 @@ export class VendorAddService implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
   private ngZone = inject(NgZone);
   private supportService = inject(SupportService);
+  private toast = inject(ToastService);
+  private vendorService = inject(VendorService);
+  private profileService = inject(ProfileService);
+
+  // KYC and Profile Verification Signals
+  showKycBlock = signal(false);
+  missingKyc = signal(false);
+  missingProfile = signal(false);
+  isCheckingKyc = signal(true);
 
   // Cropper Fields
   @ViewChild('cropImage') cropImageRef!: ElementRef<HTMLImageElement>;
@@ -87,14 +100,27 @@ export class VendorAddService implements OnInit, OnDestroy {
 
   @ViewChild('addressSearch') set addressSearch(content: ElementRef) {
     if (content) {
+      if (this.addressSearchElement === content) {
+        return;
+      }
       this.addressSearchElement = content;
-      setTimeout(() => this.initAutocomplete(), 150); // Provide 150ms to guarantee browser attachment and paint
+      setTimeout(() => this.initAutocomplete(), 150);
+    } else {
+      this.addressSearchElement = null as any;
+      this.autocomplete = null;
     }
   }
   @ViewChild('mapContainer') set mapContainer(content: ElementRef) {
     if (content) {
+      if (this.mapElement === content) {
+        return;
+      }
       this.mapElement = content;
-      setTimeout(() => this.initMap(), 150); // Provide 150ms to guarantee browser attachment and paint
+      setTimeout(() => this.initMap(), 150);
+    } else {
+      this.mapElement = null as any;
+      this.map = null;
+      this.marker = null;
     }
   }
 
@@ -217,6 +243,32 @@ export class VendorAddService implements OnInit, OnDestroy {
   ];
 
   ngOnInit() {
+    this.isCheckingKyc.set(true);
+    forkJoin({
+      verification: this.vendorService.getVerificationStatus(),
+      profile: this.profileService.getProfile()
+    }).subscribe({
+      next: (res: any) => {
+        this.isCheckingKyc.set(false);
+        const isVerified = res.verification?.isVerified || false;
+        const profile = res.profile;
+        
+        const hasBusinessName = profile?.businessName && profile.businessName.trim() !== '' && profile.businessName !== 'My Vendor Business';
+        const hasDescription = profile?.description && profile.description.trim() !== '';
+        const isProfileComplete = !!(hasBusinessName && hasDescription);
+        
+        if (!isVerified || !isProfileComplete) {
+          this.showKycBlock.set(true);
+          this.missingKyc.set(!isVerified);
+          this.missingProfile.set(!isProfileComplete);
+        }
+      },
+      error: (err) => {
+        console.error('Failed to verify vendor status', err);
+        this.isCheckingKyc.set(false);
+      }
+    });
+
     this.eventCategoryService.getAll().subscribe((res: any) => {
       this.categories.set(res);
       if (this.formData.category) {
@@ -284,6 +336,7 @@ export class VendorAddService implements OnInit, OnDestroy {
   }
 
   initAutocomplete() {
+    if (this.autocomplete) return;
     if (!this.addressSearchElement || !this.addressSearchElement.nativeElement) {
       console.warn('Skipping Google Autocomplete: Element not found in DOM.');
       return;
@@ -313,6 +366,7 @@ export class VendorAddService implements OnInit, OnDestroy {
   }
 
   initMap() {
+    if (this.map) return;
     if (!this.mapElement || !this.mapElement.nativeElement) {
       console.warn('Skipping Google Map: Map container element not found in DOM.');
       return;
@@ -537,8 +591,153 @@ export class VendorAddService implements OnInit, OnDestroy {
     });
   }
 
+  validateStep1(): boolean {
+    if (!this.formData.name || !this.formData.name.trim()) {
+      this.toast.error('Business / Venue Name is required.');
+      return false;
+    }
+    if (!this.formData.category) {
+      this.toast.error('Event Category is required.');
+      return false;
+    }
+    const exp = parseInt(this.formData.experience || '0', 10);
+    if (isNaN(exp) || exp < 0) {
+      this.toast.error('Experience must be a valid number of years.');
+      return false;
+    }
+    if (!this.formData.description || !this.formData.description.trim()) {
+      this.toast.error('About Your Service description is required.');
+      return false;
+    }
+    if (!this.formData.country) {
+      this.toast.error('Country is required.');
+      return false;
+    }
+    if (!this.formData.state) {
+      this.toast.error('State is required.');
+      return false;
+    }
+    if (!this.formData.city) {
+      this.toast.error('City is required.');
+      return false;
+    }
+    if (!this.formData.locality) {
+      this.toast.error('Locality is required.');
+      return false;
+    }
+    if (!this.formData.street) {
+      this.toast.error('Street / Area is required.');
+      return false;
+    }
+    if (!this.formData.pincode || !this.formData.pincode.trim()) {
+      this.toast.error('Pincode is required.');
+      return false;
+    }
+    return true;
+  }
+
+  validateStep2(): boolean {
+    if (!this.formData.theme) {
+      this.toast.error('Please select a Service Tier (Silver, Gold, or Platinum).');
+      return false;
+    }
+    if (this.formData.includes.length === 0) {
+      this.toast.error('Please select at least one Service Inclusion.');
+      return false;
+    }
+
+    for (const inc of this.formData.includes) {
+      const details = this.inclusionDetails()[inc];
+      if (!details) {
+        this.toast.error(`Please configure details for inclusion: ${inc}`);
+        return false;
+      }
+      if (!details.description || !details.description.trim()) {
+        this.toast.error(`Please provide a detailed description for inclusion: ${inc}`);
+        this.activeInclusionTab.set(inc);
+        return false;
+      }
+
+      // Check pricing
+      if (inc.toLowerCase() === 'catering') {
+        if (!this.formData.vegPrice || this.formData.vegPrice <= 0) {
+          this.toast.error('Veg Price (Per Plate) is required and must be greater than ₹0.');
+          this.activeInclusionTab.set(inc);
+          return false;
+        }
+      } else if (inc.toLowerCase() === 'venue') {
+        if (!this.formData.rent || this.formData.rent <= 0) {
+          this.toast.error('Venue Rent Amount is required and must be greater than ₹0.');
+          this.activeInclusionTab.set(inc);
+          return false;
+        }
+        if (!this.formData.maxCapacity || this.formData.maxCapacity <= 0) {
+          this.toast.error('Max Guest Capacity is required for Venue.');
+          this.activeInclusionTab.set(inc);
+          return false;
+        }
+      } else {
+        if (!details.minPrice || details.minPrice <= 0) {
+          this.toast.error(`Price is required for inclusion: ${inc} and must be greater than ₹0.`);
+          this.activeInclusionTab.set(inc);
+          return false;
+        }
+      }
+
+      // Validate pricing range limits
+      if (!this.validateInclusionPrices(inc)) {
+        this.toast.error(`Price for ${inc} violates the allowed range for tier ${this.formData.theme}.`);
+        this.activeInclusionTab.set(inc);
+        return false;
+      }
+
+      // Photos validation
+      if (!details.images || details.images.length === 0) {
+        this.toast.error(`Please upload at least 1 photo for inclusion: ${inc}`);
+        this.activeInclusionTab.set(inc);
+        return false;
+      }
+
+      // Highlights/Features validation
+      if (!details.keyFeatures || details.keyFeatures.length === 0) {
+        this.toast.error(`Please add at least 1 Key Feature/Highlight for inclusion: ${inc}`);
+        this.activeInclusionTab.set(inc);
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  validateStep3(): boolean {
+    if (this.formData.spaces.length === 0) {
+      this.toast.error('Please add at least one Day Plan in your Day-wise Plan.');
+      return false;
+    }
+
+    for (let i = 0; i < this.formData.spaces.length; i++) {
+      const space = this.formData.spaces[i];
+      if (!space.name || !space.name.trim()) {
+        this.toast.error(`Please enter a Day Title for Day #${i + 1}.`);
+        return false;
+      }
+      if (!space.type || !space.type.trim()) {
+        this.toast.error(`Please describe what you will do on Day #${i + 1}.`);
+        return false;
+      }
+    }
+
+    return true;
+  }
+
   nextStep() {
-    if (this.currentStep() < 4) {
+    if (this.currentStep() === 1) {
+      if (!this.validateStep1()) return;
+    } else if (this.currentStep() === 2) {
+      if (!this.validateStep2()) return;
+    }
+
+    if (this.currentStep() < 3) {
       this.currentStep.update(s => s + 1);
       window.scrollTo(0, 0);
     }
@@ -595,6 +794,17 @@ export class VendorAddService implements OnInit, OnDestroy {
     } else {
       this.activeInclusionTab.set('');
     }
+  }
+
+  toggleInclusion(item: string) {
+    if (!item) return;
+    const idx = this.formData.includes.indexOf(item);
+    if (idx > -1) {
+      this.formData.includes.splice(idx, 1);
+    } else {
+      this.formData.includes.push(item);
+    }
+    this.initInclusionDetails();
   }
 
   addInclude(element: any) {
@@ -1098,15 +1308,19 @@ export class VendorAddService implements OnInit, OnDestroy {
   }
 
   saveService() {
-    // Validate all inclusion prices
-    let hasError = false;
-    this.formData.includes.forEach(inc => {
-      if (!this.validateInclusionPrices(inc)) {
-        hasError = true;
-      }
-    });
-    if (hasError) {
-      alert('Please fix the price range errors on your inclusions before saving.');
+    if (!this.validateStep1()) {
+      this.currentStep.set(1);
+      window.scrollTo(0, 0);
+      return;
+    }
+    if (!this.validateStep2()) {
+      this.currentStep.set(2);
+      window.scrollTo(0, 0);
+      return;
+    }
+    if (!this.validateStep3()) {
+      this.currentStep.set(3);
+      window.scrollTo(0, 0);
       return;
     }
     this.showVerificationModal.set(true);

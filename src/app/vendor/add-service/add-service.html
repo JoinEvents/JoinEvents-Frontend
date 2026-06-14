@@ -1,102 +1,200 @@
 <div class="page-container">
-  <div class="form-header">
-    <h1 class="h2 fw-800 color-navy mb-2">{{ isEditMode() ? 'Update Existing Listing' : 'Create New Listing' }}</h1>
-    <p class="form-subtitle">{{ isEditMode() ? 'Modify your service details to stay competitive' : 'Showcase your
-      service to thousands of potential customers' }}</p>
+  @if (isCheckingKyc()) {
+    <div class="kyc-checking-container d-flex flex-column align-items-center justify-content-center py-5 my-5">
+      <div class="spinner-border text-primary mb-3" role="status"></div>
+      <p class="text-muted">Verifying your account details, please wait...</p>
+    </div>
+  } @else if (showKycBlock()) {
+    <!-- Glassmorphic Blocker Overlay -->
+    <div class="kyc-blocker-overlay ee-card py-5 px-4 text-center my-4">
+      <div class="blocker-icon-wrapper mb-4">
+        <i class="bi bi-shield-lock-fill text-warning display-1"></i>
+      </div>
+      <h2 class="h3 fw-800 text-main mb-3">Setup Required Before Listing</h2>
+      <p class="text-muted mx-auto mb-5" style="max-width: 580px;">
+        To maintain our premium platform standards, you must complete your verification documents and setup your business profile before creating package listings.
+      </p>
 
-    <!-- Step Indicator -->
-    <div class="step-wizard">
-      <div class="step-item" [class.active]="currentStep() === 1" [class.completed]="currentStep() > 1">
-        <div class="step-dot">1</div>
-        <div class="step-label">Basic Info</div>
+      <div class="row justify-content-center g-4 mb-4">
+        <!-- Profile Step Card -->
+        <div class="col-md-5">
+          <div class="setup-step-card" [class.completed]="!missingProfile()">
+            <div class="card-status-icon">
+              <i class="bi" [class.bi-check-circle-fill]="!missingProfile()" [class.text-success]="!missingProfile()" [class.bi-exclamation-circle-fill]="missingProfile()" [class.text-warning]="missingProfile()"></i>
+            </div>
+            <h5 class="h6 fw-700 mt-2 mb-1">Business Profile</h5>
+            <p class="small text-muted mb-3">Set up your business name and descriptive introduction.</p>
+            @if (missingProfile()) {
+              <a href="/vendor/profile" class="btn btn-sm btn-ee-primary px-4">Complete Profile</a>
+            } @else {
+              <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2">Completed <i class="bi bi-check-lg ms-1"></i></span>
+            }
+          </div>
+        </div>
+
+        <!-- KYC Verification Step Card -->
+        <div class="col-md-5">
+          <div class="setup-step-card" [class.completed]="!missingKyc()">
+            <div class="card-status-icon">
+              <i class="bi" [class.bi-check-circle-fill]="!missingKyc()" [class.text-success]="!missingKyc()" [class.bi-exclamation-circle-fill]="missingKyc()" [class.text-warning]="missingKyc()"></i>
+            </div>
+            <h5 class="h6 fw-700 mt-2 mb-1">KYC Verification Documents</h5>
+            <p class="small text-muted mb-3">Upload business registration, GSTIN, and tax documents.</p>
+            @if (missingKyc()) {
+              <a href="/vendor/verification" class="btn btn-sm btn-ee-primary px-4">Verify KYC</a>
+            } @else {
+              <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2">Verified <i class="bi bi-check-lg ms-1"></i></span>
+            }
+          </div>
+        </div>
       </div>
-      <div class="step-item" [class.active]="currentStep() === 2" [class.completed]="currentStep() > 2">
-        <div class="step-dot">2</div>
-        <div class="step-label">Inclusion Details</div>
+
+      <div class="text-center mt-5">
+        <p class="small text-muted mb-0">Need help? Contact our <a href="/support/tickets" class="text-primary text-decoration-none fw-600">Support Team</a>.</p>
       </div>
-      <div class="step-item" [class.active]="currentStep() === 3" [class.completed]="currentStep() > 3">
-        <div class="step-dot">3</div>
-        <div class="step-label">Location</div>
+    </div>
+  } @else {
+  <!-- Premium Hero Header -->
+  <div class="services-hero ee-card mb-4">
+    <div class="hero-content">
+      <div class="hero-text">
+        <h1 class="h2 text-white fw-800 mb-2">
+          <i class="bi bi-rocket-takeoff-fill me-2 text-warning"></i>
+          {{ isEditMode() ? 'Update Existing Listing' : 'Create New Listing' }}
+        </h1>
+        <p class="text-white text-opacity-75 mb-0">
+          {{ isEditMode() ? 'Modify your service details to stay competitive' : 'Showcase your service to thousands of potential customers' }}
+        </p>
       </div>
-      <div class="step-item" [class.active]="currentStep() === 4" [class.completed]="currentStep() > 4">
-        <div class="step-dot">4</div>
-        <div class="step-label">Day-wise Plan</div>
+
+      <!-- Step Indicator (Modernized Step Wizard in Hero) -->
+      <div class="step-wizard-wrapper">
+        <div class="step-wizard-glass">
+          <div class="step-item" [class.active]="currentStep() === 1" [class.completed]="currentStep() > 1">
+            <div class="step-dot">1</div>
+            <div class="step-label">Basic Info & Location</div>
+          </div>
+          <div class="step-item" [class.active]="currentStep() === 2" [class.completed]="currentStep() > 2">
+            <div class="step-dot">2</div>
+            <div class="step-label">Inclusion Details</div>
+          </div>
+          <div class="step-item" [class.active]="currentStep() === 3" [class.completed]="currentStep() > 3">
+            <div class="step-dot">3</div>
+            <div class="step-label">Day-wise Plan</div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 
   <div class="form-card">
-    <!-- Step 1: Basic Info -->
-    @if (currentStep() === 1) {
-    <div class="step-content">
-      <h4 class="step-title">General Information</h4>
-      <p class="step-subtitle">Start with the basics of your business service</p>
+    <!-- Step 1: Basic Info & Location -->
+    <div class="step-content" [class.d-none]="currentStep() !== 1">
+      <h4 class="step-title">General Information & Location</h4>
+      <p class="step-subtitle">Start with the basics of your business service and location details</p>
 
-      <div class="row g-4">
-        <div class="col-md-5">
-          <label class="ee-form-label">Business / Venue Name *</label>
-          <input type="text" class="ee-form-control" [(ngModel)]="formData.name" placeholder="e.g. Royal Banquet Hall">
+      <!-- Section 1: Business Details -->
+      <div class="form-section-card mb-5">
+        <h5 class="form-section-title"><i class="bi bi-card-text text-primary me-2"></i>Business Details</h5>
+        <div class="row g-4 mt-2">
+          <div class="col-md-5">
+            <label class="ee-form-label">Business / Venue Name *</label>
+            <input type="text" class="ee-form-control" [(ngModel)]="formData.name" placeholder="e.g. Royal Banquet Hall">
+          </div>
+          <div class="col-md-4">
+            <label class="ee-form-label">Event Category *</label>
+            <select class="ee-form-control" [(ngModel)]="formData.category" (ngModelChange)="onCategoryChange($event)">
+              <option value="">Select Category</option>
+              @for (cat of categories(); track cat.id) {
+              <option [value]="cat.category">{{ cat.name }}</option>
+              }
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label class="ee-form-label">Experience (Years)</label>
+            <input type="number" class="ee-form-control" [(ngModel)]="formData.experience" placeholder="e.g. 5">
+          </div>
+
+          <div class="col-12">
+            <label class="ee-form-label">About Your Service *</label>
+            <textarea class="ee-form-control" rows="3" [(ngModel)]="formData.description"
+              placeholder="Tell customers why they should choose you..."></textarea>
+          </div>
         </div>
-        <div class="col-md-4">
-          <label class="ee-form-label">Event Category *</label>
-          <select class="ee-form-control" [(ngModel)]="formData.category" (ngModelChange)="onCategoryChange($event)">
-            <option value="">Select Category</option>
-            @for (cat of categories(); track cat.id) {
-            <option [value]="cat.category">{{ cat.name }}</option>
-            }
-          </select>
-        </div>
-        <div class="col-md-3">
-          <label class="ee-form-label">Experience (Years)</label>
-          <input type="number" class="ee-form-control" [(ngModel)]="formData.experience" placeholder="e.g. 5">
-        </div>
+      </div>
 
-        <div class="col-12">
-          <label class="ee-form-label">About Your Service *</label>
-          <textarea class="ee-form-control" rows="3" [(ngModel)]="formData.description"
-            placeholder="Tell customers why they should choose you..."></textarea>
-        </div>
-
-
-
-        <div class="col-12">
-          <label class="ee-form-label">Package Includes *</label>
-
-          <div class="inclusion-control-group mb-3">
-            <div class="input-group-modern dropdown-only">
-              <i class="bi bi-plus-circle-fill text-primary"></i>
-              <select #inclusionSelect class="border-0 bg-transparent w-100 outline-none fw-600"
-                (change)="addInclude(inclusionSelect)">
-                <option value="">Select an Item to Add...</option>
-                @if (availableInclusions().length > 0) {
-                <option value="SELECT_ALL" [disabled]="formData.includes.length === availableInclusions().length"
-                  class="fw-700 text-primary"> Select All Options</option>
-                }
-                @for (item of availableInclusions(); track item) {
-                <option [value]="item" [disabled]="formData.includes.includes(item)">{{ item }}</option>
-                }
-              </select>
+      <!-- Section 3: Business Location -->
+      <div class="form-section-card">
+        <h5 class="form-section-title"><i class="bi bi-geo-alt-fill text-primary me-2"></i>Business Location</h5>
+        <div class="row g-4 mt-2">
+          <!-- Left Column: Address Fields -->
+          <div class="col-lg-6">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="ee-form-label">Country *</label>
+                <select class="ee-form-control" [(ngModel)]="formData.country">
+                  @for (c of countries; track c) { <option [value]="c">{{c}}</option> }
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="ee-form-label">State *</label>
+                <select class="ee-form-control" [(ngModel)]="formData.state">
+                  <option value="">Select State</option>
+                  @for (s of states; track s) { <option [value]="s">{{s}}</option> }
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="ee-form-label">City *</label>
+                <select class="ee-form-control" [(ngModel)]="formData.city">
+                  <option value="">Select City</option>
+                  @for (city of cities; track city) { <option [value]="city">{{city}}</option> }
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="ee-form-label">Locality *</label>
+                <select class="ee-form-control" [(ngModel)]="formData.locality">
+                  <option value="">Select Locality</option>
+                  @for (l of localities; track l) { <option [value]="l">{{l}}</option> }
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="ee-form-label">Street / Area *</label>
+                <select class="ee-form-control" [(ngModel)]="formData.street">
+                  <option value="">Select Street / Area</option>
+                  @for (st of streets; track st) { <option [value]="st">{{st}}</option> }
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="ee-form-label">Pincode *</label>
+                <input type="text" class="ee-form-control" [(ngModel)]="formData.pincode" placeholder="e.g. 500081">
+              </div>
+              <div class="col-12">
+                <label class="ee-form-label">Landmark</label>
+                <select class="ee-form-control" [(ngModel)]="formData.landmark">
+                  <option value="">Select Landmark</option>
+                  @for (lm of landmarks; track lm) { <option [value]="lm">{{lm}}</option> }
+                </select>
+              </div>
             </div>
           </div>
 
-          <div class="chips-input-container">
-            <div class="chips-list">
-              @for (item of formData.includes; track $index) {
-              <div class="ee-chip">
-                {{ item }}
-                <span class="chip-remove" (click)="removeInclude($index)"><i class="bi bi-x"></i></span>
-              </div>
-              }
+          <!-- Right Column: Maps related -->
+          <div class="col-lg-6 d-flex flex-column">
+            <label class="ee-form-label">Search Address on Google Maps</label>
+            <div class="input-group-modern mb-3">
+              <i class="bi bi-geo-alt-fill text-primary"></i>
+              <input type="text" #addressSearch class="border-0 bg-transparent w-100 outline-none fw-600"
+                placeholder="Type your address to autofill...">
             </div>
+            <div #mapContainer class="map-picker-container rounded-4 shadow-sm flex-grow-1"
+              style="min-height: 300px; background: #f8f9fa; border: 1px solid var(--border-color); overflow: hidden;"></div>
           </div>
         </div>
       </div>
     </div>
-    }
 
-    <!-- Step 2: Inclusion Details (New) -->
-    @if (currentStep() === 2) {
-    <div class="step-content">
+    <!-- Step 2: Inclusion Details -->
+    <div class="step-content" [class.d-none]="currentStep() !== 2">
       <h4 class="step-title">Inclusion Details</h4>
       <p class="step-subtitle">Choose your service tier and configure descriptions, images, and highlights for each inclusion.</p>
 
@@ -148,16 +246,40 @@
         }
       </div>
 
+      <!-- Select Service Inclusions -->
+      <div class="col-12 mb-5">
+        <label class="ee-form-label">Select Service Inclusions *</label>
+        <p class="form-hint mb-3" style="font-size: 0.8rem; margin-top: -4px;">Choose the items/services included in this package (toggles active on click)</p>
+
+        @if (!formData.category) {
+          <div class="alert alert-warning py-2 px-3 rounded-3" style="font-size: 0.85rem;">
+            <i class="bi bi-exclamation-circle me-1"></i> Please select an event category in Step 1 to view inclusions.
+          </div>
+        } @else if (availableInclusions().length === 0) {
+          <div class="alert alert-info py-2 px-3 rounded-3" style="font-size: 0.85rem;">
+            <i class="bi bi-info-circle me-1"></i> No popular service inclusions configured for this category.
+          </div>
+        } @else {
+          <div class="inclusions-grid mt-3">
+            @for (item of availableInclusions(); track item) {
+              <div class="inclusion-card" [class.selected]="formData.includes.includes(item)" (click)="toggleInclusion(item)">
+                <div class="d-flex align-items-center gap-2">
+                  <i class="bi" [class.bi-check-circle-fill]="formData.includes.includes(item)" [class.bi-circle]="!formData.includes.includes(item)"></i>
+                  <span class="fw-700 text-truncate" style="font-size: 0.85rem;">{{ item }}</span>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+
       @if (formData.includes.length === 0) {
         <div class="text-center py-5 rounded-4 border bg-light">
           <div class="mb-3 text-muted" style="font-size: 3rem;"><i class="bi bi-card-checklist"></i></div>
           <h5 class="fw-800 color-navy">No Inclusions Selected</h5>
           <p class="text-muted mx-auto" style="max-width: 450px;">
-            Go back to Step 1 and select the items included in your package (e.g. Premium Venue, Gourmet Catering, etc.) to set details for them here.
+            Choose the services included in your package from the grid above (e.g. Gourmet Catering, Premium Venue, etc.) to configure details for them below.
           </p>
-          <button class="btn btn-outline-primary rounded-pill px-4 mt-3 fw-700" (click)="prevStep()">
-            <i class="bi bi-chevron-left me-1"></i> Go Back to Basic Info
-          </button>
         </div>
       } @else {
         <div class="inclusion-tabs-container">
@@ -480,82 +602,9 @@
         </div>
       }
     </div>
-    }
 
-    <!-- Step 3: Location -->
-    @if (currentStep() === 3) {
-    <div class="step-content">
-      <h4 class="step-title">Business Location</h4>
-      <p class="step-subtitle">Where can customers find you? Use the map for precision.</p>
-
-      <div class="row g-4">
-        <!-- Map Integration Section -->
-        <div class="col-12 mt-2">
-          <label class="ee-form-label">Search Address on Google Maps</label>
-          <div class="input-group-modern mb-3">
-            <i class="bi bi-geo-alt-fill text-primary"></i>
-            <input type="text" #addressSearch class="border-0 bg-transparent w-100 outline-none fw-600"
-              placeholder="Type your address to autofill...">
-          </div>
-          <div #mapContainer class="map-picker-container rounded-4 mb-4 shadow-sm"
-            style="height: 350px; background: #f8f9fa; border: 1px solid var(--border-color); overflow: hidden;"></div>
-        </div>
-
-        <!-- Address Section -->
-        <div class="col-md-4">
-          <label class="ee-form-label">Country *</label>
-          <select class="ee-form-control" [(ngModel)]="formData.country">
-            @for (c of countries; track c) { <option [value]="c">{{c}}</option> }
-          </select>
-        </div>
-        <div class="col-md-4">
-          <label class="ee-form-label">State *</label>
-          <select class="ee-form-control" [(ngModel)]="formData.state">
-            <option value="">Select State</option>
-            @for (s of states; track s) { <option [value]="s">{{s}}</option> }
-          </select>
-        </div>
-        <div class="col-md-4">
-          <label class="ee-form-label">City *</label>
-          <select class="ee-form-control" [(ngModel)]="formData.city">
-            <option value="">Select City</option>
-            @for (city of cities; track city) { <option [value]="city">{{city}}</option> }
-          </select>
-        </div>
-
-        <div class="col-md-6">
-          <label class="ee-form-label">Locality *</label>
-          <select class="ee-form-control" [(ngModel)]="formData.locality">
-            <option value="">Select Locality</option>
-            @for (l of localities; track l) { <option [value]="l">{{l}}</option> }
-          </select>
-        </div>
-        <div class="col-md-6">
-          <label class="ee-form-label">Street / Area *</label>
-          <select class="ee-form-control" [(ngModel)]="formData.street">
-            <option value="">Select Street / Area</option>
-            @for (st of streets; track st) { <option [value]="st">{{st}}</option> }
-          </select>
-        </div>
-
-        <div class="col-md-8">
-          <label class="ee-form-label">Landmark</label>
-          <select class="ee-form-control" [(ngModel)]="formData.landmark">
-            <option value="">Select Landmark</option>
-            @for (lm of landmarks; track lm) { <option [value]="lm">{{lm}}</option> }
-          </select>
-        </div>
-        <div class="col-md-4">
-          <label class="ee-form-label">Pincode *</label>
-          <input type="text" class="ee-form-control" [(ngModel)]="formData.pincode" placeholder="e.g. 500081">
-        </div>
-      </div>
-    </div>
-    }
-
-    <!-- Step 4: Day-wise Plan -->
-    @if (currentStep() === 4) {
-    <div class="step-content">
+    <!-- Step 3: Day-wise Plan -->
+    <div class="step-content" [class.d-none]="currentStep() !== 3">
       <h4 class="step-title">Day-wise Plan</h4>
       <p class="step-subtitle">Outline your day-by-day schedule, service timeline, and event plans</p>
 
@@ -605,54 +654,54 @@
 
         <!-- Right Side: Hints Panel -->
         <div class="col-lg-4">
-          <div class="card border-0 rounded-4 p-4 shadow-sm" style="background: rgba(99, 102, 241, 0.05); position: sticky; top: 24px;">
+          <div class="hints-panel-card">
             <div class="d-flex align-items-center gap-2 mb-3">
               <i class="bi bi-lightbulb-fill fs-4 text-primary"></i>
-              <h5 class="fw-800 mb-0 text-dark" style="font-size: 1rem;">Scheduling Tips</h5>
+              <h5>Scheduling Tips</h5>
             </div>
-            <div class="small text-secondary" style="line-height: 1.6;">
-              <p class="mb-3 text-dark fw-600">Need inspiration on what to add in your Day-wise Plan?</p>
+            <div class="small" style="line-height: 1.6;">
+              <p class="mb-3 fw-600">Need inspiration on what to add in your Day-wise Plan?</p>
               
               <div class="mb-3">
-                <strong class="text-dark d-block mb-1">📅 Day 1 (Welcome & Pre-events)</strong>
-                <span style="font-size: 0.8rem;">Highlight pre-event activities such as guest arrival, welcome decor setup, Haldi/Sangeet rituals, light/sound checks, and welcome catering.</span>
+                <strong class="d-block mb-1">📅 Day 1 (Welcome & Pre-events)</strong>
+                <span>Highlight pre-event activities such as guest arrival, welcome decor setup, Haldi/Sangeet rituals, light/sound checks, and welcome catering.</span>
               </div>
 
               <div class="mb-3">
-                <strong class="text-dark d-block mb-1">💍 Day 2 (Main Event / Wedding)</strong>
-                <span style="font-size: 0.8rem;">Detail the core service execution—main wedding ceremonies, primary photography/cinematography coverage, bridal styling, or the main reception buffet.</span>
+                <strong class="d-block mb-1">💍 Day 2 (Main Event / Wedding)</strong>
+                <span>Detail the core service execution—main wedding ceremonies, primary photography/cinematography coverage, bridal styling, or the main reception buffet.</span>
               </div>
 
               <div class="mb-0">
-                <strong class="text-dark d-block mb-1">🎁 Day 3 (Post-events & Wrap-up)</strong>
-                <span style="font-size: 0.8rem;">Mention any post-wedding brunch, guest checkout assistance, final deliverables distribution, and site clean-up.</span>
+                <strong class="d-block mb-1">🎁 Day 3 (Post-events & Wrap-up)</strong>
+                <span>Mention any post-wedding brunch, guest checkout assistance, final deliverables distribution, and site clean-up.</span>
               </div>
             </div>
           </div>
         </div>
       </div>
     </div>
-    }
 
   <div class="form-footer-modern d-flex justify-content-between">
-    <button class="btn btn-link text-decoration-none fw-700 color-navy" (click)="prevStep()"
+    <button class="btn btn-link text-decoration-none fw-700 btn-back-step" (click)="prevStep()"
       [style.visibility]="currentStep() > 1 ? 'visible' : 'hidden'">
       <i class="bi bi-chevron-left me-1"></i> Back
     </button>
-
-    @if (currentStep() < 4) { <button class="btn-ee-primary px-5" (click)="nextStep()">
-      Continue <i class="bi bi-chevron-right ms-1"></i>
+ 
+    @if (currentStep() < 3) {
+      <button class="btn-ee-primary px-5" (click)="nextStep()">
+        Continue <i class="bi bi-chevron-right ms-1"></i>
       </button>
-      } @else {
+    } @else {
       <button class="btn-ee-primary px-5" (click)="saveService()" [disabled]="isSubmitting()">
         @if (isSubmitting()) {
-        <span class="spinner-border spinner-border-sm me-2"></span> {{ isEditMode() ? 'Saving...' : 'Publishing...' }}
+          <span class="spinner-border spinner-border-sm me-2"></span> {{ isEditMode() ? 'Saving...' : 'Publishing...' }}
         } @else {
-        <i class="bi" [class.bi-rocket-takeoff]="!isEditMode()" [class.bi-check2-circle]="isEditMode()"></i>
-        {{ isEditMode() ? 'Save Changes' : 'Launch Service' }}
+          <i class="bi" [class.bi-rocket-takeoff]="!isEditMode()" [class.bi-check2-circle]="isEditMode()"></i>
+          {{ isEditMode() ? 'Save Changes' : 'Launch Service' }}
         }
       </button>
-      }
+    }
   </div>
 
   <!-- Verification Confirmation Modal -->
@@ -704,7 +753,7 @@
           <div class="cropper-right-col">
             <div class="d-flex justify-content-between align-items-center mb-2">
               <div class="cropper-section-title m-0">Select Active Image</div>
-              <span class="badge bg-light text-secondary border px-2 py-1" style="font-size: 0.68rem; font-weight: 800; border-radius: 6px;">4:3 Ratio</span>
+              <span class="cropper-ratio-badge">4:3 Ratio</span>
             </div>
             <!-- Image Navigation Dots -->
             @if (cropItems.length > 1) {
@@ -752,8 +801,9 @@
             </div>
           </div>
         </div>
-      </div>
     </div>
-  }
+  </div>
+}
 </div>
+}
 </div>

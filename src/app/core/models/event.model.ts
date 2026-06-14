@@ -16,6 +16,9 @@ export interface EventType {
 export interface EventPackage {
   id: string;
   eventTypeId: string;
+  vendorId?: string;
+  vendorName?: string;
+  vendorDescription?: string;
   name: string;
   tier: 'basic' | 'standard' | 'premium';
   price: number;

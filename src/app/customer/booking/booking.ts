@@ -112,7 +112,20 @@ export class CustomerBooking implements OnInit, OnDestroy, OnChanges {
   minDate = new Date().toISOString().split('T')[0];
   showMobileBooking = signal(false);
   selectedServiceDetail = signal<any | null>(null);
+  selectedModalImage = signal<string | null>(null);
   selectedImage = signal<string | null>(null);
+  activeInclusionImages = signal<Record<string, string>>({});
+
+  setInclusionImage(inclusionName: string, imageUrl: string) {
+    this.activeInclusionImages.update(dict => ({
+      ...dict,
+      [inclusionName]: imageUrl
+    }));
+  }
+
+  getInclusionImage(inclusionName: string, firstImageUrl: string): string {
+    return this.activeInclusionImages()[inclusionName] || firstImageUrl;
+  }
 
   includedCategories = [
     { name: 'Venue', icon: 'bi-building', key: 'venue' },
@@ -126,26 +139,106 @@ export class CustomerBooking implements OnInit, OnDestroy, OnChanges {
   ];
 
   displayedCategories = computed(() => {
-    return this.includedCategories.filter(cat => this.hasCategory(cat.key));
+    const pkg = this.selectedPackage();
+    if (!pkg) return [];
+
+    const services: string[] = pkg.services || [];
+    
+    // Track which services were matched
+    const matchedServices = new Set<string>();
+    
+    const standardMatches = this.includedCategories.filter(cat => {
+      const match = this.getServiceForCategory(cat.key);
+      if (match) {
+        matchedServices.add(match);
+        return true;
+      }
+      return false;
+    });
+    
+    // Find unmatched services
+    const unmatchedCategories = services
+      .filter(s => !matchedServices.has(s))
+      .map(s => {
+        // Resolve a suitable icon
+        let icon = 'bi-check2-circle';
+        const lower = s.toLowerCase();
+        if (lower.includes('makeup') || lower.includes('salon') || lower.includes('beauty') || lower.includes('hair') || lower.includes('styling')) {
+          icon = 'bi-stars';
+        } else if (lower.includes('mehendi') || lower.includes('henna')) {
+          icon = 'bi-brush';
+        } else if (lower.includes('invite') || lower.includes('card')) {
+          icon = 'bi-envelope-paper-heart';
+        } else if (lower.includes('gift') || lower.includes('hamper')) {
+          icon = 'bi-gift';
+        } else if (lower.includes('guide') || lower.includes('tour')) {
+          icon = 'bi-map';
+        } else if (lower.includes('wear') || lower.includes('outfit') || lower.includes('saree') || lower.includes('sherwani') || lower.includes('clothing')) {
+          icon = 'bi-tags-fill';
+        }
+        
+        return {
+          name: s,
+          icon: icon,
+          key: s
+        };
+      });
+      
+    return [
+      ...standardMatches,
+      ...unmatchedCategories
+    ];
   });
+
+  allGalleryImages = computed(() => {
+    return this.getCombinedImages(this.selectedPackage());
+  });
+
+  getCombinedImages(pkg: any): string[] {
+    if (!pkg) return [];
+    const images = new Set<string>();
+    if (pkg.image) images.add(pkg.image);
+    if (Array.isArray(pkg.images)) {
+      pkg.images.forEach((img: string) => images.add(img));
+    }
+    if (pkg.inclusionDetails) {
+      Object.keys(pkg.inclusionDetails).forEach(key => {
+        const details = pkg.inclusionDetails[key];
+        if (details) {
+          if (Array.isArray(details.images)) {
+            details.images.forEach((img: string) => images.add(img));
+          } else if (details.imageUrl) {
+            images.add(details.imageUrl);
+          }
+        }
+      });
+    }
+    return Array.from(images);
+  }
 
   getServiceForCategory(categoryKey: string): string | null {
     const pkg = this.selectedPackage();
     if (!pkg || !pkg.services) return null;
     
     const services: string[] = pkg.services;
-    return services.find(s => {
-      const lower = s.toLowerCase();
-      if (categoryKey === 'venue') return lower.includes('venue') || lower.includes('suite') || lower.includes('hall') || lower.includes('banquet') || lower.includes('space') || lower.includes('room');
-      if (categoryKey === 'catering') return lower.includes('catering') || lower.includes('dinner') || lower.includes('feast') || lower.includes('food') || lower.includes('meal') || lower.includes('buffet') || lower.includes('veg');
-      if (categoryKey === 'decoration') return lower.includes('decor') || lower.includes('stage') || lower.includes('flower') || lower.includes('theme');
-      if (categoryKey === 'transport') return lower.includes('transport') || lower.includes('car') || lower.includes('travel') || lower.includes('coach') || lower.includes('chauffeur') || lower.includes('cab') || lower.includes('bus');
-      if (categoryKey === 'priest') return lower.includes('priest') || lower.includes('pandit') || lower.includes('pujari') || lower.includes('hawan') || lower.includes('ritual') || lower.includes('vedic');
-      if (categoryKey === 'manpower') return lower.includes('manpower') || lower.includes('staff') || lower.includes('security') || lower.includes('valet') || lower.includes('host') || lower.includes('anchor') || lower.includes('coordinator') || lower.includes('manager');
-      if (categoryKey === 'photography') return lower.includes('photo') || lower.includes('video') || lower.includes('camera') || lower.includes('drone') || lower.includes('shoot') || lower.includes('film');
-      if (categoryKey === 'music') return lower.includes('music') || lower.includes('dj') || lower.includes('sound') || lower.includes('light') || lower.includes('band') || lower.includes('av');
-      return false;
-    }) || null;
+    const isStandard = ['venue', 'catering', 'decoration', 'transport', 'priest', 'manpower', 'photography', 'music'].includes(categoryKey.toLowerCase());
+    
+    if (isStandard) {
+      return services.find(s => {
+        const lower = s.toLowerCase();
+        if (categoryKey === 'venue') return lower.includes('venue') || lower.includes('suite') || lower.includes('hall') || lower.includes('banquet') || lower.includes('space') || lower.includes('room');
+        if (categoryKey === 'catering') return lower.includes('catering') || lower.includes('dinner') || lower.includes('feast') || lower.includes('food') || lower.includes('meal') || lower.includes('buffet') || lower.includes('veg');
+        if (categoryKey === 'decoration') return lower.includes('decor') || lower.includes('stage') || lower.includes('flower') || lower.includes('theme');
+        if (categoryKey === 'transport') return lower.includes('transport') || lower.includes('car') || lower.includes('travel') || lower.includes('coach') || lower.includes('chauffeur') || lower.includes('cab') || lower.includes('bus');
+        if (categoryKey === 'priest') return lower.includes('priest') || lower.includes('pandit') || lower.includes('pujari') || lower.includes('hawan') || lower.includes('ritual') || lower.includes('vedic');
+        if (categoryKey === 'manpower') return lower.includes('manpower') || lower.includes('staff') || lower.includes('security') || lower.includes('valet') || lower.includes('host') || lower.includes('anchor') || lower.includes('coordinator') || lower.includes('manager');
+        if (categoryKey === 'photography') return lower.includes('photo') || lower.includes('video') || lower.includes('camera') || lower.includes('drone') || lower.includes('shoot') || lower.includes('film');
+        if (categoryKey === 'music') return lower.includes('music') || lower.includes('dj') || lower.includes('sound') || lower.includes('light') || lower.includes('band') || lower.includes('av');
+        return false;
+      }) || null;
+    }
+    
+    return services.find(s => s === categoryKey) || null;
   }
 
   hasCategory(categoryKey: string): boolean {
@@ -277,7 +370,8 @@ export class CustomerBooking implements OnInit, OnDestroy, OnChanges {
         if (pkg) {
           console.log('Loaded Package Data:', pkg);
           this.selectedPackage.set(pkg);
-          this.selectedImage.set(pkg.image || pkg.images?.[0]);
+          const combinedImages = this.getCombinedImages(pkg);
+          this.selectedImage.set(combinedImages[0] || pkg.image);
           
           // Load similar packages (exclude current one)
           this.api.getPackages(pkg.eventTypeId).subscribe(pkgs => {
@@ -290,7 +384,7 @@ export class CustomerBooking implements OnInit, OnDestroy, OnChanges {
           });
           
           // Start slideshow if multiple images exist
-          if (pkg.images?.length > 1) {
+          if (combinedImages.length > 1) {
             this.startSlideshow();
           }
         } else {
@@ -418,12 +512,13 @@ export class CustomerBooking implements OnInit, OnDestroy, OnChanges {
   startSlideshow() {
     this.stopSlideshow();
     this.slideshowInterval = setInterval(() => {
-      const pkg = this.selectedPackage();
-      if (!pkg || !pkg.images || pkg.images.length <= 1) return;
+      const images = this.allGalleryImages();
+      if (images.length <= 1) return;
 
-      const currentIdx = pkg.images.indexOf(this.selectedImage());
-      const nextIdx = (currentIdx + 1) % pkg.images.length;
-      this.selectedImage.set(pkg.images[nextIdx]);
+      const currentVal = this.selectedImage();
+      const currentIdx = currentVal ? images.indexOf(currentVal) : -1;
+      const nextIdx = (currentIdx + 1) % images.length;
+      this.selectedImage.set(images[nextIdx]);
     }, 4000); // Change every 4 seconds
   }
 
@@ -439,6 +534,7 @@ export class CustomerBooking implements OnInit, OnDestroy, OnChanges {
   }
 
   openServiceDetail(serviceName: string) {
+    this.selectedModalImage.set(null);
     // Check if the service has customized inclusion details in the package's inclusionDetails
     const pkg = this.selectedPackage();
     const customDetails = pkg?.inclusionDetails?.[serviceName];

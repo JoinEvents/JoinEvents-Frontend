@@ -103,6 +103,7 @@ export class PackageService extends BaseApiService {
       id: p.id || p.Id,
       vendorId: p.vendorId || p.VendorId,
       vendorName: p.vendorName || p.VendorName || 'JoinEvents Partner',
+      vendorDescription: p.vendorDescription || p.VendorDescription || '',
       category: p.category || p.Category || 'wedding',
       name: p.name || p.Name || 'Unnamed Package',
       description: cleanedDesc,
@@ -221,6 +222,14 @@ export class PackageService extends BaseApiService {
       }
     }
 
+    const sp = p.Spaces || p.spaces || [];
+    const spacesList = sp.map((s: any) => ({
+      name: s.name || s.Name || '',
+      type: s.type || s.Type || '',
+      seatingCapacity: s.seatingCapacity !== undefined ? s.seatingCapacity : s.SeatingCapacity,
+      floatingCapacity: s.floatingCapacity !== undefined ? s.floatingCapacity : s.FloatingCapacity,
+    }));
+
     return {
       id: p.id || p.Id,
       eventTypeId: p.EventTypeId || p.eventTypeId || p.Category || p.category || 'wedding',
@@ -228,6 +237,7 @@ export class PackageService extends BaseApiService {
       vendorId: p.vendorId || p.VendorId,
       name: p.Name || p.name,
       vendorName: p.VendorName || p.vendorName || 'JoinEvents Partner',
+      vendorDescription: p.VendorDescription || p.vendorDescription || '',
       location: cityLoc,
       tier: p.Tier || p.tier || p.Theme || p.theme || 'premium',
       price: priceValue,
@@ -237,6 +247,7 @@ export class PackageService extends BaseApiService {
       roomCount: rooms,
       vegOnly: isVegOnly,
       services: Array.isArray(finalInclusions) ? finalInclusions : [],
+      spaces: spacesList,
       addons: p.Addons || p.addons || [],
       image: primaryImg,
       images: imgs,
