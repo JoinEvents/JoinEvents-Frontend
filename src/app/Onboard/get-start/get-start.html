@@ -35,14 +35,14 @@
       <div class="main-search-bar">
         <div class="search-input-wrap">
           <i class="bi bi-search"></i>
-          <input type="text" placeholder="Search for Venues, Vendors or Packages..." [ngModel]="searchQuery()" (ngModelChange)="searchQuery.set($event)">
+          <input type="text" placeholder="Search for Venues, Vendors or Packages..." [ngModel]="searchQuery()" (ngModelChange)="searchQuery.set($event)" (keyup.enter)="onSearch()">
         </div>
-        <button class="btn-search">Explore Now</button>
+        <button class="btn-search" (click)="onSearch()">Explore Now</button>
       </div>
       
       <div class="quick-chips-container">
         @for (cat of quickCategories; track cat.id) {
-          <a routerLink="/packages" class="category-chip" [style.--cc]="cat.color">
+          <a [routerLink]="['/events']" [queryParams]="{ category: cat.id }" class="category-chip" [style.--cc]="cat.color">
             <i class="bi {{ cat.icon }}"></i>
             {{ cat.name }}
           </a>
@@ -95,7 +95,7 @@
         <span class="section-tag">Explore Top Cities</span>
         <h2 class="discovery-title">Handpicked Premium Venues</h2>
       </div>
-      <a routerLink="/packages" class="btn-ee-primary d-none d-md-flex">View All Venues</a>
+      <a routerLink="/events" class="btn-ee-primary d-none d-md-flex">View All Venues</a>
     </div>
     
     <div class="scroll-snap-container">
@@ -167,7 +167,7 @@
         <span class="section-tag">Experts On Board</span>
         <h2 class="discovery-title">Top Rated Planners</h2>
       </div>
-      <a routerLink="/packages" class="btn-ee-primary d-none d-md-flex">View All Planners</a>
+      <a routerLink="/events" class="btn-ee-primary d-none d-md-flex">View All Planners</a>
     </div>
     
     <div class="scroll-snap-container">
@@ -229,7 +229,7 @@
             <div class="qc-icon"><i class="bi {{ q.icon }}"></i></div>
             <h4 class="qc-title">{{ q.title }}</h4>
             <p class="qc-desc">{{ q.desc }}</p>
-            <a href="#" class="btn-qc">Get Quote <i class="bi bi-arrow-right"></i></a>
+            <a routerLink="/get-quotes" class="btn-qc">Get Quote <i class="bi bi-arrow-right"></i></a>
           </div>
         </div>
       }

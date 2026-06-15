@@ -39,6 +39,9 @@ export class CustomerEvents implements OnInit {
       if (params['category']) {
         this.selectedCategory = params['category'];
       }
+      if (params['q']) {
+        this.search = params['q'];
+      }
       if (this.events().length > 0) {
         this.filterEvents();
         this.cdr.markForCheck();

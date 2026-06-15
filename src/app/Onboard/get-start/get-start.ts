@@ -2,6 +2,7 @@ import { Component, signal, computed, OnInit } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { inject } from '@angular/core';
 import { EventCategoryService } from '../../core/services/event-category.service';
+import { PackageService } from '../../core/services/package.service';
 import { AuthService } from '../../core/services/auth.service';
 import { EventType } from '../../core/models/event.model';
 
@@ -18,6 +19,7 @@ import { ThemeService } from '../../core/services/theme.service';
 })
 export class GetStart implements OnInit {
   private eventCategoryService = inject(EventCategoryService);
+  private packageService = inject(PackageService);
   private auth = inject(AuthService);
   private router = inject(Router);
   public theme = inject(ThemeService);
@@ -27,12 +29,12 @@ export class GetStart implements OnInit {
   searchQuery = signal('');
   
   readonly quickCategories = [
-    { id: 'venues', name: 'Venues', icon: 'bi-building-check', color: '#FF6B35' },
-    { id: 'catering', name: 'Catering', icon: 'bi-egg-fried', color: '#6B21A8' },
-    { id: 'makeup', name: 'Makeup', icon: 'bi-brush', color: '#D946EF' },
-    { id: 'photography', name: 'Photography', icon: 'bi-camera-reels', color: '#0EA5E9' },
-    { id: 'decor', name: 'Decor', icon: 'bi-palette', color: '#10B981' },
-    { id: 'outfits', name: 'Outfits', icon: 'bi-wardrobe', color: '#F59E0B' }
+    { id: 'wedding', name: 'Weddings', icon: 'bi-hearts', color: '#FF6B35' },
+    { id: 'birthday', name: 'Birthdays', icon: 'bi-balloon-heart', color: '#6B21A8' },
+    { id: 'corporate', name: 'Corporate', icon: 'bi-briefcase', color: '#0EA5E9' },
+    { id: 'beauty', name: 'Beauty', icon: 'bi-brush', color: '#D946EF' },
+    { id: 'travel', name: 'Travel', icon: 'bi-car-front-fill', color: '#10B981' },
+    { id: 'shopping', name: 'Shopping', icon: 'bi-bag-heart-fill', color: '#F59E0B' }
   ];
 
   readonly topVenues = signal([
@@ -111,6 +113,15 @@ export class GetStart implements OnInit {
     { title: 'International Wedding', desc: 'Dreaming of a destination wedding? We manage logistics across borders.', icon: 'bi-globe', color: '#D97706', bg: 'https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?auto=format&fit=crop&q=80&w=800' }
   ];
 
+  onSearch() {
+    const q = this.searchQuery().trim();
+    if (q) {
+      this.router.navigate(['/events'], { queryParams: { q } });
+    } else {
+      this.router.navigate(['/events']);
+    }
+  }
+
   ngOnInit() {
     if (this.auth.isAuthenticated()) {
       const role = this.auth.getRole();
@@ -118,6 +129,57 @@ export class GetStart implements OnInit {
       this.router.navigate([path]);
     }
     this.eventCategoryService.getAll().subscribe(types => this.eventTypes.set(types));
+    
+    this.packageService.getPackages().subscribe({
+      next: (packages) => {
+        if (packages && packages.length > 0) {
+          // Map premiumPackages
+          const mappedPackages = packages.map(p => ({
+            id: p.id,
+            name: p.name,
+            price: p.price,
+            pax: p.maxGuests ? `${p.maxGuests} Pax` : '300 Pax',
+            rooms: p.roomCount ? `${p.roomCount} Rooms` : '30 Rooms',
+            catering: p.vegOnly ? 'Pure Veg' : 'Veg/Non-Veg',
+            image: p.image || 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&q=80&w=800',
+            validity: p.offerExpiresIn || '15 Days remaining'
+          }));
+          this.premiumPackages.set(mappedPackages);
+
+          // Map topVenues: filter packages that are wedding/corporate or contain venue keywords
+          const venues = packages
+            .filter(p => p.name.toLowerCase().includes('hall') || p.name.toLowerCase().includes('lawn') || p.name.toLowerCase().includes('venue') || p.category === 'wedding')
+            .map(p => ({
+              id: p.id,
+              name: p.name,
+              city: p.location || 'Hyderabad',
+              image: p.image || 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&q=80&w=800',
+              capacity: p.maxGuests ? `${p.maxGuests} Pax` : '200-800 Pax',
+              type: p.tier || 'Premium Venue'
+            }));
+          if (venues.length > 0) {
+            this.topVenues.set(venues);
+          }
+
+          // Map topPlanners: extract unique vendor information
+          const planners = packages.map(p => ({
+            id: p.vendorId || p.id,
+            name: p.vendorName && p.vendorName !== '' ? p.vendorName : (p.name ? `${p.name.replace(/package|s$/gi, '').trim()} Organizer` : 'DreamCraft Weddings'),
+            rating: p.rating ? p.rating.toFixed(1) : (4.5 + Math.random() * 0.5).toFixed(1),
+            image: p.image || 'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&q=80&w=800',
+            label: p.tier || 'Platinum Partner'
+          }));
+          
+          // Remove duplicate planners by name
+          const uniquePlanners = Array.from(new Map(planners.map(pl => [pl.name, pl])).values()).slice(0, 6);
+          if (uniquePlanners.length > 0) {
+            this.topPlanners.set(uniquePlanners);
+          }
+        }
+      },
+      error: (err) => console.error('Failed to load DB packages for index page:', err)
+    });
+
     setInterval(() => {
       this.currentSlide.update(s => (s + 1) % 3);
     }, 4500);
