@@ -1,69 +1,56 @@
-// TODO: Replace MockApiService with real AdminCustomerService when backend endpoints exist
-// Currently uses local in-memory fallback since no backend customer CRUD or moderation endpoints exist yet
-import { Component, signal, computed, inject } from '@angular/core';
+import { Component, signal, computed, inject, OnInit } from '@angular/core';
 import { TitleCasePipe } from '@angular/common';
-import { of, Observable } from 'rxjs';
+import { HttpClient } from '@angular/common/http';
+import { Observable } from 'rxjs';
+import { map, tap } from 'rxjs/operators';
 import { CustomerProfile } from '../../core/models/user.model';
 import { ConfirmService } from '../../shared/components/confirm-dialog';
 import { AuthService } from '../../core/services/auth.service';
+import { environment } from '../../../environments/environment';
 
-@Component({ selector: 'app-admin-customers', standalone: true, imports: [TitleCasePipe], templateUrl: './admin-customers.html', styleUrl: './admin-customers.css' })
-export class AdminCustomers {
+@Component({
+  selector: 'app-admin-customers',
+  standalone: true,
+  imports: [TitleCasePipe],
+  templateUrl: './admin-customers.html',
+  styleUrl: './admin-customers.css'
+})
+export class AdminCustomers implements OnInit {
   private confirm = inject(ConfirmService);
   private auth = inject(AuthService);
+  private http = inject(HttpClient);
 
   isAdmin = computed(() => this.auth.getRole() === 'admin');
   
-  customers = signal<CustomerProfile[]>([
-    { id: 'c1', name: 'Rajesh Kumar', email: 'customer@demo.com', phone: '+91 98765 43210', city: 'Hyderabad', totalBookings: 3, totalSpent: 546700, joinedDate: '2025-09-01', accountStatus: 'active', role: 'customer', loyaltyPoints: 450, strikes: 0 },
-    { id: 'c2', name: 'Sunita Patel', email: 'sunita@demo.com', phone: '+91 97654 32109', city: 'Bangalore', totalBookings: 1, totalSpent: 265300, joinedDate: '2026-03-10', accountStatus: 'active', role: 'customer', loyaltyPoints: 120, strikes: 0 },
-    { id: 'c3', name: 'Anand Reddy', email: 'anand@demo.com', phone: '+91 96543 21098', city: 'Chennai', totalBookings: 2, totalSpent: 307500, joinedDate: '2026-01-15', accountStatus: 'warning', role: 'customer', loyaltyPoints: 200, strikes: 1, suspensionReason: 'Frequent cancellations' },
-    { id: 'c4', name: 'Meena Sharma', email: 'meena@demo.com', phone: '+91 95432 10987', city: 'Mumbai', totalBookings: 0, totalSpent: 0, joinedDate: '2026-04-18', accountStatus: 'active', role: 'customer', loyaltyPoints: 0, strikes: 0 },
-  ]);
-
+  customers = signal<CustomerProfile[]>([]);
   searchQuery = signal('');
   statusFilter = signal('all');
-
-  private moderateCustomer(customerId: string, action: 'warn' | 'restrict' | 'suspend' | 'ban' | 'reactivate', reason?: string, duration?: string): Observable<boolean> {
-    this.customers.update(customers => 
-      customers.map(c => {
-        if (c.id === customerId) {
-          let status = c.accountStatus;
-          let strikes = c.strikes || 0;
-
-          if (action === 'warn') {
-            status = 'warning';
-            strikes++;
-          } else if (action === 'restrict') {
-            status = 'restricted';
-          } else if (action === 'suspend') {
-            status = 'suspended';
-          } else if (action === 'ban') {
-            status = 'banned';
-          } else if (action === 'reactivate') {
-            status = 'active';
-            strikes = 0;
-          }
-
-          return { 
-            ...c, 
-            accountStatus: status as any,
-            strikes,
-            suspensionReason: action !== 'reactivate' ? reason : undefined,
-            suspensionDuration: action === 'suspend' ? duration : undefined
-          };
-        }
-        return c;
-      })
-    );
-    return of(true);
-  }
 
   // Moderation state
   moderatingCustomer = signal<CustomerProfile | null>(null);
   moderationAction = signal<'warn' | 'restrict' | 'suspend' | 'ban' | ''>('');
   moderationReason = signal('');
   moderationDuration = signal('1_week');
+
+  ngOnInit() {
+    this.loadCustomers();
+  }
+
+  loadCustomers() {
+    this.http.get<CustomerProfile[]>(`${environment.apiUrl}/admin/users/customers`).subscribe(data => {
+      this.customers.set(data || []);
+    });
+  }
+
+  private moderateCustomer(customerId: string, action: 'warn' | 'restrict' | 'suspend' | 'ban' | 'reactivate', reason?: string, duration?: string): Observable<any> {
+    return this.http.post<any>(`${environment.apiUrl}/admin/users/customers/${customerId}/moderate`, {
+      action,
+      reason,
+      duration
+    }).pipe(
+      tap(() => this.loadCustomers())
+    );
+  }
 
   filteredCustomers = computed(() => {
     const query = this.searchQuery().toLowerCase().trim();

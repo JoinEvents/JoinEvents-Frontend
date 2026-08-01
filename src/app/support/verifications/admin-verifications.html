@@ -182,83 +182,181 @@
         </button>
 
         <div class="ee-card p-4 mb-3">
-          <div class="d-flex align-items-start justify-content-between mb-3">
+          <div class="d-flex align-items-start justify-content-between mb-3 border-bottom pb-3">
             <div>
               <h5 class="verif-detail-title">{{ pkg.name }}</h5>
-              <div class="verif-detail-sub">Submitted by: <strong class="text-accent">{{ pkg.vendorName || 'Dream Weddings' }}</strong> · Category: {{ pkg.category | titlecase }}</div>
+              <div class="verif-detail-sub">Submitted by: <strong class="text-accent">{{ pkg.vendorName || 'JoinEvents Partner' }}</strong> · Category: {{ pkg.category || pkg.eventTypeId | titlecase }}</div>
             </div>
             <span class="ee-badge ee-badge-warning">Pending Review</span>
           </div>
 
-          <!-- Horizontal Image Slider -->
+          <!-- Redesigned Interactive Image Gallery -->
           @if (pkg.images && pkg.images.length > 0) {
-            <div class="pkg-preview-section mb-3">
-              <div class="pkg-preview-section-title">Uploaded Photos ({{ pkg.images.length }})</div>
-              <div class="pkg-images-slider">
-                @for (img of pkg.images; track img) {
-                  <img [src]="img" class="pkg-slider-img" alt="Package Photo" />
-                }
+            <div class="pkg-gallery-section mb-4">
+              <div class="pkg-preview-section-title">Package Gallery ({{ pkg.images.length }} Photos)</div>
+              
+              <!-- Large Featured Image -->
+              <div class="pkg-featured-image-container">
+                <img [src]="getImageUrl(activeImage() || pkg.images[0])" class="pkg-featured-image" alt="Featured Package Photo" />
               </div>
+
+              <!-- Thumbnails -->
+              @if (pkg.images.length > 1) {
+                <div class="pkg-thumbnails-gallery">
+                  @for (img of pkg.images; track img) {
+                    <div class="pkg-thumbnail-wrap" 
+                         [class.active]="(activeImage() || pkg.images[0]) === img" 
+                         (click)="activeImage.set(img)">
+                      <img [src]="getImageUrl(img)" class="pkg-thumbnail-img" alt="Package Thumbnail" />
+                    </div>
+                  }
+                </div>
+              }
             </div>
           }
 
           <div class="package-preview-grid">
-            <!-- General and Pricing Details -->
+            <!-- General & Pricing Details -->
             <div class="pkg-preview-section">
               <div class="pkg-preview-section-title">General & Pricing</div>
-              <div class="pkg-detail-kv"><span class="pkg-detail-k">Experience Required</span><span class="pkg-detail-v">{{ pkg.experience }} Years</span></div>
-              <div class="pkg-detail-kv"><span class="pkg-detail-k">Pricing Unit</span><span class="pkg-detail-v">{{ pkg.pricing.unit }}</span></div>
-              
-              @if (pkg.pricing.basePrice) {
-                <div class="pkg-detail-kv"><span class="pkg-detail-k">Base Price</span><span class="pkg-detail-v">₹{{ pkg.pricing.basePrice | number }}</span></div>
+              @if (pkg.experience) {
+                <div class="pkg-detail-kv"><span class="pkg-detail-k">Experience</span><span class="pkg-detail-v">{{ pkg.experience }} Years</span></div>
               }
-              @if (pkg.pricing.rent) {
-                <div class="pkg-detail-kv"><span class="pkg-detail-k">Daily Rent</span><span class="pkg-detail-v">₹{{ pkg.pricing.rent | number }}</span></div>
+              @if (pkg.tier) {
+                <div class="pkg-detail-kv"><span class="pkg-detail-k">Tier / Theme</span><span class="pkg-detail-v">{{ pkg.tier | titlecase }}</span></div>
               }
-              @if (pkg.pricing.vegPrice) {
+              @if (pkg.pricing?.unit) {
+                <div class="pkg-detail-kv"><span class="pkg-detail-k">Pricing Unit</span><span class="pkg-detail-v">{{ pkg.pricing.unit }}</span></div>
+              }
+              @if (pkg.pricing?.basePrice) {
+                <div class="pkg-detail-kv"><span class="pkg-detail-k">Base Price</span><span class="pkg-detail-v text-accent fw-700">₹{{ pkg.pricing.basePrice | number }}</span></div>
+              }
+              @if (pkg.pricing?.rent) {
+                <div class="pkg-detail-kv"><span class="pkg-detail-k">Rent / Day</span><span class="pkg-detail-v text-accent fw-700">₹{{ pkg.pricing.rent | number }}</span></div>
+              }
+              @if (pkg.pricing?.vegPrice) {
                 <div class="pkg-detail-kv"><span class="pkg-detail-k">Veg Plate Price</span><span class="pkg-detail-v">₹{{ pkg.pricing.vegPrice | number }}</span></div>
               }
-              @if (pkg.pricing.nonVegPrice) {
+              @if (pkg.pricing?.nonVegPrice) {
                 <div class="pkg-detail-kv"><span class="pkg-detail-k">Non-Veg Plate Price</span><span class="pkg-detail-v">₹{{ pkg.pricing.nonVegPrice | number }}</span></div>
+              }
+              @if (pkg.pricing?.roomPrice) {
+                <div class="pkg-detail-kv"><span class="pkg-detail-k">Room Price / Night</span><span class="pkg-detail-v">₹{{ pkg.pricing.roomPrice | number }}</span></div>
+              }
+              @if (pkg.pricing?.cuisine) {
+                <div class="pkg-detail-kv"><span class="pkg-detail-k">Cuisine</span><span class="pkg-detail-v">{{ pkg.pricing.cuisine }}</span></div>
+              }
+              @if (pkg.pricing?.cuisineType) {
+                <div class="pkg-detail-kv"><span class="pkg-detail-k">Cuisine Type</span><span class="pkg-detail-v">{{ pkg.pricing.cuisineType }}</span></div>
+              }
+              @if (pkg.price) {
+                <div class="pkg-detail-kv"><span class="pkg-detail-k">Display Price</span><span class="pkg-detail-v text-accent fw-700">₹{{ pkg.price | number }}</span></div>
               }
             </div>
 
-            <!-- Capacity & Amenities Details -->
+            <!-- Location & Address -->
+            <div class="pkg-preview-section">
+              <div class="pkg-preview-section-title">Location & Address</div>
+              @if (pkg.location) {
+                <div class="pkg-detail-kv"><span class="pkg-detail-k">City</span><span class="pkg-detail-v">{{ pkg.location }}</span></div>
+              }
+              @if (pkg.address?.state) {
+                <div class="pkg-detail-kv"><span class="pkg-detail-k">State</span><span class="pkg-detail-v">{{ pkg.address.state }}</span></div>
+              }
+              @if (pkg.address?.locality) {
+                <div class="pkg-detail-kv"><span class="pkg-detail-k">Locality</span><span class="pkg-detail-v">{{ pkg.address.locality }}</span></div>
+              }
+              @if (pkg.address?.street) {
+                <div class="pkg-detail-kv"><span class="pkg-detail-k">Street</span><span class="pkg-detail-v">{{ pkg.address.street }}</span></div>
+              }
+              @if (pkg.address?.landmark) {
+                <div class="pkg-detail-kv"><span class="pkg-detail-k">Landmark</span><span class="pkg-detail-v">{{ pkg.address.landmark }}</span></div>
+              }
+              @if (pkg.address?.pincode) {
+                <div class="pkg-detail-kv"><span class="pkg-detail-k">Pincode</span><span class="pkg-detail-v">{{ pkg.address.pincode }}</span></div>
+              }
+              @if (!pkg.location && !pkg.address?.state && !pkg.address?.locality) {
+                <div class="pkg-detail-kv"><span class="pkg-detail-k text-muted">No address provided</span></div>
+              }
+            </div>
+          </div>
+
+          <div class="package-preview-grid mt-3">
+            <!-- Capacity & Active Amenities Chips -->
             <div class="pkg-preview-section">
               <div class="pkg-preview-section-title">Capacity & Amenities</div>
-              <div class="pkg-detail-kv"><span class="pkg-detail-k">Max Guests Capacity</span><span class="pkg-detail-v">{{ pkg.capacity.maxGuests || 'N/A' }}</span></div>
-              <div class="pkg-detail-kv"><span class="pkg-detail-k">Parking Capacity</span><span class="pkg-detail-v">{{ pkg.capacity.parkingCapacity || 'N/A' }} Cars</span></div>
-              <div class="pkg-detail-kv"><span class="pkg-detail-k">Total Guest Rooms</span><span class="pkg-detail-v">{{ pkg.capacity.totalRooms || '0' }} Rooms</span></div>
-              <div class="pkg-detail-kv"><span class="pkg-detail-k">Air Conditioning (AC)</span><span class="pkg-detail-v">{{ pkg.amenities.hasAc ? 'Yes' : 'No' }}</span></div>
-              <div class="pkg-detail-kv"><span class="pkg-detail-k">Power Backup</span><span class="pkg-detail-v">{{ pkg.amenities.hasPowerBackup ? 'Yes' : 'No' }}</span></div>
-              <div class="pkg-detail-kv"><span class="pkg-detail-k">Changing Rooms</span><span class="pkg-detail-v">{{ pkg.amenities.hasChangingRooms ? 'Yes' : 'No' }}</span></div>
+              <div class="pkg-detail-kv"><span class="pkg-detail-k">Max Guests</span><span class="pkg-detail-v">{{ pkg.capacity?.maxGuests || pkg.maxGuests || 'N/A' }}</span></div>
+              <div class="pkg-detail-kv"><span class="pkg-detail-k">Parking Capacity</span><span class="pkg-detail-v">{{ pkg.capacity?.parkingCapacity || 'N/A' }} Cars</span></div>
+              <div class="pkg-detail-kv"><span class="pkg-detail-k">Guest Rooms</span><span class="pkg-detail-v">{{ pkg.capacity?.totalRooms || pkg.roomCount || 0 }} Rooms</span></div>
+              
+              <div class="pkg-preview-section-title mt-3" style="border-bottom: 0; padding-bottom: 0; margin-bottom: 8px;">Available Features</div>
+              <div class="chip-container">
+                @if (pkg.vegOnly) {
+                  <span class="pkg-chip veg-chip"><i class="bi bi-leaf-fill me-1"></i>Veg Only</span>
+                }
+                @if (pkg.amenities?.hasAc) {
+                  <span class="pkg-chip amenity-chip"><i class="bi bi-wind me-1"></i>Air Conditioning</span>
+                }
+                @if (pkg.amenities?.hasPowerBackup) {
+                  <span class="pkg-chip amenity-chip"><i class="bi bi-lightning-fill me-1"></i>Power Backup</span>
+                }
+                @if (pkg.amenities?.hasChangingRooms) {
+                  <span class="pkg-chip amenity-chip"><i class="bi bi-door-closed-fill me-1"></i>Changing Rooms</span>
+                }
+                @if (pkg.amenities?.hasParking) {
+                  <span class="pkg-chip amenity-chip"><i class="bi bi-p-circle-fill me-1"></i>Parking Onsite</span>
+                }
+                @if (!pkg.vegOnly && !pkg.amenities?.hasAc && !pkg.amenities?.hasPowerBackup && !pkg.amenities?.hasChangingRooms && !pkg.amenities?.hasParking) {
+                  <span class="text-muted small">No specific amenities configured</span>
+                }
+              </div>
+            </div>
+
+            <!-- Rating & Status -->
+            <div class="pkg-preview-section">
+              <div class="pkg-preview-section-title">Rating & Metrics</div>
+              <div class="pkg-detail-kv"><span class="pkg-detail-k">Rating</span><span class="pkg-detail-v">⭐ {{ pkg.rating || 0 }}</span></div>
+              <div class="pkg-detail-kv"><span class="pkg-detail-k">Total Reviews</span><span class="pkg-detail-v">{{ pkg.totalReviews || 0 }}</span></div>
+              @if (pkg.sustainabilityTags && pkg.sustainabilityTags.length > 0) {
+                <div class="pkg-detail-kv"><span class="pkg-detail-k">Sustainability</span>
+                  <span class="pkg-detail-v">
+                    @for (tag of pkg.sustainabilityTags; track tag) {
+                      <span class="pkg-chip" style="font-size:0.7rem; background: rgba(16, 185, 129, 0.08); border-color: rgba(16, 185, 129, 0.2); color: #059669;">🌿 {{ tag }}</span>
+                    }
+                  </span>
+                </div>
+              }
             </div>
           </div>
         </div>
 
-        <!-- Spaces Table & Description -->
+        <!-- Redesigned Description & Spaces -->
         <div class="ee-card p-4 mb-3">
-          <div class="pkg-preview-section-title">Description & Spaces</div>
-          <p class="text-secondary fs-6 mb-3" style="line-height:1.6;">{{ pkg.description }}</p>
+          <div class="pkg-preview-section-title">Service Description</div>
+          <div class="pkg-description-box">{{ pkg.description || 'No description provided.' }}</div>
           
           @if (pkg.spaces && pkg.spaces.length > 0) {
-            <h6 class="section-mini-heading" style="font-size:0.8rem;">Event Schedule & Day-wise Plan</h6>
+            <h6 class="section-mini-heading mt-4" style="font-size:0.85rem; margin-bottom: 10px;">Venue Spaces / Day-wise Plan</h6>
             <div class="table-responsive">
               <table class="pkg-spaces-table mb-3">
                 <thead>
                   <tr>
-                    <th style="width: 25%;">Day / Title</th>
-                    <th>What the Vendor will do</th>
+                    <th style="width: 22%;">Space / Day</th>
+                    <th style="width: 18%;">Type</th>
+                    <th style="width: 30%;">Seating Capacity</th>
+                    <th>Floating Capacity</th>
                   </tr>
                 </thead>
                 <tbody>
                   @for (space of pkg.spaces; track space.name; let idx = $index) {
                     <tr>
                       <td>
-                        <span class="badge bg-primary-subtle text-primary border-0 fw-700 px-2 py-1 mb-1" style="font-size: 0.65rem;">DAY {{ idx + 1 }}</span>
+                        <span class="badge bg-primary-subtle text-primary border-0 fw-700 px-2 py-1 mb-1" style="font-size: 0.65rem;">{{ idx + 1 }}</span>
                         <div class="fw-800 text-dark">{{ space.name }}</div>
                       </td>
-                      <td style="white-space: pre-line; line-height: 1.5; font-size: 0.85rem;" class="text-secondary">{{ space.type }}</td>
+                      <td class="text-secondary" style="font-size:0.85rem;">{{ space.type }}</td>
+                      <td class="text-secondary" style="font-size:0.85rem;">{{ space.seatingCapacity || '—' }}</td>
+                      <td class="text-secondary" style="font-size:0.85rem;">{{ space.floatingCapacity || '—' }}</td>
                     </tr>
                   }
                 </tbody>
@@ -267,26 +365,108 @@
           }
         </div>
 
-        <!-- Policies & Inclusions -->
+        <!-- NEW: Redesigned Detailed Service Inclusions Accordion -->
+        @if (getInclusionKeys(pkg).length > 0) {
+          <div class="ee-card p-4 mb-3">
+            <div class="pkg-preview-section-title">Detailed Service Inclusions</div>
+            <div class="inclusion-accordion">
+              @for (key of getInclusionKeys(pkg); track key) {
+                @if (pkg.inclusionDetails[key]; as detail) {
+                  <div class="inclusion-accordion-item" [class.expanded]="expandedInclusion() === key">
+                    <div class="inclusion-accordion-header" (click)="toggleInclusion(key)">
+                      <div class="d-flex align-items-center gap-2">
+                        <i class="bi" [class.bi-chevron-down]="expandedInclusion() !== key" [class.bi-chevron-up]="expandedInclusion() === key"></i>
+                        <span class="inclusion-title">{{ key }}</span>
+                      </div>
+                      @if (detail.minPrice || detail.maxPrice) {
+                        <span class="inclusion-price-range">
+                          ₹{{ detail.minPrice | number }} - ₹{{ detail.maxPrice | number }}
+                        </span>
+                      }
+                    </div>
+
+                    @if (expandedInclusion() === key) {
+                      <div class="inclusion-accordion-body">
+                        @if (detail.description) {
+                          <p class="inclusion-desc">{{ detail.description }}</p>
+                        }
+
+                        @if (detail.keyFeatures && detail.keyFeatures.length > 0) {
+                          <div class="inclusion-meta-section mt-3">
+                            <span class="meta-label">Key Features</span>
+                            <div class="chip-container mt-1">
+                              @for (kf of detail.keyFeatures; track kf) {
+                                <span class="pkg-chip secondary">{{ kf }}</span>
+                              }
+                            </div>
+                          </div>
+                        }
+
+                        @if (detail.inclusions && detail.inclusions.length > 0) {
+                          <div class="inclusion-meta-section mt-3">
+                            <span class="meta-label">Specific Deliverables Included</span>
+                            <ul class="specifics-list mt-1">
+                              @for (sub of detail.inclusions; track sub) {
+                                <li>{{ sub }}</li>
+                              }
+                            </ul>
+                          </div>
+                        }
+
+                        @if (detail.images && detail.images.length > 0) {
+                          <div class="inclusion-meta-section mt-3">
+                            <span class="meta-label">Visual Reference / Photos</span>
+                            <div class="pkg-images-slider mt-2">
+                              @for (img of detail.images; track img) {
+                                <img [src]="getImageUrl(img)" class="pkg-slider-img" alt="Inclusion Reference Photo" />
+                              }
+                            </div>
+                          </div>
+                        }
+                      </div>
+                    }
+                  </div>
+                }
+              }
+            </div>
+          </div>
+        }
+
+        <!-- Policies & Inclusions fallback -->
         <div class="ee-card p-4 mb-3">
           <div class="package-preview-grid mt-0">
             <div class="pkg-preview-section">
               <div class="pkg-preview-section-title">Operating Policies</div>
-              <div class="pkg-detail-kv"><span class="pkg-detail-k">Catering Policy</span><span class="pkg-detail-v">{{ pkg.policies.cateringPolicy || 'Flexible' }}</span></div>
-              <div class="pkg-detail-kv"><span class="pkg-detail-k">Decor Policy</span><span class="pkg-detail-v">{{ pkg.policies.decorPolicy || 'Flexible' }}</span></div>
-              <div class="pkg-detail-kv"><span class="pkg-detail-k">Alcohol Policy</span><span class="pkg-detail-v">{{ pkg.policies.alcoholPolicy || 'Flexible' }}</span></div>
-              <div class="pkg-detail-kv"><span class="pkg-detail-k">DJ Policy</span><span class="pkg-detail-v">{{ pkg.policies.djPolicy || 'Flexible' }}</span></div>
+              <div class="pkg-detail-kv"><span class="pkg-detail-k">Catering Policy</span><span class="pkg-detail-v">{{ pkg.policies?.cateringPolicy || 'Not specified' }}</span></div>
+              <div class="pkg-detail-kv"><span class="pkg-detail-k">Decor Policy</span><span class="pkg-detail-v">{{ pkg.policies?.decorPolicy || 'Not specified' }}</span></div>
+              <div class="pkg-detail-kv"><span class="pkg-detail-k">Alcohol Policy</span><span class="pkg-detail-v">{{ pkg.policies?.alcoholPolicy || 'Not specified' }}</span></div>
+              <div class="pkg-detail-kv"><span class="pkg-detail-k">DJ Policy</span><span class="pkg-detail-v">{{ pkg.policies?.djPolicy || 'Not specified' }}</span></div>
             </div>
 
             <div class="pkg-preview-section">
-              <div class="pkg-preview-section-title">Service Inclusions</div>
+              <div class="pkg-preview-section-title">Summary Inclusions (Plain List)</div>
               <div class="chip-container">
-                @for (inc of pkg.includes; track inc) {
-                  <span class="pkg-chip">{{ inc }}</span>
-                } @empty {
+                @if (pkg.includes && pkg.includes.length > 0) {
+                  @for (inc of pkg.includes; track inc) {
+                    <span class="pkg-chip">{{ inc }}</span>
+                  }
+                } @else if (pkg.services && pkg.services.length > 0) {
+                  @for (svc of pkg.services; track svc) {
+                    <span class="pkg-chip">{{ svc }}</span>
+                  }
+                } @else {
                   <span class="text-muted fs-6">No specific inclusions defined.</span>
                 }
               </div>
+
+              @if (pkg.addons && pkg.addons.length > 0) {
+                <div class="pkg-preview-section-title mt-3">Add-ons</div>
+                <div class="chip-container">
+                  @for (addon of pkg.addons; track addon) {
+                    <span class="pkg-chip" style="background: rgba(245, 158, 11, 0.08); border-color: rgba(245, 158, 11, 0.2); color: #d97706;">{{ addon }}</span>
+                  }
+                </div>
+              }
             </div>
           </div>
         </div>

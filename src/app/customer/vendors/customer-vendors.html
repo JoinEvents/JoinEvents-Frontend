@@ -62,7 +62,7 @@
     <div class="q-chip" [class.active]="filterEcoFriendly()" (click)="updateFilter('eco', !filterEcoFriendly())">🌿 Eco-Friendly Only</div>
   </div>
 
-  @if (loading()) {
+  @if (loading() || checkingAvailability()) {
     <div class="row g-3 g-md-4 g-lg-5">
       @for (i of [1, 2, 3]; track i) {
         <div class="col-12 col-md-6 col-lg-4">

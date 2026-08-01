@@ -244,6 +244,14 @@
 .meta-item i { color: var(--primary); font-size: 1rem; }
 .meta-sub { font-weight: 500; color: var(--text-soft); }
 
+.meta-item-clickable {
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+.meta-item-clickable:hover {
+  opacity: 0.8;
+}
+
 /* MAIN GRID */
 .booking-grid {
   display: grid;
@@ -255,7 +263,7 @@
 /* STATS ROW */
 .stats-row {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 16px;
   margin-bottom: 24px;
 }
@@ -281,6 +289,36 @@
 }
 .stat-icon.guests { background: rgba(107,33,168,0.1); color: var(--secondary); }
 .stat-icon.tier { background: rgba(245,158,11,0.1); color: var(--accent); }
+.stat-icon.cuisine { background: rgba(34,197,94,0.1); color: #22c55e; }
+
+.food-badge {
+  color: white;
+  padding: 6px 18px;
+  border-radius: 50px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(4px);
+}
+.veg-badge {
+  background: rgba(34, 197, 94, 0.85);
+  border: 1px solid rgba(34, 197, 94, 0.5);
+}
+.nonveg-badge {
+  background: rgba(239, 68, 68, 0.85);
+  border: 1px solid rgba(239, 68, 68, 0.5);
+}
+.mix-badge {
+  background: rgba(245, 158, 11, 0.85);
+  border: 1px solid rgba(245, 158, 11, 0.5);
+}
+.cuisine-badge {
+  background: rgba(124, 58, 237, 0.85);
+  border: 1px solid rgba(124, 58, 237, 0.5);
+}
 
 .stat-label { display: block; font-size: 0.7rem; font-weight: 700; color: var(--text-soft); text-transform: uppercase; letter-spacing: 0.5px; }
 .stat-val { display: block; font-size: 1.05rem; font-weight: 800; color: var(--text-main); margin-top: 2px; }
@@ -2163,6 +2201,13 @@
   font-size: 1.1rem;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.reviewer-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
 }
 
 .reviewer-meta-box {

@@ -136,6 +136,36 @@ export class AuthService {
     );
   }
 
+  socialLogin(token: string, provider: string): Observable<{ success: boolean; message: string }> {
+    localStorage.removeItem('joinevents_user');
+    this.currentUser.set(null);
+
+    return this.http.post<any>(`${this.apiUrl}/auth/social-login`, { token, provider }).pipe(
+      map(response => {
+        if (response && response.token) {
+          const user: AuthUser = {
+            id: response.user.id,
+            name: response.user.name,
+            email: response.user.email,
+            role: response.user?.role || 'customer',
+            avatar: response.user?.avatar,
+            token: response.token || response.AccessToken || response.accessToken
+          };
+          localStorage.setItem('joinevents_user', JSON.stringify(user));
+          this.currentUser.set(user);
+          return { success: true, message: 'Login successful!' };
+        }
+        return { success: false, message: 'Invalid response from server.' };
+      }),
+      catchError(error => {
+        let msg = 'Social login failed.';
+        if (error.error && error.error.error) msg = error.error.error;
+        else if (error.message) msg = error.message;
+        return of({ success: false, message: msg });
+      })
+    );
+  }
+
   /** [SECURITY] Server-side token invalidation + local cleanup */
   logout(): void {
     const token = this.currentUser()?.token;

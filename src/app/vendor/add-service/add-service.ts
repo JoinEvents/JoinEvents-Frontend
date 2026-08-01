@@ -2,6 +2,7 @@ import { Component, signal, OnInit, OnDestroy, inject, computed, ViewChild, Elem
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
+import { HttpClient } from '@angular/common/http';
 import { VendorPackageService } from '../../core/services/vendor-package.service';
 import { EventCategoryService } from '../../core/services/event-category.service';
 import { ServiceCategoryDef } from '../../core/models/service.model';
@@ -57,6 +58,10 @@ export class VendorAddService implements OnInit, OnDestroy {
   private toast = inject(ToastService);
   private vendorService = inject(VendorService);
   private profileService = inject(ProfileService);
+  private http = inject(HttpClient);
+
+  suggestions = signal<any[]>([]);
+  searchQuery = '';
 
   // KYC and Profile Verification Signals
   showKycBlock = signal(false);
@@ -104,10 +109,8 @@ export class VendorAddService implements OnInit, OnDestroy {
         return;
       }
       this.addressSearchElement = content;
-      setTimeout(() => this.initAutocomplete(), 150);
     } else {
       this.addressSearchElement = null as any;
-      this.autocomplete = null;
     }
   }
   @ViewChild('mapContainer') set mapContainer(content: ElementRef) {
@@ -191,6 +194,8 @@ export class VendorAddService implements OnInit, OnDestroy {
     // Pricing
     vegPrice: 0,
     nonVegPrice: 0,
+    cuisine: '',
+    cuisineType: 'veg',
     roomPrice: 0,
     basePrice: 0,
     rent: 0,
@@ -296,22 +301,29 @@ export class VendorAddService implements OnInit, OnDestroy {
       this.loadServiceData(id);
     }
 
-    this.loadGoogleMapsScript();
+    this.loadLeafletScript();
   }
 
-  loadGoogleMapsScript() {
-    if (typeof google !== 'undefined' && google.maps && google.maps.places) {
-      this.initAutocomplete();
+  loadLeafletScript() {
+    if (typeof (window as any).L !== 'undefined') {
       this.initMap();
       return;
     }
 
-    const scriptId = 'google-maps-script';
+    const cssId = 'leaflet-css';
+    if (!document.getElementById(cssId)) {
+      const link = document.createElement('link');
+      link.id = cssId;
+      link.rel = 'stylesheet';
+      link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+      document.head.appendChild(link);
+    }
+
+    const scriptId = 'leaflet-script';
     let script = document.getElementById(scriptId) as HTMLScriptElement;
     if (script) {
       script.addEventListener('load', () => {
         this.ngZone.run(() => {
-          this.initAutocomplete();
           this.initMap();
         });
       });
@@ -320,130 +332,148 @@ export class VendorAddService implements OnInit, OnDestroy {
 
     script = document.createElement('script');
     script.id = scriptId;
-    script.src = 'https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY&libraries=places';
+    script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
     script.async = true;
-    script.defer = true;
     script.onload = () => {
       this.ngZone.run(() => {
-        this.initAutocomplete();
         this.initMap();
       });
     };
     script.onerror = (err) => {
-      if (!environment.production) { console.error('Failed to load Google Maps script dynamically:', err); }
+      if (!environment.production) { console.error('Failed to load Leaflet script dynamically:', err); }
     };
     document.head.appendChild(script);
-  }
-
-  initAutocomplete() {
-    if (this.autocomplete) return;
-    if (!this.addressSearchElement || !this.addressSearchElement.nativeElement) {
-      if (!environment.production) { console.warn('Skipping Google Autocomplete: Element not found in DOM.'); }
-      return;
-    }
-    if (typeof google === 'undefined' || !google.maps || !google.maps.places) {
-      if (!environment.production) { console.warn('Google Maps API not loaded yet for autocomplete.'); }
-      return;
-    }
-    try {
-      this.autocomplete = new google.maps.places.Autocomplete(this.addressSearchElement.nativeElement, {
-        componentRestrictions: { country: 'in' },
-        fields: ['address_components', 'geometry']
-      });
-
-      this.autocomplete.addListener('place_changed', () => {
-        this.ngZone.run(() => {
-          const place = this.autocomplete.getPlace();
-          if (!place.geometry || !place.geometry.location) return;
-
-          this.updateAddressFromPlace(place);
-          this.updateMapLocation(place.geometry.location);
-        });
-      });
-    } catch (err) {
-      if (!environment.production) { console.error('Failed to initialize Google Autocomplete:', err); }
-    }
   }
 
   initMap() {
     if (this.map) return;
     if (!this.mapElement || !this.mapElement.nativeElement) {
-      if (!environment.production) { console.warn('Skipping Google Map: Map container element not found in DOM.'); }
+      if (!environment.production) { console.warn('Skipping Leaflet Map: Map container element not found in DOM.'); }
       return;
     }
-    if (typeof google === 'undefined' || !google.maps) {
-      if (!environment.production) { console.warn('Google Maps API not loaded yet for map.'); }
+    if (!document.body.contains(this.mapElement.nativeElement) || !this.mapElement.nativeElement.parentElement) {
+      if (!environment.production) { console.warn('Leaflet Map: Element is detached. Retrying in 100ms.'); }
+      setTimeout(() => this.initMap(), 100);
+      return;
+    }
+    if (typeof (window as any).L === 'undefined') {
+      if (!environment.production) { console.warn('Leaflet library not loaded yet.'); }
       return;
     }
     try {
-      const defaultLoc = { lat: 17.3850, lng: 78.4867 }; // Hyderabad
-      this.map = new google.maps.Map(this.mapElement.nativeElement, {
-        center: defaultLoc,
-        zoom: 13,
-        mapTypeControl: false,
-        streetViewControl: false
-      });
+      const L = (window as any).L;
+      const defaultLoc: [number, number] = [17.3850, 78.4867]; // Hyderabad
+      this.map = L.map(this.mapElement.nativeElement).setView(defaultLoc, 13);
+      
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+      }).addTo(this.map);
 
-      this.marker = new google.maps.Marker({
-        position: defaultLoc,
-        map: this.map,
-        draggable: true
+      // Fix default marker icon issues with CDNs
+      const DefaultIcon = L.icon({
+        iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+        shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41]
       });
+      L.Marker.prototype.options.icon = DefaultIcon;
 
-      this.marker.addListener('dragend', () => {
-        const pos = this.marker.getPosition();
-        if (pos) {
-          this.reverseGeocode(pos);
+      this.marker = L.marker(defaultLoc, { draggable: true }).addTo(this.map);
+
+      this.marker.on('dragend', () => {
+        const position = this.marker.getLatLng();
+        if (position) {
+          this.reverseGeocode(position.lat, position.lng);
         }
       });
 
-      this.map.addListener('click', (event: any) => {
-        if (event.latLng) {
-          this.updateMapLocation(event.latLng);
-          this.reverseGeocode(event.latLng);
+      this.map.on('click', (event: any) => {
+        if (event.latlng) {
+          this.updateMapLocation(event.latlng.lat, event.latlng.lng);
+          this.reverseGeocode(event.latlng.lat, event.latlng.lng);
         }
       });
     } catch (err) {
-      if (!environment.production) { console.error('Failed to initialize Google Map:', err); }
+      if (!environment.production) { console.error('Failed to initialize Leaflet Map:', err); }
     }
   }
 
-  updateMapLocation(location: any) {
-    this.map.setCenter(location);
-    this.marker.setPosition(location);
-    this.map.setZoom(17);
+  updateMapLocation(lat: number, lng: number) {
+    if (this.map) {
+      this.map.setView([lat, lng], 17);
+    }
+    if (this.marker) {
+      this.marker.setLatLng([lat, lng]);
+    }
   }
 
-  updateAddressFromPlace(place: any) {
-    const components = place.address_components || [];
+  updateAddressFromNominatim(res: any) {
+    const addr = res.address || {};
     
-    // Reset fields
-    this.formData.state = '';
-    this.formData.city = '';
-    this.formData.locality = '';
-    this.formData.street = '';
-    this.formData.pincode = '';
-
-    components.forEach((c: any) => {
-      const types = c.types;
-      if (types.includes('administrative_area_level_1')) this.formData.state = c.long_name;
-      if (types.includes('locality')) this.formData.city = c.long_name;
-      if (types.includes('sublocality_level_1')) this.formData.locality = c.long_name;
-      if (types.includes('route')) this.formData.street = c.long_name;
-      if (types.includes('postal_code')) this.formData.pincode = c.long_name;
-    });
+    // Reset and map fields
+    this.formData.state = addr.state || '';
+    this.formData.city = addr.city || addr.town || addr.municipality || '';
+    this.formData.locality = addr.suburb || addr.neighbourhood || addr.village || '';
+    this.formData.street = addr.road || '';
+    this.formData.pincode = addr.postcode || '';
+    this.formData.country = addr.country || 'India';
   }
 
-  reverseGeocode(latLng: any) {
-    const geocoder = new google.maps.Geocoder();
-    geocoder.geocode({ location: latLng }, (results: any, status: any) => {
-      if (status === 'OK' && results && results[0]) {
-        this.ngZone.run(() => {
-          this.updateAddressFromPlace(results[0]);
-          this.addressSearchElement.nativeElement.value = results[0].formatted_address;
-        });
+  reverseGeocode(lat: number, lng: number) {
+    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`;
+    this.http.get<any>(url, { headers: { 'X-Suppress-Errors': 'true' } }).subscribe({
+      next: (res) => {
+        if (res) {
+          this.ngZone.run(() => {
+            this.updateAddressFromNominatim(res);
+            if (res.display_name && this.addressSearchElement && this.addressSearchElement.nativeElement) {
+              this.addressSearchElement.nativeElement.value = res.display_name;
+              this.searchQuery = res.display_name;
+            }
+          });
+        }
+      },
+      error: (err) => {
+        console.error('Nominatim reverse geocode failed:', err);
       }
     });
+  }
+
+  onSearchQueryChange(query: string) {
+    this.searchQuery = query;
+    if (!query || query.trim().length < 3) {
+      this.suggestions.set([]);
+      return;
+    }
+    
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=in&limit=5&addressdetails=1`;
+    this.http.get<any[]>(url, { headers: { 'X-Suppress-Errors': 'true' } }).subscribe({
+      next: (res) => {
+        this.suggestions.set(res || []);
+      },
+      error: (err) => {
+        console.error('Nominatim search failed:', err);
+      }
+    });
+  }
+
+  selectSuggestion(item: any) {
+    this.suggestions.set([]);
+    this.searchQuery = item.display_name;
+    if (this.addressSearchElement && this.addressSearchElement.nativeElement) {
+      this.addressSearchElement.nativeElement.value = item.display_name;
+    }
+    
+    this.updateAddressFromNominatim(item);
+    
+    const lat = parseFloat(item.lat);
+    const lon = parseFloat(item.lon);
+    if (!isNaN(lat) && !isNaN(lon)) {
+      this.updateMapLocation(lat, lon);
+    }
   }
 
   loadServiceData(id: string) {
@@ -461,11 +491,11 @@ export class VendorAddService implements OnInit, OnDestroy {
         const rawDesc = svc.description || svc.Description || '';
         let cleanedDesc = rawDesc;
         let parsedInclusionDetails: any = {};
-        if (rawDesc.includes('\n\n---INCLUSION_DETAILS---\n')) {
-          const parts = rawDesc.split('\n\n---INCLUSION_DETAILS---\n');
-          cleanedDesc = parts[0];
+        if (rawDesc.includes('---INCLUSION_DETAILS---')) {
+          const parts = rawDesc.split('---INCLUSION_DETAILS---');
+          cleanedDesc = parts[0].trim();
           try {
-            parsedInclusionDetails = JSON.parse(parts[1]) || {};
+            parsedInclusionDetails = JSON.parse(parts[1].trim()) || {};
           } catch (e) {
             if (!environment.production) { console.error('Failed to parse inclusion details JSON in loadServiceData', e); }
           }
@@ -496,6 +526,8 @@ export class VendorAddService implements OnInit, OnDestroy {
           this.formData.basePrice = pricing.basePrice || pricing.BasePrice || 0;
           this.formData.rent = pricing.rent || pricing.Rent || 0;
           this.formData.unit = pricing.unit || pricing.Unit || 'per event';
+          this.formData.cuisine = pricing.cuisine || pricing.Cuisine || '';
+          this.formData.cuisineType = pricing.cuisineType || pricing.CuisineType || 'veg';
         }
 
         // Hydrate Capacity
@@ -660,10 +692,24 @@ export class VendorAddService implements OnInit, OnDestroy {
 
       // Check pricing
       if (inc.toLowerCase() === 'catering') {
-        if (!this.formData.vegPrice || this.formData.vegPrice <= 0) {
-          this.toast.error('Veg Price (Per Plate) is required and must be greater than ₹0.');
+        if (!this.formData.cuisine || !this.formData.cuisine.trim()) {
+          this.toast.error('Cuisine is required.');
           this.activeInclusionTab.set(inc);
           return false;
+        }
+        if (this.formData.cuisineType === 'veg' || this.formData.cuisineType === 'mixed') {
+          if (!this.formData.vegPrice || this.formData.vegPrice <= 0) {
+            this.toast.error('Veg Price (Per Plate) is required and must be greater than ₹0.');
+            this.activeInclusionTab.set(inc);
+            return false;
+          }
+        }
+        if (this.formData.cuisineType === 'nonveg' || this.formData.cuisineType === 'mixed') {
+          if (!this.formData.nonVegPrice || this.formData.nonVegPrice <= 0) {
+            this.toast.error('Non-Veg Price (Per Plate) is required and must be greater than ₹0.');
+            this.activeInclusionTab.set(inc);
+            return false;
+          }
         }
       } else if (inc.toLowerCase() === 'venue') {
         if (!this.formData.rent || this.formData.rent <= 0) {
@@ -769,7 +815,7 @@ export class VendorAddService implements OnInit, OnDestroy {
       } else {
         let defaultPrice = 0;
         if (inc.toLowerCase() === 'catering') {
-          defaultPrice = this.formData.vegPrice || 0;
+          defaultPrice = this.formData.vegPrice || this.formData.nonVegPrice || 0;
         } else if (inc.toLowerCase() === 'venue') {
           defaultPrice = this.formData.rent || 0;
         }
@@ -906,8 +952,16 @@ export class VendorAddService implements OnInit, OnDestroy {
   onCateringPriceChange(incName: string) {
     const details = this.inclusionDetails()[incName];
     if (details) {
-      details.minPrice = this.formData.vegPrice || 0;
-      details.maxPrice = this.formData.vegPrice || 0;
+      if (this.formData.cuisineType === 'veg') {
+        details.minPrice = this.formData.vegPrice || 0;
+        details.maxPrice = this.formData.vegPrice || 0;
+      } else if (this.formData.cuisineType === 'nonveg') {
+        details.minPrice = this.formData.nonVegPrice || 0;
+        details.maxPrice = this.formData.nonVegPrice || 0;
+      } else { // mixed
+        details.minPrice = Math.min(this.formData.vegPrice || 0, this.formData.nonVegPrice || 0);
+        details.maxPrice = Math.max(this.formData.vegPrice || 0, this.formData.nonVegPrice || 0);
+      }
       this.validateInclusionPrices(incName);
     }
   }
@@ -1358,12 +1412,14 @@ export class VendorAddService implements OnInit, OnDestroy {
       },
       
       pricing: {
-        vegPrice: this.formData.vegPrice,
-        nonVegPrice: this.formData.nonVegPrice,
+        vegPrice: this.formData.cuisineType === 'nonveg' ? 0 : this.formData.vegPrice,
+        nonVegPrice: this.formData.cuisineType === 'veg' ? 0 : this.formData.nonVegPrice,
         roomPrice: this.formData.roomPrice,
         basePrice: this.formData.basePrice,
         rent: this.formData.rent,
-        unit: this.formData.unit
+        unit: this.formData.unit,
+        cuisine: this.formData.cuisine,
+        cuisineType: this.formData.cuisineType
       },
       
       capacity: {

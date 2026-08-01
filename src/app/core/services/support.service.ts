@@ -230,6 +230,19 @@ export class SupportService extends BaseApiService {
 
     const am = p.Amenities || p.amenities || {};
 
+    let rawDesc = p.Description || p.description || '';
+    let cleanedDesc = rawDesc;
+    let inclusionDetails = {};
+    if (rawDesc.includes('---INCLUSION_DETAILS---')) {
+      const parts = rawDesc.split('---INCLUSION_DETAILS---');
+      cleanedDesc = parts[0].trim();
+      try {
+        inclusionDetails = JSON.parse(parts[1].trim()) || {};
+      } catch (e) {
+        console.error('Failed to parse inclusion details in SupportService.normalizePackage', e);
+      }
+    }
+
     return {
       id: p.id || p.Id,
       eventTypeId: p.eventTypeId || p.EventTypeId || p.Category || p.category || 'wedding',
@@ -238,7 +251,8 @@ export class SupportService extends BaseApiService {
       location: cityLoc,
       tier: p.Tier || p.tier || p.Theme || p.theme || 'premium',
       price: priceValue,
-      description: p.Description || p.description,
+      description: cleanedDesc,
+      inclusionDetails: inclusionDetails,
       maxGuests: guests,
       roomCount: rooms,
       vegOnly: isVegOnly,

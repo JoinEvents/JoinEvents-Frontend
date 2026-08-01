@@ -33,6 +33,26 @@ export class AdminVerifications implements OnInit {
     return `${base}${avatar}`;
   }
 
+  getImageUrl(url: string | undefined | null): string {
+    if (!url) return 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&q=80&w=800';
+    if (url.startsWith('http')) return url;
+    const base = environment.apiUrl.replace('/api/v1', '');
+    return `${base}${url.startsWith('/') ? '' : '/'}${url}`;
+  }
+
+  getInclusionKeys(pkg: any): string[] {
+    if (!pkg || !pkg.inclusionDetails) return [];
+    return Object.keys(pkg.inclusionDetails);
+  }
+
+  toggleInclusion(key: string) {
+    if (this.expandedInclusion() === key) {
+      this.expandedInclusion.set(null);
+    } else {
+      this.expandedInclusion.set(key);
+    }
+  }
+
   activeTab = signal<'vendors' | 'packages'>('vendors');
 
   // Vendor profiles verifications
@@ -60,6 +80,8 @@ export class AdminVerifications implements OnInit {
   // Packages verifications
   pendingPackages = signal<any[]>([]);
   selectedPackage = signal<any | null>(null);
+  activeImage = signal<string | null>(null);
+  expandedInclusion = signal<string | null>(null);
 
   remarks = '';
   actionDone = signal<string | null>(null);
@@ -159,6 +181,8 @@ export class AdminVerifications implements OnInit {
     this.selectedPackage.set(pkg);
     this.remarks = '';
     this.actionDone.set(null);
+    this.activeImage.set(null);
+    this.expandedInclusion.set(null);
   }
 
   approve(id: string) {

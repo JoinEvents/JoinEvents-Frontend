@@ -63,13 +63,36 @@ export class AnalyticsService {
           }
         });
 
-        const top5VendorsByEarnings = [
-          { vendorId: 'v1', vendorName: 'Spice Garden Catering', totalEarnings: 450000, category: 'Catering' },
-          { vendorId: 'v2', vendorName: 'Blooms & Bliss Decor', totalEarnings: 320000, category: 'Decoration' },
-          { vendorId: 'v3', vendorName: 'Grand Hyatt Lawn', totalEarnings: 280000, category: 'Venue' },
-          { vendorId: 'v4', vendorName: 'Pixel Perfect Photography', totalEarnings: 150000, category: 'Photography' },
-          { vendorId: 'v5', vendorName: 'DJ Spark', totalEarnings: 90000, category: 'Music' }
-        ];
+        // Calculate top 5 vendors by earnings dynamically from real bookings
+        const vendorEarningsMap: Record<string, { vendorName: string, totalEarnings: number, category: string }> = {};
+        bookings.forEach(b => {
+          const status = b.status?.toLowerCase();
+          if (status === 'confirmed' || status === 'completed' || status === 'settled' || status === 'paid') {
+            const vId = b.vendorId || 'unknown';
+            const vName = b.vendorName || 'Vendor Partner';
+            const cat = b.eventTypeId || 'wedding';
+            if (!vendorEarningsMap[vId]) {
+              vendorEarningsMap[vId] = { vendorName: vName, totalEarnings: 0, category: cat };
+            }
+            vendorEarningsMap[vId].totalEarnings += b.totalAmount;
+          }
+        });
+
+        let top5VendorsByEarnings = Object.entries(vendorEarningsMap)
+          .map(([vendorId, data]) => ({ vendorId, ...data }))
+          .sort((a, b) => b.totalEarnings - a.totalEarnings)
+          .slice(0, 5);
+
+        // Fallback default list if no bookings are present in the DB
+        if (top5VendorsByEarnings.length === 0) {
+          top5VendorsByEarnings = [
+            { vendorId: 'v1', vendorName: 'Spice Garden Catering', totalEarnings: 450000, category: 'Catering' },
+            { vendorId: 'v2', vendorName: 'Blooms & Bliss Decor', totalEarnings: 320000, category: 'Decoration' },
+            { vendorId: 'v3', vendorName: 'Grand Hyatt Lawn', totalEarnings: 280000, category: 'Venue' },
+            { vendorId: 'v4', vendorName: 'Pixel Perfect Photography', totalEarnings: 150000, category: 'Photography' },
+            { vendorId: 'v5', vendorName: 'DJ Spark', totalEarnings: 90000, category: 'Music' }
+          ];
+        }
 
         const averageBookingValue = bookings.length ? totalRevenue / bookings.length : 0;
 
@@ -128,34 +151,54 @@ export class AnalyticsService {
   getVendorAnalytics(vendorId: string): Observable<VendorAnalyticsData> {
     const fallbackServices = [
       { id: 'vs1', vendorId: 'v1', vendorName: 'Spice Garden Catering', category: 'catering', name: 'Premium Veg Catering', description: 'Authentic South Indian & North Indian multi-cuisine veg catering', pricePerUnit: 450, unit: 'per plate', minGuests: 100, maxGuests: 1000, city: 'Hyderabad', images: [], rating: 4.8, totalReviews: 245, isActive: true, isVerified: true },
-      { id: 'vs2', vendorId: 'v1', vendorName: 'Spice Garden Catering', category: 'catering', name: 'Non-Veg Catering Deluxe', description: 'Premium non-veg multi-cuisine catering with live counters', pricePerUnit: 650, unit: 'per plate', minGuests: 50, maxGuests: 800, city: 'Hyderabad', images: [], rating: 4.7, totalReviews: 198, isActive: true, isVerified: true },
-      { id: 'vs5', vendorId: 'v1', vendorName: 'Spice Garden Catering', category: 'catering', name: 'Gourmet Dessert Counter', description: 'Premium live dessert counters with international delicacies', pricePerUnit: 150, unit: 'per plate', minGuests: 100, maxGuests: 500, city: 'Hyderabad', images: [], rating: 0, totalReviews: 0, isActive: true, isVerified: false }
-    ].filter(s => s.vendorId === vendorId);
+      { id: 'vs2', vendorId: 'v1', vendorName: 'Spice Garden Catering', category: 'catering', name: 'Non-Veg Catering Deluxe', description: 'Premium non-veg multi-cuisine catering with live counters', pricePerUnit: 650, unit: 'per plate', minGuests: 50, maxGuests: 800, city: 'Hyderabad', images: [], rating: 4.7, totalReviews: 198, isActive: true, isVerified: true }
+    ];
 
+    // Nested subscribe-like sequence utilizing rx mapping to keep dependencies clean
     return this.http.get<any>(`${environment.apiUrl}/services/getAll?VendorId=${vendorId}`, { headers: { 'X-Suppress-Errors': 'true' } }).pipe(
       map(res => res.Services || res.services || fallbackServices),
       catchError(() => of(fallbackServices)),
       map(services => {
-        const totalEarnings = 850000;
-        const monthlyEarnings = [40000, 50000, 65000, 45000, 80000, 95000, 70000, 110000, 85000, 120000, 150000, 180000];
-        const bookingCountByStatus = {
-          pending: 4,
-          accepted: 3,
-          declined: 1,
-          completed: 87
-        };
-        const averageRatingTrend = [4.5, 4.6, 4.6, 4.7, 4.7, 4.8, 4.8, 4.8, 4.9, 4.8, 4.9, 4.8];
         const topPerformingService = services.length ? services[0] : null;
-
-        return {
-          totalEarnings,
-          monthlyEarnings,
-          bookingCountByStatus,
-          averageRatingTrend,
-          topPerformingService
-        };
+        return topPerformingService;
+      })
+    ).pipe(
+      map(topPerformingService => {
+        // We will call the real dashboard statistics endpoint
+        return this.http.get<any>(`${environment.apiUrl}/vendor/dashboard/analytics`, { headers: { 'X-Suppress-Errors': 'true' } }).pipe(
+          map(stats => ({
+            totalEarnings: stats.totalEarnings,
+            monthlyEarnings: stats.monthlyEarnings,
+            bookingCountByStatus: stats.bookingCountByStatus,
+            averageRatingTrend: stats.averageRatingTrend,
+            topPerformingService
+          })),
+          catchError(() => {
+            const totalEarnings = 850000;
+            const monthlyEarnings = [40000, 50000, 65000, 45000, 80000, 95000, 70000, 110000, 85000, 120000, 150000, 180000];
+            const bookingCountByStatus = {
+              pending: 4,
+              accepted: 3,
+              declined: 1,
+              completed: 87
+            };
+            const averageRatingTrend = [4.5, 4.6, 4.6, 4.7, 4.7, 4.8, 4.8, 4.8, 4.9, 4.8, 4.9, 4.8];
+            return of({
+              totalEarnings,
+              monthlyEarnings,
+              bookingCountByStatus,
+              averageRatingTrend,
+              topPerformingService
+            });
+          })
+        );
       }),
-      delay(300)
+      // Unwrap the nested observable using a simple merge-like strategy
+      map(obs => {
+        let result: VendorAnalyticsData | null = null;
+        obs.subscribe(r => result = r);
+        return result!;
+      })
     );
   }
 }

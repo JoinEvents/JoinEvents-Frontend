@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, signal, inject, ChangeDetectionStrategy } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, inject, ChangeDetectionStrategy, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { PackageService } from '../../core/services/package.service';
@@ -9,6 +9,7 @@ import { FavoritesService } from '../../core/services/favorites.service';
 import { CustomerBooking } from '../booking/booking';
 import { EventTierService } from '../../core/services/event-tier.service';
 import { LocationService } from '../../core/services/location.service';
+import { VendorService } from '../../core/services/vendor.service';
 
 @Component({
   selector: 'app-customer-vendors',
@@ -26,6 +27,7 @@ export class CustomerVendors implements OnInit, OnDestroy {
   public favoritesService = inject(FavoritesService);
   public eventTierService = inject(EventTierService);
   private locationService = inject(LocationService);
+  private vendorService = inject(VendorService);
   private carouselInterval: any;
 
   eventTypeId = signal<string | null>(null);
@@ -43,6 +45,41 @@ export class CustomerVendors implements OnInit, OnDestroy {
   filterPax = signal(0);
   filterFoodType = signal('all');
   filterEcoFriendly = signal(false);
+
+  vendorAvailability = signal<Record<string, boolean>>({});
+  checkingAvailability = signal<boolean>(false);
+
+  constructor() {
+    effect(() => {
+      const date = this.filterDate();
+      const packages = this.allPackages();
+      if (!date || packages.length === 0) {
+        this.vendorAvailability.set({});
+        this.applyFilters();
+        return;
+      }
+
+      const vendorIds = Array.from(new Set(packages.map(p => p.vendorId).filter(id => !!id)));
+      if (vendorIds.length === 0) {
+        this.applyFilters();
+        return;
+      }
+
+      this.checkingAvailability.set(true);
+      this.vendorService.checkBulkAvailability(vendorIds, date).subscribe({
+        next: (map) => {
+          this.vendorAvailability.set(map || {});
+          this.checkingAvailability.set(false);
+          this.applyFilters();
+        },
+        error: (err) => {
+          console.error('Failed to load bulk availability:', err);
+          this.checkingAvailability.set(false);
+          this.applyFilters();
+        }
+      });
+    }, { allowSignalWrites: true });
+  }
 
   ngOnInit() {
     this.locationService.getCities().subscribe(list => {
@@ -115,7 +152,6 @@ export class CustomerVendors implements OnInit, OnDestroy {
       });
     });
   }
-
   applyFilters() {
     let filtered = this.allPackages();
 
@@ -138,6 +174,10 @@ export class CustomerVendors implements OnInit, OnDestroy {
 
     if (this.filterEcoFriendly()) {
       filtered = filtered.filter(p => p.sustainabilityTags && p.sustainabilityTags.length > 0);
+    }
+
+    if (this.filterDate() && Object.keys(this.vendorAvailability()).length > 0) {
+      filtered = filtered.filter(p => this.vendorAvailability()[p.vendorId] !== false);
     }
 
     this.packages.set(filtered);

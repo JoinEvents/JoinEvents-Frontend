@@ -695,6 +695,8 @@ html, * {
   border-bottom: 1px solid var(--border-color);
   transition: all var(--transition);
   cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .notif-item:hover { background: var(--bg-light); }
@@ -772,6 +774,8 @@ html, * {
   font-weight: 500;
   transition: all var(--transition);
   cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
 }
 .profile-dropdown-item:hover {
   background: rgba(0,0,0,0.02);
@@ -993,6 +997,8 @@ html, * {
   font-weight: 500;
   cursor: pointer;
   transition: all var(--transition);
+  user-select: none;
+  -webkit-user-select: none;
 }
 .cal-day:hover { background: rgba(255,107,53,0.1); }
 .cal-day.today { background: var(--gradient-primary); color: white; font-weight: 700; }
@@ -1234,6 +1240,8 @@ html, * {
   color: var(--text-soft); transition: all 0.2s;
   cursor: pointer;
   display: inline-flex; align-items: center; justify-content: center;
+  user-select: none;
+  -webkit-user-select: none;
 }
 .btn-close-custom:hover { background: var(--danger); color: white; transform: rotate(90deg); }
 

@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { catchError, throwError } from 'rxjs';
 import { ToastService } from '../services/toast.service';
 import { AuthService } from '../services/auth.service';
+import { environment } from '../../../environments/environment';
 
 /**
  * Centralised API interceptor — auth headers & error handling in one file.
@@ -30,7 +31,10 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
     }
   } catch { /* corrupt storage — ignore */ }
 
-  const authReq = token
+  // Security/CORS: Do not attach local authorization Bearer tokens to external API calls (e.g. OpenStreetMap, Nominatim, CDNs)
+  const isExternal = req.url.startsWith('http') && !req.url.startsWith(environment.apiUrl);
+
+  const authReq = (token && !isExternal)
     ? req.clone({ setHeaders: { Authorization: `Bearer ${token}` } })
     : req;
 

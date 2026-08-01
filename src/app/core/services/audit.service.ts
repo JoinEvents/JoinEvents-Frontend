@@ -1,6 +1,6 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { Observable, of } from 'rxjs';
-import { catchError, delay, map } from 'rxjs/operators';
+import { catchError, delay, map, tap } from 'rxjs/operators';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
 import { AuditLog, AuditStats } from '../models/audit-log.model';
@@ -403,14 +403,8 @@ export class AuditService {
   }
 
   private initLogs() {
-    this.resetToMock();
-  }
-
-  private resetToMock() {
-    const sorted = [...MOCK_AUDIT_LOGS].sort(
-      (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-    );
-    this.dynamicLogs.set(sorted);
+    // No mock data loaded by default. Clean start!
+    this.dynamicLogs.set([]);
   }
 
   logEvent(
@@ -424,10 +418,7 @@ export class AuditService {
     severity: 'info' | 'warning' | 'critical',
     metadata?: any
   ) {
-    const newLog: AuditLog = {
-      id: 'al' + Math.floor(Math.random() * 1000000),
-      timestamp: new Date().toISOString(),
-      actorId: actorRole === 'system' ? 'system' : (actorRole === 'admin' ? 'a1' : 's1'),
+    const payload = {
       actorName,
       actorRole,
       action,
@@ -439,14 +430,26 @@ export class AuditService {
       metadata
     };
 
-    this.dynamicLogs.update(list => [newLog, ...list]);
+    this.http.post<AuditLog>(`${this.apiUrl}/admin/audit-logs`, payload).subscribe({
+      next: (newLog) => {
+        this.dynamicLogs.update(list => [newLog, ...list]);
+      },
+      error: (err) => {
+        console.error('Failed to log audit event to backend:', err);
+      }
+    });
   }
 
   getAuditLogs(): Observable<AuditLog[]> {
     return this.http.get<AuditLog[]>(`${this.apiUrl}/admin/audit-logs`, {
       headers: { 'X-Suppress-Errors': 'true' }
     }).pipe(
-      catchError(() => of(this.dynamicLogs()).pipe(delay(400)))
+      tap((logs: AuditLog[]) => {
+        if (logs && logs.length) {
+          this.dynamicLogs.set(logs);
+        }
+      }),
+      catchError(() => of(this.dynamicLogs()))
     );
   }
 

@@ -22,6 +22,7 @@
   padding: 8px 10px; border-radius: var(--radius-sm);
   cursor: pointer; transition: all var(--transition);
   font-size: 0.8rem; color: rgba(255,255,255,0.6);
+  user-select: none; -webkit-user-select: none;
 }
 .demo-row:hover, .demo-row.active-demo { background: rgba(255,255,255,0.1); color: white; }
 .demo-row code { margin-left: auto; font-size: 0.72rem; color: rgba(255,255,255,0.5); }
@@ -41,6 +42,7 @@
   display: flex; flex-direction: column; align-items: center; gap: 6px;
   font-family: var(--font-heading); font-size: 0.78rem; font-weight: 600;
   color: var(--text-muted); cursor: pointer; transition: all var(--transition);
+  user-select: none; -webkit-user-select: none;
 }
 .role-btn i { font-size: 1.3rem; }
 .role-btn:hover { border-color: var(--rc); color: var(--rc); }

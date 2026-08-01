@@ -102,6 +102,8 @@
   align-items: center;
   justify-content: center;
   transition: all var(--transition);
+  user-select: none;
+  -webkit-user-select: none;
 }
 .btn-close-ee:hover {
   background: var(--bg-light);
@@ -135,6 +137,8 @@
   text-align: left;
   cursor: pointer;
   transition: all var(--transition);
+  user-select: none;
+  -webkit-user-select: none;
 }
 .doc-option-btn:hover {
   border-color: var(--secondary);
@@ -183,3 +187,10 @@
   from { transform: scale(0.95); opacity: 0; }
   to { transform: scale(1); opacity: 1; }
 }
+
+/* Disable hover lift and transform on static cards inside the vendor verification layout */
+.row .ee-card:hover {
+  transform: none !important;
+  box-shadow: var(--shadow-md) !important;
+}
+

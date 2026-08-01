@@ -1,12 +1,12 @@
-// TODO: Replace MockApiService with real AdminEmployeeService when backend CRUD endpoints exist
-// Currently uses local in-memory fallback since no backend employee CRUD endpoints exist yet
-import { Component, signal, computed, inject } from '@angular/core';
+import { Component, signal, computed, inject, OnInit } from '@angular/core';
 import { CommonModule, TitleCasePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { HttpClient } from '@angular/common/http';
 import { of, Observable } from 'rxjs';
-import { delay } from 'rxjs/operators';
+import { map, tap } from 'rxjs/operators';
 import { Employee, EmployeeRole, EmployeeStatus } from '../../core/models/employee.model';
 import { ConfirmService } from '../../shared/components/confirm-dialog';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-admin-employees',
@@ -15,43 +15,41 @@ import { ConfirmService } from '../../shared/components/confirm-dialog';
   templateUrl: './admin-employees.html',
   styleUrl: './admin-employees.css'
 })
-export class AdminEmployees {
+export class AdminEmployees implements OnInit {
   private confirm = inject(ConfirmService);
+  private http = inject(HttpClient);
 
-  employees = signal<Employee[]>([
-    { id: 'e1', name: 'Priya Nair', email: 'admin@demo.com', phone: '+91 99887 76655', employeeId: 'ADM-0001', role: 'admin', department: 'Platform Operations', designation: 'Chief Administrator', shift: 'General (9 AM – 6 PM)', joinedDate: '2024-06-15', status: 'active', lastLogin: '2026-05-02 09:15 AM', ticketsResolved: 0, performanceScore: 98 },
-    { id: 'e2', name: 'Rahul Support', email: 'support@demo.com', phone: '+91 99000 11223', employeeId: 'SUP-7729', role: 'support', department: 'Customer Satisfaction', designation: 'Support Officer', shift: 'General (9 AM – 6 PM)', joinedDate: '2025-03-10', status: 'active', lastLogin: '2026-05-02 08:47 AM', ticketsResolved: 347, performanceScore: 92 },
-    { id: 'e3', name: 'Kavitha Reddy', email: 'kavitha@joinevents.com', phone: '+91 98112 33445', employeeId: 'SUP-7730', role: 'support', department: 'Customer Satisfaction', designation: 'Senior Support Agent', shift: 'Evening (2 PM – 10 PM)', joinedDate: '2025-01-20', status: 'active', lastLogin: '2026-05-01 09:58 PM', ticketsResolved: 512, performanceScore: 96 },
-    { id: 'e4', name: 'Arun Mehta', email: 'arun@joinevents.com', phone: '+91 97001 22334', employeeId: 'MOD-4401', role: 'moderator', department: 'Content & Trust', designation: 'Content Moderator', shift: 'General (9 AM – 6 PM)', joinedDate: '2025-06-05', status: 'active', lastLogin: '2026-05-01 06:12 PM', ticketsResolved: 180, performanceScore: 88 },
-    { id: 'e5', name: 'Deepa Sharma', email: 'deepa@joinevents.com', phone: '+91 96223 44556', employeeId: 'FIN-3301', role: 'finance', department: 'Finance & Settlements', designation: 'Finance Analyst', shift: 'General (9 AM – 6 PM)', joinedDate: '2025-02-14', status: 'active', lastLogin: '2026-05-02 10:02 AM', ticketsResolved: 0, performanceScore: 94 },
-    { id: 'e6', name: 'Vikram Singh', email: 'vikram@joinevents.com', phone: '+91 95334 55667', employeeId: 'SUP-7731', role: 'support', department: 'Customer Satisfaction', designation: 'Night Shift Support', shift: 'Night (10 PM – 6 AM)', joinedDate: '2025-08-22', status: 'on_leave', lastLogin: '2026-04-28 05:55 AM', ticketsResolved: 203, performanceScore: 85 },
-    { id: 'e7', name: 'Neha Gupta', email: 'neha@joinevents.com', phone: '+91 94445 66778', employeeId: 'MOD-4402', role: 'moderator', department: 'Content & Trust', designation: 'Review Moderator', shift: 'General (9 AM – 6 PM)', joinedDate: '2025-09-01', status: 'suspended', lastLogin: '2026-04-15 11:30 AM', ticketsResolved: 94, performanceScore: 62, suspensionReason: 'Policy violation — unauthorized data export' },
-    { id: 'e8', name: 'Sanjay Patel', email: 'sanjay@joinevents.com', phone: '+91 93556 77889', employeeId: 'ADM-0002', role: 'admin', department: 'Platform Operations', designation: 'Operations Manager', shift: 'General (9 AM – 6 PM)', joinedDate: '2024-11-01', status: 'active', lastLogin: '2026-05-02 08:30 AM', ticketsResolved: 0, performanceScore: 95 },
-  ]);
+  employees = signal<Employee[]>([]);
+
+  ngOnInit() {
+    this.loadEmployees();
+  }
+
+  loadEmployees() {
+    this.http.get<Employee[]>(`${environment.apiUrl}/admin/users/employees`).subscribe(data => {
+      this.employees.set(data || []);
+    });
+  }
 
   addEmployee(emp: Omit<Employee, 'id'>): Observable<Employee> {
-    const newEmp: Employee = { ...emp, id: 'e' + Math.floor(Math.random() * 100000) } as Employee;
-    this.employees.update(list => [...list, newEmp]);
-    return of(newEmp).pipe(delay(200));
+    return this.http.post<Employee>(`${environment.apiUrl}/admin/users/employees`, emp).pipe(
+      tap(() => this.loadEmployees())
+    );
   }
 
   updateEmployee(id: string, updates: Partial<Employee>): Observable<boolean> {
-    this.employees.update(list =>
-      list.map(e => e.id === id ? { ...e, ...updates } : e)
+    return this.http.put<boolean>(`${environment.apiUrl}/admin/users/employees/${id}`, updates).pipe(
+      tap(() => this.loadEmployees())
     );
-    return of(true).pipe(delay(200));
   }
 
   updateEmployeeStatus(id: string, status: EmployeeStatus, reason?: string): Observable<boolean> {
-    this.employees.update(list =>
-      list.map(e => {
-        if (e.id === id) {
-          return { ...e, status, suspensionReason: status === 'suspended' ? reason : undefined };
-        }
-        return e;
-      })
+    return this.http.post<boolean>(`${environment.apiUrl}/admin/users/employees/${id}/status`, {
+      status,
+      reason
+    }).pipe(
+      tap(() => this.loadEmployees())
     );
-    return of(true).pipe(delay(200));
   }
 
   searchQuery = signal('');
@@ -252,9 +250,9 @@ export class AdminEmployees {
     // Clear error for this field when user types
     if (this.errors()[field]) {
       this.errors.update(errs => {
-        const newErrs = { ...errs };
-        delete newErrs[field];
-        return newErrs;
+          const newErrs = { ...errs };
+          delete newErrs[field];
+          return newErrs;
       });
     }
   }

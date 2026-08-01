@@ -19,15 +19,27 @@ const DEFAULT_INCLUSIONS: { [key: string]: string[] } = {
 export class PackageService extends BaseApiService {
 
   getEventTypes(): Observable<EventType[]> {
-    const fallback: EventType[] = [
-      { id: 'wedding', name: 'Wedding', nameHindi: 'Shaadi', description: 'Grand Indian weddings with all rituals', icon: 'bi-hearts', category: 'wedding', colorClass: 'event-wedding', gradient: 'linear-gradient(135deg,#E91E8C,#FF6B6B)', startingPrice: 150000, popularServices: ['Venue', 'Catering', 'Decoration'] },
-      { id: 'birthday', name: 'Birthday Party', nameHindi: 'Janmadin', description: 'Fun & vibrant birthday celebrations', icon: 'bi-balloon-heart', category: 'birthday', colorClass: 'event-birthday', gradient: 'linear-gradient(135deg,#FF6B35,#F59E0B)', startingPrice: 25000, popularServices: ['Venue', 'Catering', 'Decoration'] },
-      { id: 'corporate', name: 'Corporate Event', nameHindi: 'Karobar', description: 'Professional corporate meets', icon: 'bi-briefcase', category: 'corporate', colorClass: 'event-corporate', gradient: 'linear-gradient(135deg,#0EA5E9,#6B21A8)', startingPrice: 80000, popularServices: ['Venue', 'Catering', 'Transport'] },
-      { id: 'beauty-styling', name: 'Beauty & Styling', nameHindi: 'Saundarya', description: 'Bridal makeup, styling, and mehendi', icon: 'bi-stars', category: 'beauty', colorClass: 'event-beauty', gradient: 'linear-gradient(135deg,#D946EF,#8B5CF6)', startingPrice: 15000, popularServices: ['Makeup Artist', 'Mehendi Artist', 'Styling'] },
-      { id: 'travel-transport', name: 'Travel & Transport', nameHindi: 'Yatra', description: 'Luxury cars, buses, and travel logistics', icon: 'bi-car-front-fill', category: 'travel', colorClass: 'event-travel', gradient: 'linear-gradient(135deg,#10B981,#3B82F6)', startingPrice: 10000, popularServices: ['Vintage Car', 'Transportation', 'Logistics'] },
-      { id: 'event-shopping', name: 'Event Shopping', nameHindi: 'Kharidari', description: 'Wedding attire, jewelry, and return gifts', icon: 'bi-bag-heart-fill', category: 'shopping', colorClass: 'event-shopping', gradient: 'linear-gradient(135deg,#F43F5E,#F97316)', startingPrice: 50000, popularServices: ['Bridal Wear', 'Jewelry', 'Return Gifts'] },
-    ];
-    return of(fallback).pipe(delay(300));
+    return this.get<any>(API_ROUTES.EVENT_CATEGORIES).pipe(
+      map(res => {
+        const list = res?.data || res || [];
+        return list.map((c: any) => ({
+          id: c.categoryKey || c.id,
+          name: c.name,
+          nameHindi: c.nameHindi,
+          description: c.description || '',
+          icon: c.icon || 'bi-hearts',
+          category: c.categoryKey || c.category,
+          colorClass: c.colorClass || 'event-wedding',
+          gradient: c.gradient || 'linear-gradient(135deg,#E91E8C,#FF6B6B)',
+          startingPrice: c.startingPrice || 0,
+          popularServices: c.popularServices || []
+        }));
+      }),
+      catchError(() => {
+        // Return empty array on failure
+        return of([] as EventType[]);
+      })
+    );
   }
 
   getPackages(categoryKey?: string, page: number = 1, pageSize: number = 20): Observable<any[]> {
@@ -89,11 +101,11 @@ export class PackageService extends BaseApiService {
     let rawDesc = p.description || p.Description || '';
     let cleanedDesc = rawDesc;
     let inclusionDetails = {};
-    if (rawDesc.includes('\n\n---INCLUSION_DETAILS---\n')) {
-      const parts = rawDesc.split('\n\n---INCLUSION_DETAILS---\n');
-      cleanedDesc = parts[0];
+    if (rawDesc.includes('---INCLUSION_DETAILS---')) {
+      const parts = rawDesc.split('---INCLUSION_DETAILS---');
+      cleanedDesc = parts[0].trim();
       try {
-        inclusionDetails = JSON.parse(parts[1]) || {};
+        inclusionDetails = JSON.parse(parts[1].trim()) || {};
       } catch (e) {
         console.error('Failed to parse inclusion details in normalizePendingPackage', e);
       }
@@ -124,6 +136,9 @@ export class PackageService extends BaseApiService {
         rent: pr.rent !== undefined ? pr.rent : pr.Rent,
         vegPrice: pr.vegPrice !== undefined ? pr.vegPrice : pr.VegPrice,
         nonVegPrice: pr.nonVegPrice !== undefined ? pr.nonVegPrice : pr.NonVegPrice,
+        roomPrice: pr.roomPrice !== undefined ? pr.roomPrice : pr.RoomPrice,
+        cuisine: pr.cuisine || pr.Cuisine || '',
+        cuisineType: pr.cuisineType || pr.CuisineType || 'veg'
       },
       capacity: {
         maxGuests: cap.maxGuests !== undefined ? cap.maxGuests : cap.MaxGuests,
@@ -212,11 +227,11 @@ export class PackageService extends BaseApiService {
     let rawDesc = p.Description || p.description || '';
     let cleanedDesc = rawDesc;
     let inclusionDetails = {};
-    if (rawDesc.includes('\n\n---INCLUSION_DETAILS---\n')) {
-      const parts = rawDesc.split('\n\n---INCLUSION_DETAILS---\n');
-      cleanedDesc = parts[0];
+    if (rawDesc.includes('---INCLUSION_DETAILS---')) {
+      const parts = rawDesc.split('---INCLUSION_DETAILS---');
+      cleanedDesc = parts[0].trim();
       try {
-        inclusionDetails = JSON.parse(parts[1]) || {};
+        inclusionDetails = JSON.parse(parts[1].trim()) || {};
       } catch (e) {
         console.error('Failed to parse inclusion details in normalizePackage', e);
       }
@@ -241,6 +256,16 @@ export class PackageService extends BaseApiService {
       location: cityLoc,
       tier: p.Tier || p.tier || p.Theme || p.theme || 'premium',
       price: priceValue,
+      pricing: {
+        unit: pr.unit || pr.Unit || 'per event',
+        basePrice: pr.basePrice !== undefined ? pr.basePrice : pr.BasePrice,
+        rent: pr.rent !== undefined ? pr.rent : pr.Rent,
+        vegPrice: pr.vegPrice !== undefined ? pr.vegPrice : pr.VegPrice,
+        nonVegPrice: pr.nonVegPrice !== undefined ? pr.nonVegPrice : pr.NonVegPrice,
+        roomPrice: pr.roomPrice !== undefined ? pr.roomPrice : pr.RoomPrice,
+        cuisine: pr.cuisine || pr.Cuisine || '',
+        cuisineType: pr.cuisineType || pr.CuisineType || 'veg'
+      },
       description: cleanedDesc,
       inclusionDetails: inclusionDetails,
       maxGuests: guests,

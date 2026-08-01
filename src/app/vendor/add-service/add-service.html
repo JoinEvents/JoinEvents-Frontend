@@ -180,11 +180,28 @@
 
           <!-- Right Column: Maps related -->
           <div class="col-lg-6 d-flex flex-column">
-            <label class="ee-form-label">Search Address on Google Maps</label>
-            <div class="input-group-modern mb-3">
+            <label class="ee-form-label">Search Address on Map</label>
+            <div class="input-group-modern mb-3 position-relative">
               <i class="bi bi-geo-alt-fill text-primary"></i>
-              <input type="text" #addressSearch class="border-0 bg-transparent w-100 outline-none fw-600"
-                placeholder="Type your address to autofill...">
+              <input type="text" #addressSearch [ngModel]="searchQuery" (ngModelChange)="onSearchQueryChange($event)" class="border-0 bg-transparent w-100 outline-none fw-600"
+                placeholder="Type your address to search...">
+              
+              <!-- Autocomplete Suggestions Dropdown -->
+              @if (suggestions().length > 0) {
+                <div class="search-suggestions-dropdown position-absolute w-100 shadow-lg rounded-3 mt-1 py-1" 
+                     style="z-index: 1050; top: 100%; left: 0; border: 1px solid var(--border-color); max-height: 250px; overflow-y: auto; background-color: var(--bg-card, #ffffff);">
+                  @for (item of suggestions(); track item.place_id) {
+                    <div class="suggestion-item px-3 py-2 cursor-pointer" 
+                         style="transition: background 0.2s ease; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; color: var(--text-main); text-align: left;"
+                         (click)="selectSuggestion(item)"
+                         onmouseover="this.style.background='var(--bg-light, #f8f9fa)'" 
+                         onmouseout="this.style.background='transparent'">
+                      <i class="bi bi-geo-alt-fill text-primary me-2" style="font-size: 0.9rem;"></i>
+                      <span>{{ item.display_name }}</span>
+                    </div>
+                  }
+                </div>
+              }
             </div>
             <div #mapContainer class="map-picker-container rounded-4 shadow-sm flex-grow-1"
               style="min-height: 300px; background: #f8f9fa; border: 1px solid var(--border-color); overflow: hidden;"></div>
@@ -326,30 +343,78 @@
                     <div class="col-12">
                       @if (activeTab.toLowerCase() === 'catering') {
                         <div class="row g-3">
+                          <!-- Cuisine Selection -->
                           <div class="col-md-6">
-                            <label class="ee-form-label">Veg Price (Per Plate) *</label>
-                            @if (getInclusionPriceLimit(activeTab); as limit) {
-                              <p class="form-hint mb-2 text-warning" style="font-size: 0.75rem;">
-                                <i class="bi bi-info-circle-fill"></i> Allowed: 
-                                <strong>₹{{ limit.minPrice | number }} - ₹{{ limit.maxPrice | number }}</strong>
-                              </p>
-                            } @else {
-                              <p class="form-hint mb-2" style="font-size: 0.75rem;">Enter veg per plate price</p>
-                            }
+                            <label class="ee-form-label">Cuisine *</label>
+                            <p class="form-hint mb-2" style="font-size: 0.75rem;">Select cuisine style</p>
                             <div class="input-group-modern py-2">
-                              <span class="prefix" style="font-size:0.8rem; font-weight:700;">₹</span>
-                              <input type="number" [(ngModel)]="formData.vegPrice" placeholder="Veg price" 
-                                     (ngModelChange)="onCateringPriceChange(activeTab)">
+                              <select class="border-0 bg-transparent w-100 outline-none fw-600 text-main" name="cuisine" [(ngModel)]="formData.cuisine" style="color: var(--text-main) !important; background-color: transparent;">
+                                <option value="" disabled selected>Select Cuisine</option>
+                                <option value="South Indian">South Indian</option>
+                                <option value="North Indian">North Indian</option>
+                                <option value="Chinese">Chinese</option>
+                                <option value="Continental">Continental</option>
+                                <option value="Italian">Italian</option>
+                                <option value="Punjabi">Punjabi</option>
+                                <option value="Mughlai">Mughlai</option>
+                                <option value="Multicuisine">Multicuisine</option>
+                              </select>
                             </div>
                           </div>
+
+                          <!-- Food Type Selection -->
                           <div class="col-md-6">
-                            <label class="ee-form-label">Non-Veg Price (Per Plate)</label>
-                            <p class="form-hint mb-2" style="font-size: 0.75rem; visibility: hidden;">Spacer</p>
+                            <label class="ee-form-label">Food Type *</label>
+                            <p class="form-hint mb-2" style="font-size: 0.75rem;">Select preference</p>
                             <div class="input-group-modern py-2">
-                              <span class="prefix" style="font-size:0.8rem; font-weight:700;">₹</span>
-                              <input type="number" [(ngModel)]="formData.nonVegPrice" placeholder="Non-veg price">
+                              <select class="border-0 bg-transparent w-100 outline-none fw-600 text-main" name="cuisineType" [(ngModel)]="formData.cuisineType" 
+                                      (ngModelChange)="onCateringPriceChange(activeTab)" style="color: var(--text-main) !important; background-color: transparent;">
+                                <option value="veg">Veg Only</option>
+                                <option value="nonveg">Non-Veg Only</option>
+                                <option value="mixed">Mixed (Veg & Non-Veg)</option>
+                              </select>
                             </div>
                           </div>
+
+                          <!-- Veg Price -->
+                          @if (formData.cuisineType === 'veg' || formData.cuisineType === 'mixed') {
+                            <div [ngClass]="formData.cuisineType === 'mixed' ? 'col-md-6' : 'col-md-12'">
+                              <label class="ee-form-label">Veg Price (Per Plate) *</label>
+                              @if (getInclusionPriceLimit(activeTab); as limit) {
+                                <p class="form-hint mb-2 text-warning" style="font-size: 0.75rem;">
+                                  <i class="bi bi-info-circle-fill"></i> Allowed: 
+                                  <strong>₹{{ limit.minPrice | number }} - ₹{{ limit.maxPrice | number }}</strong>
+                                </p>
+                              } @else {
+                                <p class="form-hint mb-2" style="font-size: 0.75rem;">Enter veg per plate price</p>
+                              }
+                              <div class="input-group-modern py-2">
+                                <span class="prefix" style="font-size:0.8rem; font-weight:700;">₹</span>
+                                <input type="number" [(ngModel)]="formData.vegPrice" placeholder="Veg price" 
+                                       (ngModelChange)="onCateringPriceChange(activeTab)">
+                              </div>
+                            </div>
+                          }
+
+                          <!-- Non-Veg Price -->
+                          @if (formData.cuisineType === 'nonveg' || formData.cuisineType === 'mixed') {
+                            <div [ngClass]="formData.cuisineType === 'mixed' ? 'col-md-6' : 'col-md-12'">
+                              <label class="ee-form-label">Non-Veg Price (Per Plate) *</label>
+                              @if (getInclusionPriceLimit(activeTab); as limit) {
+                                <p class="form-hint mb-2 text-warning" style="font-size: 0.75rem;">
+                                  <i class="bi bi-info-circle-fill"></i> Allowed: 
+                                  <strong>₹{{ limit.minPrice | number }} - ₹{{ limit.maxPrice | number }}</strong>
+                                </p>
+                              } @else {
+                                <p class="form-hint mb-2" style="font-size: 0.75rem;">Enter non-veg per plate price</p>
+                              }
+                              <div class="input-group-modern py-2">
+                                <span class="prefix" style="font-size:0.8rem; font-weight:700;">₹</span>
+                                <input type="number" [(ngModel)]="formData.nonVegPrice" placeholder="Non-veg price"
+                                       (ngModelChange)="onCateringPriceChange(activeTab)">
+                              </div>
+                            </div>
+                          }
                         </div>
                         @if (inclusionPriceErrors[activeTab]) {
                           <div class="text-danger small mt-2 fw-bold" style="font-size: 0.76rem;">

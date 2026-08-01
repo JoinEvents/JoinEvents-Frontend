@@ -12,7 +12,6 @@ export interface ReviewDto {
   rating: number;
   comment: string;
 }
-
 @Injectable({ providedIn: 'root' })
 export class ReviewService extends BaseApiService {
   submitReview(review: ReviewDto): Observable<any> {
@@ -23,5 +22,9 @@ export class ReviewService extends BaseApiService {
     return this.post<any>(`${API_ROUTES.REVIEWS.BASE}/${reviewId}/flag`, { reason }, false).pipe(
       map(() => true)
     );
+  }
+
+  getReviewsByVendor(vendorId: string): Observable<any[]> {
+    return this.get<any[]>(`${API_ROUTES.REVIEWS.BASE}/vendor/${vendorId}`, undefined, false);
   }
 }

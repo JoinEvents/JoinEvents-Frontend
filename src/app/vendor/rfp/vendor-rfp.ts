@@ -104,35 +104,24 @@ export class VendorRfp implements OnInit {
       return;
     }
     this.submitting.set(true);
-    const user = this.auth.currentUser()!;
 
-    const fallbackVendors = [
-      { id: 'v1', businessName: 'Spice Garden Catering', rating: 4.8, totalReviews: 245, verificationStatus: 'verified' }
-    ];
-
-    this.http.get<any[]>(`${environment.apiUrl}/admin/vendors`, { headers: { 'X-Suppress-Errors': 'true' } }).pipe(
-      catchError(() => of(fallbackVendors))
-    ).subscribe(vendors => {
-      const vendor = vendors.find(v => v.id === user.id) || vendors[0];
-      this.rfpService.submitBid(rfp.id, {
-        vendorId: user.id,
-        vendorName: user.name,
-        vendorBusinessName: vendor?.businessName || user.name,
-        vendorRating: vendor?.rating || 0,
-        vendorReviews: vendor?.totalReviews || 0,
-        isVerified: vendor?.verificationStatus === 'verified',
-        proposedAmount: this.bidForm.proposedAmount,
-        description: this.bidForm.description,
-        deliverables: this.bidForm.deliverables.filter(d => d.trim()),
-        validUntil: this.bidForm.validUntil
-      }).subscribe(() => {
-        this.submitting.set(false);
-        this.showBidForm.set(false);
-        this.openRfps.update(list => list.map(r => r.id === rfp.id
-          ? { ...r, status: 'receiving_bids' as const } : r));
-        this.bidForm = { proposedAmount: 0, description: '', deliverables: [''], validUntil: '' };
-        this.toast.success('Quote submitted successfully! The customer will be notified.');
+    this.rfpService.submitBid(rfp.id, {
+      proposedAmount: this.bidForm.proposedAmount,
+      description: this.bidForm.description,
+      deliverables: this.bidForm.deliverables.filter(d => d.trim()),
+      validUntil: this.bidForm.validUntil
+    }).subscribe(() => {
+      this.submitting.set(false);
+      this.showBidForm.set(false);
+      this.toast.success('Your bid has been submitted successfully!');
+      this.bidForm = { proposedAmount: 0, description: '', deliverables: [''], validUntil: '' };
+      // Reload RFP details to see new bid
+      this.rfpService.getRfpById(rfp.id).subscribe(updated => {
+        this.selectedRfp.set(updated || null);
       });
+    }, () => {
+      this.submitting.set(false);
+      this.toast.error('Failed to submit bid.');
     });
   }
 

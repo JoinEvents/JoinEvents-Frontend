@@ -38,32 +38,7 @@ export class CustomerBooking implements OnInit, OnDestroy, OnChanges {
 
   userRole = computed(() => this.auth.currentUser()?.role);
 
-  localReviews = signal<any[]>([
-    { 
-      id: 'rev1', 
-      bookingId: 'bk002', 
-      vendorId: 'v1', 
-      customerName: 'Rajesh Kumar', 
-      eventName: "Daughter's Birthday", 
-      rating: 5, 
-      comment: "Fantastic service! The decor was exactly as requested and the food was delicious. Highly recommend this vendor.", 
-      date: '2025-11-22',
-      status: 'published',
-      disputeReason: ''
-    },
-    { 
-      id: 'rev2', 
-      bookingId: 'bk009', 
-      vendorId: 'v1', 
-      customerName: 'Anita Singh', 
-      eventName: "Corporate Gala", 
-      rating: 1, 
-      comment: "Worst service ever. They didn't show up on time and the food was cold. Completely ruined the event.", 
-      date: '2026-02-14',
-      status: 'flagged', 
-      disputeReason: 'Fake review. This customer cancelled the booking 2 days prior and we never provided service.'
-    }
-  ]);
+  localReviews = signal<any[]>([]);
 
   vendorReviews = computed(() => {
     const pkg = this.selectedPackage();
@@ -78,11 +53,23 @@ export class CustomerBooking implements OnInit, OnDestroy, OnChanges {
     return this.showAllReviews() ? reviews : reviews.slice(0, 3);
   });
 
+
+
   averageRating = computed(() => {
     const reviews = this.vendorReviews();
-    if (reviews.length === 0) return 4.8; // Fallback to package rating/default if no reviews
+    if (reviews.length === 0) {
+      return this.selectedPackage()?.rating || 0.0;
+    }
     const sum = reviews.reduce((acc, r) => acc + r.rating, 0);
     return sum / reviews.length;
+  });
+
+  totalReviewsCount = computed(() => {
+    const reviews = this.vendorReviews();
+    if (reviews.length === 0) {
+      return this.selectedPackage()?.totalReviews || 0;
+    }
+    return reviews.length;
   });
 
   ratingDistribution = computed(() => {
@@ -315,6 +302,13 @@ export class CustomerBooking implements OnInit, OnDestroy, OnChanges {
       }
     }
   }
+
+  scrollToReviews() {
+    const el = document.getElementById('reviews-section');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
   
   private slideshowInterval: any;
 
@@ -361,9 +355,7 @@ export class CustomerBooking implements OnInit, OnDestroy, OnChanges {
   ngOnDestroy() {
     this.stopSlideshow();
     document.body.classList.remove('modal-open');
-  }
-
-  loadPackage(pkgId: string) {
+  }  loadPackage(pkgId: string) {
     this.isLoading.set(true);
     this.api.getPackageById(pkgId).subscribe({
       next: (pkg) => {
@@ -373,6 +365,8 @@ export class CustomerBooking implements OnInit, OnDestroy, OnChanges {
           this.selectedPackage.set(pkg);
           const combinedImages = this.getCombinedImages(pkg);
           this.selectedImage.set(combinedImages[0] || pkg.image);
+          
+          this.loadReviewsForVendor(pkg.vendorId);
           
           // Load similar packages (exclude current one)
           this.api.getPackages(pkg.eventTypeId).subscribe(pkgs => {
@@ -404,7 +398,19 @@ export class CustomerBooking implements OnInit, OnDestroy, OnChanges {
     });
   }
 
-
+  loadReviewsForVendor(vendorId: string) {
+    if (!vendorId) return;
+    this.reviewService.getReviewsByVendor(vendorId).subscribe({
+      next: (reviews) => {
+        if (reviews) {
+          this.localReviews.set(reviews);
+        }
+      },
+      error: (err) => {
+        if (!environment.production) { console.error('Error loading vendor reviews:', err); }
+      }
+    });
+  }
   submitReview() {
     const pkg = this.selectedPackage();
     const currentUser = this.auth.currentUser();
@@ -447,6 +453,7 @@ export class CustomerBooking implements OnInit, OnDestroy, OnChanges {
             bookingId: booking.id,
             vendorId: pkg.vendorId,
             customerName: customerName,
+            customerAvatar: currentUser?.avatar || null,
             eventName: this.newReviewEventName || booking.eventName || 'Event Celebration',
             rating: this.newRating(),
             comment: this.newComment.trim(),
@@ -485,6 +492,7 @@ export class CustomerBooking implements OnInit, OnDestroy, OnChanges {
         this.newComment = '';
         this.newRating.set(5);
         this.showReviewForm.set(false);
+        this.loadReviewsForVendor(pkg.vendorId);
       },
       error: (err) => {
         this.toast.error('Failed to submit review.');
@@ -536,8 +544,52 @@ export class CustomerBooking implements OnInit, OnDestroy, OnChanges {
 
   openServiceDetail(serviceName: string) {
     this.selectedModalImage.set(null);
-    // Check if the service has customized inclusion details in the package's inclusionDetails
     const pkg = this.selectedPackage();
+
+    const lowerName = serviceName.toLowerCase();
+    if (lowerName.includes('catering') || lowerName.includes('dinner') || lowerName.includes('food') || lowerName.includes('feast') || lowerName.includes('meal') || lowerName.includes('buffet') || lowerName.includes('veg')) {
+      const features = ['Professional Service', 'JoinEvents Verified'];
+      
+      let cuisineText = 'Not Specified';
+      if (pkg?.pricing?.cuisineType === 'mixed' || (pkg?.pricing?.vegPrice && pkg?.pricing?.nonVegPrice)) {
+        cuisineText = 'Veg & Non-Veg (Mixed)';
+      } else if (pkg?.pricing?.cuisineType === 'veg' || pkg?.pricing?.vegPrice) {
+        cuisineText = 'Pure Veg';
+      } else if (pkg?.pricing?.cuisineType === 'nonveg' || pkg?.pricing?.nonVegPrice) {
+        cuisineText = 'Non-Veg Only';
+      }
+      
+      if (pkg?.pricing?.cuisine) {
+        features.push(`Cuisine: ${pkg.pricing.cuisine}`);
+      }
+      features.push(`Cuisine Type: ${cuisineText}`);
+      
+      if (pkg?.pricing?.vegPrice) {
+        features.push(`Veg Menu Price: ₹${pkg.pricing.vegPrice} per plate`);
+      }
+      if (pkg?.pricing?.nonVegPrice) {
+        features.push(`Non-Veg Menu Price: ₹${pkg.pricing.nonVegPrice} per plate`);
+      }
+      if (pkg?.policies?.cateringPolicy) {
+        features.push(`Catering Policy: ${pkg.policies.cateringPolicy}`);
+      }
+      
+      this.selectedServiceDetail.set({
+        name: serviceName,
+        description: `Delight your guests with a customized culinary experience. We offer premium menu choices prepared by expert chefs under strict hygiene standards.`,
+        images: [
+          'https://images.unsplash.com/photo-1555244162-803834f70033?auto=format&fit=crop&q=80&w=800',
+          'https://images.unsplash.com/photo-1530103043960-ef38714abb15?auto=format&fit=crop&q=80&w=800'
+        ],
+        features: features,
+        priceRange: pkg?.pricing?.vegPrice || pkg?.pricing?.nonVegPrice
+          ? `Starting from ₹${pkg?.pricing?.cuisineType === 'nonveg' ? pkg?.pricing?.nonVegPrice : pkg?.pricing?.vegPrice} / Plate`
+          : undefined
+      });
+      return;
+    }
+
+    // Check if the service has customized inclusion details in the package's inclusionDetails
     const customDetails = pkg?.inclusionDetails?.[serviceName];
     if (customDetails) {
       let features: string[] = [];
@@ -579,70 +631,37 @@ export class CustomerBooking implements OnInit, OnDestroy, OnChanges {
       return;
     }
 
-    // Mock service details based on actual package items
-    const detailsMap: any = {
-      'Gourmet 5-Course Dinner': {
-        name: 'Gourmet 5-Course Royal Feast',
-        description: 'An extraordinary culinary journey featuring appetizers, global main courses, and a signature dessert bar. Prepared live by award-winning chefs.',
-        images: [
-          'https://images.unsplash.com/photo-1555244162-803834f70033?auto=format&fit=crop&q=80&w=800',
-          'https://images.unsplash.com/photo-1530103043960-ef38714abb15?auto=format&fit=crop&q=80&w=800'
-        ],
-        features: ['Silver Service Dining', 'Live Pasta & Sushi Counters', 'Signature Mocktail Bar', 'Customized Menu Planning']
-      },
-      'Premium Bridal Suite': {
-        name: 'Royal Bridal & Groom Suites',
-        description: 'Luxurious, fully-furnished private suites with dedicated vanity areas, lounge seating, and personalized butler service for the couple.',
-        images: [
-          'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&q=80&w=800',
-          'https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?auto=format&fit=crop&q=80&w=800'
-        ],
-        features: ['Private En-suite Bathroom', 'Makeup & Styling Station', 'Refreshment Bar', 'Biometric Security']
-      },
-      'Drone Photography': {
-        name: 'Cinematic Drone & 4K Coverage',
-        description: 'Capture grand aerial perspectives of your celebration with our high-end drone fleet and 4K cinematography team.',
-        images: [
-          'https://images.unsplash.com/photo-1508614589041-895b88991e3e?auto=format&fit=crop&q=80&w=800',
-          'https://images.unsplash.com/photo-1537633552985-df8429e8048b?auto=format&fit=crop&q=80&w=800'
-        ],
-        features: ['Dual Drone Operators', 'Unedited Raw Footage', 'Cinematic Highlight Film', '4K Aerial Stills']
-      },
-      'Designer Stage Decor': {
-        name: 'Bespoke Designer Stage',
-        description: 'A grand architectural stage design featuring imported florals, custom LED backdrops, and synchronized mood lighting.',
-        images: [
-          'https://images.unsplash.com/photo-1519225421980-715cb0215aed?auto=format&fit=crop&q=80&w=800',
-          'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&q=80&w=800'
-        ],
-        features: ['Fresh Floral Chandeliers', 'Customized Backdrop', 'Ambient LED Mapping', 'Grand Entrance Decor']
-      },
-      'VIP Valet Parking': {
-        name: 'VIP Valet & Concierge',
-        description: 'Seamless arrival experience with professional uniformed valets and a dedicated guest concierge desk.',
-        images: [
-          'https://images.unsplash.com/photo-1531415074968-036ba1b575da?auto=format&fit=crop&q=80&w=800'
-        ],
-        features: ['Professional Uniformed Valets', 'Express Retrieval', 'Guest Umbrella Service', 'Reserved VIP Zone']
-      },
-      'Live Sufi Band': {
-        name: 'Soulful Live Sufi Ensemble',
-        description: 'Experience divine musical harmony with a 7-piece live ensemble performing traditional and modern Sufi classics.',
-        images: [
-          'https://images.unsplash.com/photo-1514525253361-bee8a4874aad?auto=format&fit=crop&q=80&w=800'
-        ],
-        features: ['7-Piece Ensemble', 'Professional Sound System', 'Customized Setlist', 'Interactive Performance']
-      }
-    };
+    // Database-driven dynamic fallback details based on standard inclusions
+    let description = `Comprehensive ${serviceName} services provided by our verified professional partners, ensuring top-tier quality and reliability for your event.`;
+    let features = ['Professional Service', 'JoinEvents Verified', 'Quality Guaranteed'];
+    let images = ['https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&q=80&w=800'];
 
-    const details = detailsMap[serviceName] || {
+    if (lowerName.includes('venue') || lowerName.includes('suite') || lowerName.includes('hall') || lowerName.includes('banquet') || lowerName.includes('space') || lowerName.includes('room')) {
+      description = `Premium venue space with capacity for up to ${pkg?.maxGuests || 300} guests. Fully managed and configured to fit your event requirements.`;
+      features = [
+        `Capacity: ${pkg?.maxGuests || 300} Guests`,
+        `Rooms Included: ${pkg?.roomCount || 0}`,
+        `AC: ${pkg?.amenities?.hasAc ? 'Yes' : 'No'}`,
+        `Power Backup: ${pkg?.amenities?.hasPowerBackup ? 'Yes' : 'No'}`,
+        `Valet Parking: ${pkg?.amenities?.hasParking ? 'Available' : 'No'}`
+      ];
+      images = ['https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&q=80&w=800'];
+    } else if (lowerName.includes('decor') || lowerName.includes('stage') || lowerName.includes('flower') || lowerName.includes('theme')) {
+      description = `Bespoke decoration setup styled under the theme of the event package.`;
+      features = [
+        `Theme: ${pkg?.theme || 'Premium'}`,
+        `Decor Policy: ${pkg?.policies?.decorPolicy || 'Flexible'}`,
+        `Custom floral & lighting setup`
+      ];
+      images = ['https://images.unsplash.com/photo-1519225421980-715cb0215aed?auto=format&fit=crop&q=80&w=800'];
+    }
+
+    this.selectedServiceDetail.set({
       name: serviceName,
-      description: `Comprehensive ${serviceName} services provided by our verified professional partners, ensuring top-tier quality and reliability for your event.`,
-      images: ['https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&q=80&w=800'],
-      features: ['Professional Service', 'JoinEvents Verified', 'Quality Guaranteed']
-    };
-
-    this.selectedServiceDetail.set(details);
+      description: description,
+      images: images,
+      features: features
+    });
   }
 
   getGstAmount() {

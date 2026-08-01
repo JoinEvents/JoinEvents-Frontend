@@ -29,6 +29,16 @@
         <div class="hero-overlay"></div>
         <div class="hero-badges">
           <span class="tier-badge" [style.background]="eventTierService.getGradientForTier(selectedPackage()?.tier)" style="border: none;">{{ selectedPackage()?.tier }}</span>
+          @if (selectedPackage()?.pricing?.cuisineType === 'mixed' || (selectedPackage()?.pricing?.vegPrice && selectedPackage()?.pricing?.nonVegPrice)) {
+            <span class="food-badge mix-badge"><i class="bi bi-egg-fried"></i> Veg & Non-Veg</span>
+          } @else if (selectedPackage()?.pricing?.cuisineType === 'veg' || selectedPackage()?.pricing?.vegPrice) {
+            <span class="food-badge veg-badge"><i class="bi bi-egg-fried"></i> Pure Veg</span>
+          } @else if (selectedPackage()?.pricing?.cuisineType === 'nonveg' || selectedPackage()?.pricing?.nonVegPrice) {
+            <span class="food-badge nonveg-badge"><i class="bi bi-egg-fried"></i> Non-Veg Only</span>
+          }
+          @if (selectedPackage()?.pricing?.cuisine) {
+            <span class="food-badge cuisine-badge"><i class="bi bi-tag-fill"></i> {{ selectedPackage()?.pricing?.cuisine }}</span>
+          }
         </div>
       </div>
       
@@ -47,7 +57,7 @@
       <h1 class="hero-title">{{ selectedPackage()?.name }}</h1>
       <div class="hero-meta-row">
         <span class="meta-item"><i class="bi bi-geo-alt-fill"></i> {{ selectedPackage()?.location }}</span>
-        <span class="meta-item"><i class="bi bi-star-fill"></i> {{ (selectedPackage()?.rating || 0).toFixed(1) }} <span class="meta-sub">({{ selectedPackage()?.totalReviews || 0 }} reviews)</span></span>
+        <span class="meta-item meta-item-clickable" (click)="scrollToReviews()"><i class="bi bi-star-fill"></i> {{ averageRating().toFixed(1) }} <span class="meta-sub">({{ totalReviewsCount() }} reviews)</span></span>
         <span class="meta-item"><i class="bi bi-clock"></i> 8-12 Hrs</span>
       </div>
     </div>
@@ -82,6 +92,30 @@
           <div>
             <span class="stat-label">Tier</span>
             <span class="stat-val">{{ selectedPackage()?.tier || 'Silver' }}</span>
+          </div>
+        </div>
+        <div class="stat-chip">
+          <div class="stat-icon cuisine"><i class="bi bi-egg-fried"></i></div>
+          <div>
+            <span class="stat-label">Cuisine</span>
+            <span class="stat-val">
+              @if (selectedPackage()?.pricing?.cuisine) {
+                {{ selectedPackage()?.pricing?.cuisine }}
+                <span class="text-muted" style="font-size: 0.75rem; font-weight: 500;">
+                  (@if (selectedPackage()?.pricing?.cuisineType === 'mixed' || (selectedPackage()?.pricing?.vegPrice && selectedPackage()?.pricing?.nonVegPrice)) {Veg & Non-Veg} @else if (selectedPackage()?.pricing?.cuisineType === 'veg' || selectedPackage()?.pricing?.vegPrice) {Pure Veg} @else if (selectedPackage()?.pricing?.cuisineType === 'nonveg' || selectedPackage()?.pricing?.nonVegPrice) {Non-Veg Only})
+                </span>
+              } @else {
+                @if (selectedPackage()?.pricing?.vegPrice && selectedPackage()?.pricing?.nonVegPrice) {
+                  Veg & Non-Veg
+                } @else if (selectedPackage()?.pricing?.vegPrice) {
+                  Pure Veg
+                } @else if (selectedPackage()?.pricing?.nonVegPrice) {
+                  Non-Veg Only
+                } @else {
+                  Not Specified
+                }
+              }
+            </span>
           </div>
         </div>
       </div>
@@ -371,7 +405,7 @@
       </div>
 
       <!-- Customer Reviews & Ratings Section -->
-      <div class="detail-card reviews-section-card">
+      <div id="reviews-section" class="detail-card reviews-section-card">
         <div class="reviews-header-row">
           <div class="card-label mb-0">Customer Reviews & Ratings</div>
           @if (completedBookingForPackage()) {
@@ -419,17 +453,17 @@
         <!-- Rating Overview Grid -->
         <div class="rating-overview-grid mt-4">
           <div class="rating-summary-box">
-            <div class="big-rating">{{ (selectedPackage()?.rating || 0).toFixed(1) }}</div>
+            <div class="big-rating">{{ averageRating().toFixed(1) }}</div>
             <div class="star-row-visual">
               @for (star of [1, 2, 3, 4, 5]; track star) {
                 <i class="bi"
-                  [class.bi-star-fill]="(selectedPackage()?.rating || 0) >= star"
-                  [class.bi-star-half]="(selectedPackage()?.rating || 0) < star && (selectedPackage()?.rating || 0) >= star - 0.5"
-                  [class.bi-star]="(selectedPackage()?.rating || 0) < star - 0.5">
+                  [class.bi-star-fill]="averageRating() >= star"
+                  [class.bi-star-half]="averageRating() < star && averageRating() >= star - 0.5"
+                  [class.bi-star]="averageRating() < star - 0.5">
                 </i>
               }
             </div>
-            <div class="total-reviews-sub">{{ selectedPackage()?.totalReviews || 0 }} verified reviews</div>
+            <div class="total-reviews-sub">{{ totalReviewsCount() }} verified reviews</div>
           </div>
 
           <div class="rating-bars-breakdown">
@@ -457,8 +491,12 @@
               @for (review of displayedReviews(); track review.id) {
                 <div class="review-item-card">
                   <div class="review-item-header">
-                    <div class="reviewer-avatar" [style.background]="getUserColor(review.customerName)">
-                      {{ review.customerName ? review.customerName.charAt(0).toUpperCase() : 'C' }}
+                    <div class="reviewer-avatar" [style.background]="review.customerAvatar ? 'transparent' : getUserColor(review.customerName)">
+                      @if (review.customerAvatar) {
+                        <img [src]="review.customerAvatar" alt="Avatar" class="avatar-img" />
+                      } @else {
+                        {{ review.customerName ? review.customerName.charAt(0).toUpperCase() : 'C' }}
+                      }
                     </div>
                     <div class="reviewer-meta-box">
                       <div class="reviewer-name-row">
