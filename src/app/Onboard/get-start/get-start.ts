@@ -1,33 +1,39 @@
-import { Component, signal, computed, OnInit } from '@angular/core';
+import { Component, signal, computed, OnInit, OnDestroy } from '@angular/core';
+import { TitleCasePipe } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { inject } from '@angular/core';
 import { EventCategoryService } from '../../core/services/event-category.service';
 import { PackageService } from '../../core/services/package.service';
 import { AuthService } from '../../core/services/auth.service';
+import { EventTierService } from '../../core/services/event-tier.service';
 import { EventType } from '../../core/models/event.model';
 
 import { FormsModule } from '@angular/forms';
-import { AiPlanner } from '../../customer/ai-planner/ai-planner';
 import { ThemeService } from '../../core/services/theme.service';
 
 @Component({
   selector: 'app-get-start',
   standalone: true,
-  imports: [RouterLink, FormsModule, AiPlanner],
+  imports: [RouterLink, FormsModule, TitleCasePipe],
   templateUrl: './get-start.html',
   styleUrl: './get-start.css'
 })
-export class GetStart implements OnInit {
+export class GetStart implements OnInit, OnDestroy {
   private eventCategoryService = inject(EventCategoryService);
   private packageService = inject(PackageService);
   private auth = inject(AuthService);
   private router = inject(Router);
   public theme = inject(ThemeService);
+  public eventTierService = inject(EventTierService);
+
+  private slideTimer?: ReturnType<typeof setInterval>;
 
   eventTypes = signal<EventType[]>([]);
+  eventTypesLoading = signal(true);
   currentSlide = signal(0);
   searchQuery = signal('');
-  
+  packagesLoading = signal(true);
+
   readonly quickCategories = [
     { id: 'wedding', name: 'Weddings', icon: 'bi-hearts', color: '#FF6B35' },
     { id: 'birthday', name: 'Birthdays', icon: 'bi-balloon-heart', color: '#6B21A8' },
@@ -37,80 +43,56 @@ export class GetStart implements OnInit {
     { id: 'shopping', name: 'Shopping', icon: 'bi-bag-heart-fill', color: '#F59E0B' }
   ];
 
-  readonly topVenues = signal([
-    { id: 'v1', name: 'The Royal Grandeur', city: 'Jaipur', image: 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&q=80&w=800', capacity: '500-2000 Pax', type: 'Heritage Palace' },
-    { id: 'v2', name: 'Seaside Pavilion', city: 'Goa', image: 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=800', capacity: '200-800 Pax', type: 'Beach Resort' },
-    { id: 'v3', name: 'Emerald Meadows', city: 'Bangalore', image: 'https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?auto=format&fit=crop&q=80&w=800', capacity: '1000-3000 Pax', type: 'Open Lawn' }
-  ]);
-
-  readonly topPlanners = signal([
-    { id: 'p1', name: 'DreamCraft Weddings', rating: '4.9', image: 'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&q=80&w=800', label: 'Platinum Partner' },
-    { id: 'p2', name: 'Elite Occasions', rating: '4.8', image: 'https://images.unsplash.com/photo-1519225421980-715cb0215aed?auto=format&fit=crop&q=80&w=800', label: 'Curated' },
-    { id: 'p3', name: 'Signature Events', rating: '5.0', image: 'https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?auto=format&fit=crop&q=80&w=800', label: 'Top Rated' }
-  ]);
-
-  readonly premiumPackages = signal([
-    { 
-      id: 'pkg1', 
-      name: 'The Diamond Wedding Package', 
-      price: 5600000, 
-      pax: '500 Pax', 
-      rooms: '50 Rooms', 
-      catering: 'Mix (Veg/Non-Veg)',
-      image: 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&q=80&w=800',
-      validity: '15 Days remaining'
-    },
-    { 
-      id: 'pkg2', 
-      name: 'Royal Heritage Celebration', 
-      price: 3500000, 
-      pax: '300 Pax', 
-      rooms: '30 Rooms', 
-      catering: 'Pure Veg',
-      image: 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=800',
-      validity: '08 Days remaining'
-    }
-  ]);
-
-  filteredTopVenues = computed(() => {
-    const q = this.searchQuery().toLowerCase();
-    if (!q) return this.topVenues();
-    return this.topVenues().filter(v => 
-      v.name.toLowerCase().includes(q) || 
-      v.city.toLowerCase().includes(q) || 
-      v.type.toLowerCase().includes(q)
-    );
-  });
-
-  filteredTopPlanners = computed(() => {
-    const q = this.searchQuery().toLowerCase();
-    if (!q) return this.topPlanners();
-    return this.topPlanners().filter(p => 
-      p.name.toLowerCase().includes(q) || 
-      p.label.toLowerCase().includes(q)
-    );
-  });
-
-  filteredPremiumPackages = computed(() => {
-    const q = this.searchQuery().toLowerCase();
-    if (!q) return this.premiumPackages();
-    return this.premiumPackages().filter(p => 
-      p.name.toLowerCase().includes(q) || 
-      p.catering.toLowerCase().includes(q)
-    );
-  });
-
-  readonly playbook = [
-    { title: 'The Engagement', status: 'completed', icon: 'bi-gem', desc: 'Set the ring and the date.' },
-    { title: 'Venue Booking', status: 'active', icon: 'bi-building', desc: 'Find the perfect place.' },
-    { title: 'Vendor Shortlisting', status: 'pending', icon: 'bi-people', desc: 'Select top-rated professionals.' },
-    { title: 'Final Execution', status: 'pending', icon: 'bi-stars', desc: 'Experience the magic seamlessly.' }
+  readonly trustStats = [
+    { icon: 'bi-shield-check', value: '500+', label: 'Verified Vendors', bg: 'rgba(255,107,53,0.1)', color: '#FF6B35' },
+    { icon: 'bi-calendar2-heart', value: '10,000+', label: 'Events Delivered', bg: 'rgba(217,70,239,0.1)', color: '#D946EF' },
+    { icon: 'bi-star-fill', value: '4.8/5', label: 'Average Rating', bg: 'rgba(245,158,11,0.1)', color: '#F59E0B' },
+    { icon: 'bi-geo-alt-fill', value: '25+', label: 'Cities Covered', bg: 'rgba(14,165,233,0.1)', color: '#0EA5E9' }
   ];
 
-  readonly quotations = [
-    { title: 'Wedding Quotation', desc: 'Planning your big day? Tell us about your vision and get a bundled quote.', icon: 'bi-heart-fill', color: '#E91E8C', bg: 'https://images.unsplash.com/photo-1519225421980-715cb0215aed?auto=format&fit=crop&q=80&w=800' },
-    { title: 'Corporate Quotation', desc: 'Hosting a seminar or product launch? We offer specialized management.', icon: 'bi-briefcase-fill', color: '#0EA5E9', bg: 'https://images.unsplash.com/photo-1505373877841-8d25f7d46678?auto=format&fit=crop&q=80&w=800' },
-    { title: 'International Wedding', desc: 'Dreaming of a destination wedding? We manage logistics across borders.', icon: 'bi-globe', color: '#D97706', bg: 'https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?auto=format&fit=crop&q=80&w=800' }
+  readonly howItWorks = [
+    { icon: 'bi-search', title: 'Discover', desc: 'Browse verified venues, vendors and curated packages tailored to your event.' },
+    { icon: 'bi-calendar2-check', title: 'Book', desc: 'Lock in your date instantly with transparent pricing and secure advance payment.' },
+    { icon: 'bi-stars', title: 'Celebrate', desc: 'Sit back while our partners and support team bring your event to life.' }
+  ];
+
+  private readonly fallbackPackages = [
+    {
+      id: 'pkg1', name: 'The Diamond Wedding Package', tier: 'premium', price: 5600000, rating: 4.9, totalReviews: 128,
+      maxGuests: 500, roomCount: 50, vegOnly: false, location: 'Jaipur', vendorName: 'DreamCraft Weddings',
+      services: ['Premium Venue', 'Gourmet Catering', 'Elegant Stage Decor'],
+      image: 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&q=80&w=800'
+    },
+    {
+      id: 'pkg2', name: 'Royal Heritage Celebration', tier: 'elite', price: 3500000, rating: 4.8, totalReviews: 94,
+      maxGuests: 300, roomCount: 30, vegOnly: true, location: 'Goa', vendorName: 'Elite Occasions',
+      services: ['Beach Pavilion', 'Live Music & DJ', 'Photography & Videography'],
+      image: 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=800'
+    },
+    {
+      id: 'pkg3', name: 'Corporate Summit Experience', tier: 'standard', price: 1200000, rating: 4.7, totalReviews: 61,
+      maxGuests: 250, roomCount: 0, vegOnly: false, location: 'Bangalore', vendorName: 'Signature Events',
+      services: ['Conference Hall', 'AV & Projector Setup', 'Premium Buffet Catering'],
+      image: 'https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?auto=format&fit=crop&q=80&w=800'
+    }
+  ];
+
+  trendingPackages = signal<any[]>(this.fallbackPackages);
+
+  filteredTrendingPackages = computed(() => {
+    const q = this.searchQuery().trim().toLowerCase();
+    if (!q) return this.trendingPackages();
+    return this.trendingPackages().filter(p =>
+      p.name?.toLowerCase().includes(q) ||
+      p.location?.toLowerCase().includes(q) ||
+      p.vendorName?.toLowerCase().includes(q)
+    );
+  });
+
+  readonly heroSlides = [
+    { title: 'Plan Your Dream Wedding', bg: 'linear-gradient(135deg,#1E293B 0%,#6B21A8 50%,#E91E8C 100%)' },
+    { title: 'Corporate Events That Impress', bg: 'linear-gradient(135deg,#0F172A 0%,#0EA5E9 60%,#6B21A8 100%)' },
+    { title: 'Sacred Rituals, Flawlessly Done', bg: 'linear-gradient(135deg,#1E293B 0%,#D97706 50%,#FF6B35 100%)' },
   ];
 
   onSearch() {
@@ -122,82 +104,56 @@ export class GetStart implements OnInit {
     }
   }
 
+  formatPriceLakh(price: number): string {
+    if (!price) return '₹0';
+    const lakh = price / 100000;
+    if (lakh >= 1) {
+      return '₹' + (lakh % 1 === 0 ? lakh.toFixed(0) : lakh.toFixed(1)) + 'L';
+    }
+    return '₹' + (price / 1000).toFixed(0) + 'k';
+  }
+
+  goToCategory(category: string) {
+    this.router.navigate(['/events'], { queryParams: { category } });
+  }
+
   ngOnInit() {
     if (this.auth.isAuthenticated()) {
       const role = this.auth.getRole();
       const path = role === 'customer' ? '/dashboard' : `/${role}/dashboard`;
       this.router.navigate([path]);
+      return;
     }
-    this.eventCategoryService.getAll().subscribe(types => this.eventTypes.set(types));
-    
+
+    this.eventCategoryService.getAll().subscribe({
+      next: types => {
+        this.eventTypes.set(types);
+        this.eventTypesLoading.set(false);
+      },
+      error: () => this.eventTypesLoading.set(false)
+    });
+
     this.packageService.getPackages().subscribe({
       next: (packages) => {
         if (packages && packages.length > 0) {
-          // Map premiumPackages
-          const mappedPackages = packages.map(p => ({
-            id: p.id,
-            name: p.name,
-            price: p.price,
-            pax: p.maxGuests ? `${p.maxGuests} Pax` : '300 Pax',
-            rooms: p.roomCount ? `${p.roomCount} Rooms` : '30 Rooms',
-            catering: p.vegOnly ? 'Pure Veg' : 'Veg/Non-Veg',
-            image: p.image || 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&q=80&w=800',
-            validity: p.offerExpiresIn || '15 Days remaining'
-          }));
-          this.premiumPackages.set(mappedPackages);
-
-          // Map topVenues: filter packages that are wedding/corporate or contain venue keywords
-          const venues = packages
-            .filter(p => p.name.toLowerCase().includes('hall') || p.name.toLowerCase().includes('lawn') || p.name.toLowerCase().includes('venue') || p.category === 'wedding')
-            .map(p => ({
-              id: p.id,
-              name: p.name,
-              city: p.location || 'Hyderabad',
-              image: p.image || 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&q=80&w=800',
-              capacity: p.maxGuests ? `${p.maxGuests} Pax` : '200-800 Pax',
-              type: p.tier || 'Premium Venue'
-            }));
-          if (venues.length > 0) {
-            this.topVenues.set(venues);
-          }
-
-          // Map topPlanners: extract unique vendor information
-          const planners = packages.map(p => ({
-            id: p.vendorId || p.id,
-            name: p.vendorName && p.vendorName !== '' ? p.vendorName : (p.name ? `${p.name.replace(/package|s$/gi, '').trim()} Organizer` : 'DreamCraft Weddings'),
-            rating: p.rating ? p.rating.toFixed(1) : (4.5 + Math.random() * 0.5).toFixed(1),
-            image: p.image || 'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&q=80&w=800',
-            label: p.tier || 'Platinum Partner'
-          }));
-          
-          // Remove duplicate planners by name
-          const uniquePlanners = Array.from(new Map(planners.map(pl => [pl.name, pl])).values()).slice(0, 6);
-          if (uniquePlanners.length > 0) {
-            this.topPlanners.set(uniquePlanners);
-          }
+          this.trendingPackages.set(packages.slice(0, 6));
         }
+        this.packagesLoading.set(false);
       },
-      error: (err) => console.error('Failed to load DB packages for index page:', err)
+      error: (err) => {
+        console.error('Failed to load packages for get-started page:', err);
+        this.packagesLoading.set(false);
+      }
     });
 
-    setInterval(() => {
-      this.currentSlide.update(s => (s + 1) % 3);
+    this.slideTimer = setInterval(() => {
+      this.currentSlide.update(s => (s + 1) % this.heroSlides.length);
     }, 4500);
   }
 
-  readonly heroSlides = [
-    { title: 'Plan Your Dream Wedding', subtitle: 'Shaadi', bg: 'linear-gradient(135deg,#1E293B 0%,#6B21A8 50%,#E91E8C 100%)' },
-    { title: 'Corporate Events That Impress', subtitle: 'Karobar', bg: 'linear-gradient(135deg,#0F172A 0%,#0EA5E9 60%,#6B21A8 100%)' },
-    { title: 'Sacred Rituals, Flawlessly Done', subtitle: 'Puja & Hawan', bg: 'linear-gradient(135deg,#1E293B 0%,#D97706 50%,#FF6B35 100%)' },
-  ];
-
-  readonly features = [
-    { icon: 'bi-shield-check', title: 'Verified Vendors', desc: 'Every vendor goes through a strict verification process' },
-    { icon: 'bi-calendar2-check', title: 'Easy Booking', desc: 'Book your event in minutes with advance payment' },
-    { icon: 'bi-chat-dots', title: '24/7 Support', desc: 'Our team is always available for any assistance' },
-    { icon: 'bi-graph-up', title: 'Live Tracking', desc: 'Monitor your event progress in real time' },
-  ];
-
+  ngOnDestroy() {
+    if (this.slideTimer) clearInterval(this.slideTimer);
+  }
 
   handleImageError(event: Event) {
     const img = event.target as HTMLImageElement;

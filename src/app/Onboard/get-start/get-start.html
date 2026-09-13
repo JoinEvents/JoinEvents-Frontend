@@ -1,6 +1,6 @@
 <section class="hero-section" [style.background]="heroSlides[currentSlide()].bg">
   <div class="hero-overlay"></div>
-  
+
   <nav class="hero-nav glass-nav">
     <div class="nav-logo-wrap">
       <div class="brand-logo-hero">
@@ -9,7 +9,6 @@
       <span class="brand-text-hero"><span class="brand-join">Join</span>Events</span>
     </div>
     <div class="d-flex gap-3 align-items-center">
-      <!-- Theme Switcher -->
       <button class="topbar-icon-btn theme-switcher" (click)="theme.toggleTheme()"
         [title]="theme.isDarkMode() ? 'Switch to Light Mode' : 'Switch to Dark Mode'"
         style="background: rgba(255, 255, 255, 0.15); border-color: rgba(255, 255, 255, 0.25); color: white; display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; border: 1px solid;">
@@ -30,7 +29,7 @@
   <div class="hero-content">
     <h1 class="hero-title">{{ heroSlides[currentSlide()].title }}</h1>
     <p class="hero-subtitle">Discover the most exclusive venues and curated professionals for your next masterpiece.</p>
-    
+
     <div class="search-container">
       <div class="main-search-bar">
         <div class="search-input-wrap">
@@ -39,7 +38,7 @@
         </div>
         <button class="btn-search" (click)="onSearch()">Explore Now</button>
       </div>
-      
+
       <div class="quick-chips-container">
         @for (cat of quickCategories; track cat.id) {
           <a [routerLink]="['/events']" [queryParams]="{ category: cat.id }" class="category-chip" [style.--cc]="cat.color">
@@ -52,157 +51,168 @@
   </div>
 </section>
 
-<!-- BENTO GRID FEATURES -->
-<section class="bento-section">
+<!-- TRUST STATS -->
+<section class="trust-stats-section">
   <div class="container-wide">
-    <div class="text-center mb-5">
-      <span class="section-tag">Why Choose Us</span>
-      <h2 class="discovery-title">The JoinEvents Advantage</h2>
-    </div>
-    
-    <div class="bento-grid">
-      <div class="bento-item bento-large-1">
-        <div class="bento-icon"><i class="bi bi-shield-check"></i></div>
-        <h3>Verified Vendors</h3>
-        <p>Every vendor goes through a strict 5-point verification process to ensure absolute reliability and premium quality for your events.</p>
-        <div class="bento-glow"></div>
-      </div>
-      <div class="bento-item bento-small">
-        <div class="bento-icon" style="color: #0EA5E9;"><i class="bi bi-calendar2-check"></i></div>
-        <h3>Easy Booking</h3>
-        <p>Secure dates instantly with transparent advance payment.</p>
-      </div>
-      <div class="bento-item bento-small">
-        <div class="bento-icon" style="color: #D946EF;"><i class="bi bi-chat-dots"></i></div>
-        <h3>24/7 Support</h3>
-        <p>Our dedicated concierges are always available.</p>
-      </div>
-      <div class="bento-item bento-large-2">
-        <div class="bento-icon" style="color: #10B981;"><i class="bi bi-graph-up"></i></div>
-        <h3>Live Tracking</h3>
-        <p>Monitor your event's progress in real-time. Track vendor status, payments, and itinerary updates from a single unified dashboard.</p>
-        <div class="bento-bg-accent"></div>
-      </div>
+    <div class="row g-3">
+      @for (stat of trustStats; track stat.label) {
+        <div class="col-6 col-lg-3">
+          <div class="stat-card d-flex align-items-center gap-3">
+            <div class="icon-wrap" [style.background]="stat.bg" [style.color]="stat.color">
+              <i class="bi {{ stat.icon }}"></i>
+            </div>
+            <div>
+              <div class="stat-value">{{ stat.value }}</div>
+              <div class="stat-label">{{ stat.label }}</div>
+            </div>
+          </div>
+        </div>
+      }
     </div>
   </div>
 </section>
 
-<!-- SCROLL SNAP DISCOVERY LOOPS -->
-<section class="discovery-section">
+<!-- WHAT ARE YOU PLANNING -->
+<section class="landing-section">
   <div class="container-wide">
-    <div class="discovery-header">
+    <div class="section-title-wrapper mb-3">
+      <span class="section-tag">Browse Categories</span>
+      <h2 class="section-title">What are you planning?</h2>
+      <p class="section-subtitle">Explore packages by category from verified vendors across India</p>
+    </div>
+
+    <div class="category-grid">
+      @if (eventTypesLoading()) {
+        @for (i of [1,2,3,4,5,6]; track i) {
+          <div class="category-pill-card skeleton-item">
+            <div class="category-icon-box skeleton-block" style="width: 46px; height: 46px; border-radius: 14px; flex-shrink: 0;"></div>
+            <div class="category-text-box flex-grow-1" style="display: flex; flex-direction: column; gap: 8px;">
+              <div class="skeleton-block" style="width: 70px; height: 14px; border-radius: 4px;"></div>
+              <div class="skeleton-block" style="width: 45px; height: 10px; border-radius: 3px;"></div>
+            </div>
+          </div>
+        }
+      } @else {
+        @for (et of eventTypes(); track et.id) {
+          <div (click)="goToCategory(et.category)" class="category-pill-card">
+            <div class="category-icon-box" [style.background]="et.gradient">
+              <i class="bi {{ et.icon }}"></i>
+            </div>
+            <div class="category-text-box">
+              <span class="category-pill-name">{{ et.name }}</span>
+              <span class="category-pill-price">From ₹{{ (et.startingPrice || 0) / 1000 }}k</span>
+            </div>
+          </div>
+        } @empty {
+          @for (cat of quickCategories; track cat.id) {
+            <div (click)="goToCategory(cat.id)" class="category-pill-card">
+              <div class="category-icon-box" [style.background]="cat.color">
+                <i class="bi {{ cat.icon }}"></i>
+              </div>
+              <div class="category-text-box">
+                <span class="category-pill-name">{{ cat.name }}</span>
+              </div>
+            </div>
+          }
+        }
+      }
+    </div>
+  </div>
+</section>
+
+<!-- TRENDING PACKAGES -->
+<section class="landing-section landing-section-alt">
+  <div class="container-wide">
+    <div class="section-title-wrapper d-flex justify-content-between align-items-end mb-3">
       <div>
-        <span class="section-tag">Explore Top Cities</span>
-        <h2 class="discovery-title">Handpicked Premium Venues</h2>
+        <span class="section-tag">Curated Deals</span>
+        <h2 class="section-title">Trending Event Packages</h2>
+        <p class="section-subtitle">Top-rated, all-inclusive packages from verified partners</p>
       </div>
-      <a routerLink="/events" class="btn-ee-primary d-none d-md-flex">View All Venues</a>
+      <a routerLink="/events" class="view-all-link d-none d-md-flex">Explore Catalog <i class="bi bi-chevron-right small"></i></a>
     </div>
-    
-    <div class="scroll-snap-container">
-      @for (v of filteredTopVenues(); track v.id) {
-        <div class="discovery-card snap-item">
-          <div class="card-img-wrap">
-            <img [src]="v.image" [alt]="v.name">
-            <span class="card-badge">{{ v.type }}</span>
-            <span class="v-city-tag">{{ v.city }}</span>
-          </div>
-          <div class="card-info">
-            <h5>{{ v.name }}</h5>
-            <div class="card-meta">
-              <span class="meta-tag"><i class="bi bi-people-fill"></i> {{ v.capacity }}</span>
-              <span class="meta-tag"><i class="bi bi-star-fill"></i> 4.9</span>
+
+    <div class="row g-3">
+      @if (packagesLoading()) {
+        @for (i of [1,2,3]; track i) {
+          <div class="col-12 col-md-6 col-lg-4">
+            <div class="package-card-v2 skeleton-item">
+              <div class="card-img-wrap skeleton-block"></div>
+              <div class="card-content-v2">
+                <div class="skeleton-block" style="width: 140px; height: 20px; border-radius: 4px; margin-bottom: 10px;"></div>
+                <div class="skeleton-block" style="width: 100px; height: 14px; border-radius: 4px;"></div>
+              </div>
             </div>
           </div>
-        </div>
+        }
+      } @else {
+        @for (p of filteredTrendingPackages(); track p.id) {
+          <div class="col-12 col-md-6 col-lg-4">
+            <div class="package-card-v2" [routerLink]="['/book', p.id]" style="cursor: pointer;">
+              <div class="card-img-wrap">
+                <img [src]="p.image" class="card-img" [alt]="p.name" loading="lazy">
+                <div class="price-badge-v2">{{ formatPriceLakh(p.price) }}</div>
+              </div>
+              <div class="card-content-v2">
+                <div class="pkg-meta">
+                  <span class="pkg-label" [style.background]="eventTierService.getGradientForTier(p.tier)" style="color: white; border: none;">{{ p.tier | titlecase }}</span>
+                  <span class="pkg-rating"><i class="bi bi-star-fill"></i> {{ (p.rating || 0).toFixed(1) }} ({{ p.totalReviews || 0 }})</span>
+                </div>
+                <h3 class="pkg-title-v2 text-truncate" [title]="p.name">{{ p.name }}</h3>
+                <div class="pkg-vendor-subtitle">
+                  <i class="bi bi-shop text-primary"></i> {{ p.vendorName || 'JoinEvents Partner' }}
+                </div>
+                <div class="pkg-loc-v2">
+                  <i class="bi bi-geo-alt"></i> {{ p.location }}
+                </div>
+                @if (p.services && p.services.length) {
+                  <div class="d-flex flex-wrap gap-1 mb-2">
+                    @for (svc of p.services.slice(0, 2); track svc) {
+                      <span class="service-pill"><i class="bi bi-check2 text-success me-1"></i>{{ svc }}</span>
+                    }
+                  </div>
+                }
+                <div class="pkg-features">
+                  <div class="feat-item" title="Capacity">
+                    <i class="bi bi-people-fill"></i> <span>{{ p.maxGuests }} Pax</span>
+                  </div>
+                  @if (p.roomCount > 0) {
+                    <div class="feat-item" title="Accommodation">
+                      <i class="bi bi-door-closed-fill"></i> <span>{{ p.roomCount }} Rms</span>
+                    </div>
+                  }
+                  <div class="feat-item" title="Cuisine">
+                    <i class="bi bi-egg-fried"></i> <span>{{ p.vegOnly ? 'Veg' : 'Mix' }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        } @empty {
+          <div class="col-12 text-center py-5 ee-card">
+            <i class="bi bi-search fs-1 text-soft mb-2"></i>
+            <h6 class="text-muted">No packages match your search yet.</h6>
+          </div>
+        }
       }
     </div>
   </div>
 </section>
 
-<!-- PREMIUM PACKAGES -->
-<section class="packages-section">
+<!-- HOW IT WORKS -->
+<section class="landing-section">
   <div class="container-wide">
-    <div class="text-center mb-5">
-      <span class="section-tag">Curated Deals</span>
-      <h2 class="discovery-title">Featured All-Inclusive Packages</h2>
-      <p class="text-muted mt-2">Zero hidden costs. Full transparency. Guaranteed excellence.</p>
+    <div class="text-center mb-4">
+      <span class="section-tag">Simple Process</span>
+      <h2 class="section-title">How JoinEvents Works</h2>
     </div>
-    
-    <div class="scroll-snap-container packages-snap">
-      @for (pkg of filteredPremiumPackages(); track pkg.id) {
-        <div class="package-card-premium snap-item">
-          <div class="pkg-validity">
-            <i class="bi bi-clock-history"></i> {{ pkg.validity }}
-          </div>
-          <div class="pkg-img">
-            <img [src]="pkg.image" [alt]="pkg.name">
-          </div>
-          <div class="pkg-body">
-            <div class="pkg-price-row">
-              <span class="pkg-starts">Starting From</span>
-              <span class="pkg-val">₹{{ (pkg.price / 100000).toFixed(1) }}L</span>
-            </div>
-            <h4 class="pkg-title">{{ pkg.name }}</h4>
-            
-            <div class="pkg-attributes">
-              <div class="attr-item"><i class="bi bi-people"></i> {{ pkg.pax }}</div>
-              <div class="attr-item"><i class="bi bi-door-open"></i> {{ pkg.rooms }}</div>
-              <div class="attr-item"><i class="bi bi-egg-fried"></i> {{ pkg.catering }}</div>
-              <div class="attr-item"><i class="bi bi-patch-check"></i> All Inclusions</div>
-            </div>
-            
-            <button class="btn-pkg-book" [routerLink]="['/book', pkg.id]">Check Availability</button>
-          </div>
-        </div>
-      }
-    </div>
-  </div>
-</section>
 
-<!-- TOP PLANNERS -->
-<section class="discovery-section">
-  <div class="container-wide">
-    <div class="discovery-header">
-      <div>
-        <span class="section-tag">Experts On Board</span>
-        <h2 class="discovery-title">Top Rated Planners</h2>
-      </div>
-      <a routerLink="/events" class="btn-ee-primary d-none d-md-flex">View All Planners</a>
-    </div>
-    
-    <div class="scroll-snap-container">
-      @for (p of filteredTopPlanners(); track p.id) {
-        <div class="discovery-card snap-item planner-card">
-          <div class="card-img-wrap" style="height: 300px;">
-            <img [src]="p.image" [alt]="p.name">
-            <span class="card-badge planner-badge">{{ p.label }}</span>
-          </div>
-          <div class="card-info text-center">
-            <h5 class="mb-1">{{ p.name }}</h5>
-            <div class="d-flex justify-content-center align-items-center gap-1 text-warning">
-              <i class="bi bi-star-fill small"></i><i class="bi bi-star-fill small"></i><i class="bi bi-star-fill small"></i><i class="bi bi-star-fill small"></i><i class="bi bi-star-fill small"></i>
-              <span class="ms-1 text-muted small" style="font-weight: 700;">({{ p.rating }})</span>
-            </div>
-          </div>
-        </div>
-      }
-    </div>
-  </div>
-</section>
-
-<!-- WEDDING PLAYBOOK (TIMELINE) -->
-<section class="playbook-section">
-  <div class="container-xl">
-    <div class="text-center mb-5">
-      <span class="section-tag">Planning Guide</span>
-      <h2 class="discovery-title">Your Master Playbook</h2>
-    </div>
-    
-    <div class="timeline-container">
-      @for (step of playbook; track step.title) {
-        <div class="timeline-item" [class.active]="step.status === 'active'" [class.completed]="step.status === 'completed'">
-          <div class="timeline-icon"><i class="bi {{ step.icon }}"></i></div>
-          <div class="timeline-content">
+    <div class="row g-3">
+      @for (step of howItWorks; track step.title; let i = $index) {
+        <div class="col-12 col-md-4">
+          <div class="how-it-works-card ee-card">
+            <div class="how-step-number">{{ i + 1 }}</div>
+            <div class="how-step-icon"><i class="bi {{ step.icon }}"></i></div>
             <h4>{{ step.title }}</h4>
             <p>{{ step.desc }}</p>
           </div>
@@ -212,32 +222,26 @@
   </div>
 </section>
 
-<!-- INTERACTIVE QUOTATIONS -->
-<section class="quotation-section">
+<!-- CTA BANNER -->
+<section class="landing-section">
   <div class="container-wide">
-    <div class="text-center mb-5">
-      <span class="section-tag">Lead Generation</span>
-      <h2 class="discovery-title text-white">Fill Your Quotation</h2>
-      <p class="text-white-50 mt-2">Choose your intent and get a customized quote in minutes.</p>
-    </div>
-    
-    <div class="quotation-grid">
-      @for (q of quotations; track q.title) {
-        <div class="quotation-card-modern" [style.--qc]="q.color" [style.background-image]="'url(' + q.bg + ')'">
-          <div class="qc-overlay"></div>
-          <div class="qc-content">
-            <div class="qc-icon"><i class="bi {{ q.icon }}"></i></div>
-            <h4 class="qc-title">{{ q.title }}</h4>
-            <p class="qc-desc">{{ q.desc }}</p>
-            <a routerLink="/get-quotes" class="btn-qc">Get Quote <i class="bi bi-arrow-right"></i></a>
-          </div>
-        </div>
-      }
+    <div class="cta-banner">
+      <div class="cta-banner-content">
+        <h2>Ready to start planning your event?</h2>
+        <p>Join thousands of hosts who trust JoinEvents for verified vendors, transparent pricing, and seamless bookings.</p>
+      </div>
+      <div class="cta-banner-actions">
+        <a routerLink="/register" class="btn-hero-fill">
+          <span class="btn-text">Get Started Free</span>
+          <i class="bi bi-arrow-right ms-2"></i>
+        </a>
+        <a routerLink="/get-quotes" class="btn-hero-outline">
+          <span class="btn-text">Request a Quote</span>
+        </a>
+      </div>
     </div>
   </div>
 </section>
-
-<app-ai-planner></app-ai-planner>
 
 <footer class="landing-footer">
   <div class="container-wide">
