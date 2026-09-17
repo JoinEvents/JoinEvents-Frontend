@@ -1,0 +1,284 @@
+/* ============================================================
+   JoinEvents — Global mobile styles
+   Reusable primitives shared by every page, so individual pages
+   only carry the CSS that is genuinely unique to them.
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700&display=swap');
+
+body {
+  font-family: var(--je-font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6, .je-heading {
+  font-family: var(--je-font-heading);
+  color: var(--je-text-main);
+  letter-spacing: -0.01em;
+}
+
+ion-content {
+  --background: var(--je-bg-app);
+}
+
+ion-toolbar {
+  --background: var(--je-bg-card);
+  --border-width: 0 0 1px 0;
+  --border-color: var(--je-border-color);
+  --color: var(--je-text-main);
+}
+
+ion-title {
+  font-family: var(--je-font-heading);
+  font-weight: 600;
+}
+
+/* ---- Cards ---------------------------------------------------- */
+
+.je-card {
+  background: var(--je-bg-card);
+  border: 1px solid var(--je-border-color);
+  border-radius: var(--je-radius-md);
+  box-shadow: var(--je-shadow-sm);
+  padding: 16px;
+  margin-bottom: 14px;
+}
+
+.je-card--flush {
+  padding: 0;
+  overflow: hidden;
+}
+
+/* ---- Section headings ----------------------------------------- */
+
+.je-section {
+  padding: 4px 16px 0;
+}
+
+.je-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 20px 0 12px;
+}
+
+.je-section-head h2 {
+  font-size: var(--je-fs-md);
+  font-weight: 600;
+  margin: 0;
+}
+
+.je-section-head a,
+.je-section-head button {
+  font-size: var(--je-fs-sm);
+  font-weight: 600;
+  color: var(--je-primary);
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+/* ---- Text helpers --------------------------------------------- */
+
+.je-muted { color: var(--je-text-muted); }
+.je-soft  { color: var(--je-text-soft); }
+.je-xs    { font-size: var(--je-fs-xs); }
+.je-sm    { font-size: var(--je-fs-sm); }
+.je-bold  { font-weight: 600; }
+.je-price { font-family: var(--je-font-heading); font-weight: 700; color: var(--je-text-main); }
+
+.je-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.je-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ---- Status pills --------------------------------------------- */
+
+.je-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: var(--je-radius-full);
+  font-size: var(--je-fs-xs);
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.je-pill--pending      { background: rgba(217, 119, 6, 0.12);  color: var(--je-warning); }
+.je-pill--confirmed    { background: rgba(22, 163, 74, 0.12);  color: var(--je-success); }
+.je-pill--advance_paid { background: rgba(14, 165, 233, 0.12); color: var(--je-info); }
+.je-pill--in_progress  { background: rgba(217, 70, 239, 0.12); color: #D946EF; }
+.je-pill--completed    { background: rgba(22, 163, 74, 0.12);  color: var(--je-success); }
+.je-pill--settled      { background: rgba(107, 33, 168, 0.12); color: var(--je-secondary); }
+.je-pill--cancelled    { background: rgba(220, 38, 38, 0.12);  color: var(--je-danger); }
+.je-pill--rejected     { background: rgba(220, 38, 38, 0.12);  color: var(--je-danger); }
+.je-pill--disputed     { background: rgba(220, 38, 38, 0.12);  color: var(--je-danger); }
+.je-pill--neutral      { background: var(--je-bg-light);       color: var(--je-text-muted); }
+
+/* ---- Gradient surfaces ----------------------------------------- */
+
+.je-gradient {
+  background: var(--je-gradient-primary);
+  color: #fff;
+}
+
+.je-gradient h1, .je-gradient h2, .je-gradient h3 { color: #fff; }
+
+/* ---- Buttons ---------------------------------------------------- */
+
+ion-button {
+  --border-radius: var(--je-radius-sm);
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.je-btn-gradient {
+  --background: var(--je-gradient-primary);
+  --background-activated: var(--je-primary-dark);
+  --background-hover: var(--je-primary-dark);
+  --color: #fff;
+  --box-shadow: 0 6px 18px rgba(255, 107, 53, 0.3);
+}
+
+/* ---- Forms ------------------------------------------------------ */
+
+.je-field {
+  --background: var(--je-bg-card);
+  --border-radius: var(--je-radius-sm);
+  --padding-start: 14px;
+  --padding-end: 14px;
+  --highlight-color-focused: var(--je-primary);
+  border: 1px solid var(--je-border-color);
+  border-radius: var(--je-radius-sm);
+  margin-bottom: 14px;
+}
+
+.je-field.je-field--invalid {
+  border-color: var(--je-danger);
+}
+
+.je-error {
+  color: var(--je-danger);
+  font-size: var(--je-fs-xs);
+  margin: -8px 0 12px 4px;
+}
+
+/* ---- Grids ------------------------------------------------------ */
+
+.je-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.je-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+/* ---- Stat tiles -------------------------------------------------- */
+
+.je-stat {
+  background: var(--je-bg-card);
+  border: 1px solid var(--je-border-color);
+  border-radius: var(--je-radius-md);
+  padding: 14px;
+  box-shadow: var(--je-shadow-sm);
+}
+
+.je-stat__value {
+  font-family: var(--je-font-heading);
+  font-size: var(--je-fs-xl);
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--je-text-main);
+}
+
+.je-stat__label {
+  font-size: var(--je-fs-xs);
+  color: var(--je-text-muted);
+  margin-top: 4px;
+}
+
+/* ---- Empty state -------------------------------------------------- */
+
+.je-empty {
+  text-align: center;
+  padding: 48px 28px;
+  color: var(--je-text-muted);
+}
+
+.je-empty ion-icon {
+  font-size: 46px;
+  color: var(--je-text-soft);
+  margin-bottom: 12px;
+}
+
+.je-empty h3 {
+  font-size: var(--je-fs-md);
+  margin: 0 0 6px;
+}
+
+.je-empty p {
+  font-size: var(--je-fs-sm);
+  margin: 0 0 18px;
+}
+
+/* ---- Skeletons ----------------------------------------------------- */
+
+.je-skeleton {
+  background: var(--je-bg-light);
+  border-radius: var(--je-radius-sm);
+  animation: je-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes je-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.45; }
+}
+
+/* ---- Safe area --------------------------------------------------- */
+
+.je-safe-bottom {
+  padding-bottom: calc(16px + var(--ion-safe-area-bottom, 0px));
+}
+
+/* ---- Sticky action bar ------------------------------------------- */
+
+.je-action-bar {
+  position: sticky;
+  bottom: 0;
+  background: var(--je-bg-card);
+  border-top: 1px solid var(--je-border-color);
+  padding: 12px 16px calc(12px + var(--ion-safe-area-bottom, 0px));
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* ---- Tab bar ------------------------------------------------------ */
+
+ion-tab-bar {
+  --border: 1px solid var(--je-border-color);
+  height: 58px;
+  padding-bottom: var(--ion-safe-area-bottom, 0px);
+}
+
+ion-tab-button {
+  --color: var(--je-text-soft);
+  --color-selected: var(--je-primary);
+  font-size: var(--je-fs-xs);
+}

@@ -1,0 +1,204 @@
+/* ============================================================
+   JoinEvents — Mobile Design Tokens
+   Mirrors src/styles.css from the web application so that the
+   Android/iOS app is visually identical to the web product.
+   ============================================================ */
+
+:root {
+  /* ---- Brand ---- */
+  --je-primary: #FF6B35;
+  --je-primary-dark: #E5521C;
+  --je-primary-light: #FF8C5A;
+  --je-secondary: #6B21A8;
+  --je-secondary-dark: #581C8A;
+  --je-accent: #F59E0B;
+
+  --je-success: #16A34A;
+  --je-danger: #DC2626;
+  --je-warning: #D97706;
+  --je-info: #0EA5E9;
+
+  /* ---- Surfaces ---- */
+  --je-bg-app: #F8FAFC;
+  --je-bg-card: #FFFFFF;
+  --je-bg-elevated: #FFFFFF;
+  --je-bg-light: #F1F5F9;
+
+  /* ---- Text ---- */
+  --je-text-main: #0F172A;
+  --je-text-muted: #475569;
+  --je-text-soft: #94A3B8;
+
+  /* ---- Lines & shadows ---- */
+  --je-border-color: rgba(0, 0, 0, 0.08);
+  --je-shadow-sm: 0 2px 8px rgba(149, 157, 165, 0.08);
+  --je-shadow-md: 0 8px 24px rgba(149, 157, 165, 0.12);
+  --je-shadow-lg: 0 16px 32px rgba(149, 157, 165, 0.16);
+
+  /* ---- Gradients ---- */
+  --je-gradient-primary: linear-gradient(135deg, #FF6B35 0%, #D946EF 100%);
+  --je-gradient-secondary: linear-gradient(135deg, #6B21A8 0%, #9333EA 100%);
+  --je-gradient-dark: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
+  --je-gradient-hero: linear-gradient(135deg, #F8FAFC 0%, #E0E7FF 100%);
+
+  /* ---- Radii ---- */
+  --je-radius-sm: 10px;
+  --je-radius-md: 16px;
+  --je-radius-lg: 20px;
+  --je-radius-xl: 28px;
+  --je-radius-full: 9999px;
+
+  /* ---- Type scale ---- */
+  --je-fs-xs: 0.75rem;
+  --je-fs-sm: 0.8125rem;
+  --je-fs-base: 0.9375rem;
+  --je-fs-md: 1.0625rem;
+  --je-fs-lg: 1.25rem;
+  --je-fs-xl: 1.5rem;
+  --je-fs-2xl: 1.875rem;
+
+  --je-font-heading: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --je-font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  /* ---- Event category accents (parity with web) ---- */
+  --je-event-wedding: #E91E8C;
+  --je-event-birthday: #F59E0B;
+  --je-event-corporate: #0EA5E9;
+  --je-event-religious: #8B5CF6;
+  --je-event-social: #10B981;
+  --je-event-beauty: #EC4899;
+  --je-event-travel: #06B6D4;
+  --je-event-shopping: #F97316;
+
+  /* ============================================================
+     Ionic token bridge — Ionic components read --ion-* variables,
+     so every brand token above is projected onto them here.
+     ============================================================ */
+
+  --ion-color-primary: #FF6B35;
+  --ion-color-primary-rgb: 255, 107, 53;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-contrast-rgb: 255, 255, 255;
+  --ion-color-primary-shade: #E5521C;
+  --ion-color-primary-tint: #FF8C5A;
+
+  --ion-color-secondary: #6B21A8;
+  --ion-color-secondary-rgb: 107, 33, 168;
+  --ion-color-secondary-contrast: #ffffff;
+  --ion-color-secondary-contrast-rgb: 255, 255, 255;
+  --ion-color-secondary-shade: #581C8A;
+  --ion-color-secondary-tint: #7C3DB5;
+
+  --ion-color-tertiary: #D946EF;
+  --ion-color-tertiary-rgb: 217, 70, 239;
+  --ion-color-tertiary-contrast: #ffffff;
+  --ion-color-tertiary-contrast-rgb: 255, 255, 255;
+  --ion-color-tertiary-shade: #BF3ED2;
+  --ion-color-tertiary-tint: #DD59F1;
+
+  --ion-color-success: #16A34A;
+  --ion-color-success-rgb: 22, 163, 74;
+  --ion-color-success-contrast: #ffffff;
+  --ion-color-success-contrast-rgb: 255, 255, 255;
+  --ion-color-success-shade: #138F41;
+  --ion-color-success-tint: #2DAC5C;
+
+  --ion-color-warning: #D97706;
+  --ion-color-warning-rgb: 217, 119, 6;
+  --ion-color-warning-contrast: #ffffff;
+  --ion-color-warning-contrast-rgb: 255, 255, 255;
+  --ion-color-warning-shade: #BF6905;
+  --ion-color-warning-tint: #DD851F;
+
+  --ion-color-danger: #DC2626;
+  --ion-color-danger-rgb: 220, 38, 38;
+  --ion-color-danger-contrast: #ffffff;
+  --ion-color-danger-contrast-rgb: 255, 255, 255;
+  --ion-color-danger-shade: #C22121;
+  --ion-color-danger-tint: #E03C3C;
+
+  --ion-color-medium: #475569;
+  --ion-color-medium-rgb: 71, 85, 105;
+  --ion-color-medium-contrast: #ffffff;
+  --ion-color-medium-contrast-rgb: 255, 255, 255;
+  --ion-color-medium-shade: #3E4B5C;
+  --ion-color-medium-tint: #596678;
+
+  --ion-color-light: #F1F5F9;
+  --ion-color-light-rgb: 241, 245, 249;
+  --ion-color-light-contrast: #0F172A;
+  --ion-color-light-contrast-rgb: 15, 23, 42;
+  --ion-color-light-shade: #D4D8DB;
+  --ion-color-light-tint: #F2F6FA;
+
+  --ion-background-color: #F8FAFC;
+  --ion-background-color-rgb: 248, 250, 252;
+  --ion-text-color: #0F172A;
+  --ion-text-color-rgb: 15, 23, 42;
+
+  --ion-card-background: #FFFFFF;
+  --ion-item-background: #FFFFFF;
+  --ion-toolbar-background: #FFFFFF;
+  --ion-tab-bar-background: #FFFFFF;
+  --ion-border-color: rgba(0, 0, 0, 0.08);
+
+  --ion-font-family: var(--je-font-body);
+}
+
+/* ============================================================
+   Dark theme — token values mirror the web app's [data-theme="dark"]
+   block. Applied by ThemeService via the `.je-dark` class on <html>,
+   which is driven by the stored preference or the OS setting.
+   ============================================================ */
+
+.je-dark {
+  --je-bg-app: #0F172A;
+  --je-bg-card: #1E293B;
+  --je-bg-elevated: #1E293B;
+  --je-bg-light: #1E293B;
+
+  --je-text-main: #F8FAFC;
+  --je-text-muted: #CBD5E1;
+  --je-text-soft: #94A3B8;
+
+  --je-border-color: rgba(255, 255, 255, 0.1);
+  --je-shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.25);
+  --je-shadow-md: 0 8px 30px rgba(0, 0, 0, 0.3);
+  --je-shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.4);
+
+  --je-gradient-hero: linear-gradient(135deg, #1E293B 0%, #111827 100%);
+
+  --je-success: #4ADE80;
+  --je-warning: #FACC15;
+  --je-danger: #F87171;
+  --je-info: #38BDF8;
+
+  --ion-background-color: #0F172A;
+  --ion-background-color-rgb: 15, 23, 42;
+  --ion-text-color: #F8FAFC;
+  --ion-text-color-rgb: 248, 250, 252;
+
+  --ion-card-background: #1E293B;
+  --ion-item-background: #1E293B;
+  --ion-toolbar-background: #0F172A;
+  --ion-tab-bar-background: #0F172A;
+  --ion-border-color: rgba(255, 255, 255, 0.1);
+
+  --ion-color-success: #4ADE80;
+  --ion-color-success-rgb: 74, 222, 128;
+  --ion-color-success-contrast: #052E16;
+  --ion-color-warning: #FACC15;
+  --ion-color-warning-rgb: 250, 204, 21;
+  --ion-color-warning-contrast: #422006;
+  --ion-color-danger: #F87171;
+  --ion-color-danger-rgb: 248, 113, 113;
+  --ion-color-danger-contrast: #450A0A;
+
+  --ion-color-light: #1E293B;
+  --ion-color-light-rgb: 30, 41, 59;
+  --ion-color-light-contrast: #F8FAFC;
+
+  --ion-color-medium: #CBD5E1;
+  --ion-color-medium-rgb: 203, 213, 225;
+  --ion-color-medium-contrast: #0F172A;
+}
