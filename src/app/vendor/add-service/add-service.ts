@@ -7,11 +7,12 @@ import { VendorPackageService } from '../../core/services/vendor-package.service
 import { EventCategoryService } from '../../core/services/event-category.service';
 import { ServiceCategoryDef } from '../../core/models/service.model';
 import { EventTierService } from '../../core/services/event-tier.service';
-import { SupportService } from '../../core/services/support.service';
+import { MediaService } from '../../core/services/media.service';
 import { ToastService } from '../../core/services/toast.service';
 import { VendorService } from '../../core/services/vendor.service';
 import { ProfileService } from '../../core/services/profile.service';
 import { environment } from '../../../environments/environment';
+import { resolveMediaUrl } from '../../core/utils/media-url.util';
 import { forkJoin } from 'rxjs';
 
 declare var google: any;
@@ -54,7 +55,7 @@ export class VendorAddService implements OnInit, OnDestroy {
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private ngZone = inject(NgZone);
-  private supportService = inject(SupportService);
+  private mediaService = inject(MediaService);
   private toast = inject(ToastService);
   private vendorService = inject(VendorService);
   private profileService = inject(ProfileService);
@@ -1251,11 +1252,12 @@ export class VendorAddService implements OnInit, OnDestroy {
         const uniqueName = `cropped_${Date.now()}_${index}_${Math.floor(Math.random() * 10000)}.jpg`;
         const file = new File([blob], uniqueName, { type: 'image/jpeg' });
 
-        this.supportService.uploadAttachment(file).subscribe({
+        // Goes to the image endpoint, not the support-attachment one: these URLs are saved on
+        // the service and rendered long afterwards, so they have to be permanent.
+        this.mediaService.uploadImage(file).subscribe({
           next: (res) => {
             if (res && res.url) {
-              const base = environment.apiUrl.replace('/api/v1', '');
-              const finalUrl = res.url.startsWith('http') ? res.url : `${base}${res.url}`;
+              const finalUrl = resolveMediaUrl(res.url);
 
               if (target === 'portfolio') {
                 this.uploadedPhotos.update(p => [...p, finalUrl]);

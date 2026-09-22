@@ -7,7 +7,7 @@ import { SupportTicket } from '../../core/models/message.model';
 import { BookingService } from '../../core/services/booking.service';
 import { AuthService } from '../../core/services/auth.service';
 import { Booking } from '../../core/models/booking.model';
-import { environment } from '../../../environments/environment';
+import { resolveMediaUrl } from '../../core/utils/media-url.util';
 
 @Component({
   selector: 'app-customer-support',
@@ -163,9 +163,7 @@ export class CustomerSupport implements OnInit {
   }
 
   resolveAttachmentUrl(url: string | undefined): string {
-    if (!url) return '';
-    const base = environment.apiUrl.replace('/api/v1', '');
-    return `${base}${url}`;
+    return resolveMediaUrl(url);
   }
 
   sendReply() {

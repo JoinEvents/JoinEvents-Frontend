@@ -5,7 +5,7 @@ import { SupportService } from '../../core/services/support.service';
 import { PackageService } from '../../core/services/package.service';
 import { Vendor } from '../../core/models/vendor.model';
 import { ActivatedRoute } from '@angular/router';
-import { environment } from '../../../environments/environment';
+import { resolveMediaUrl, resolveMediaUrlOrNull } from '../../core/utils/media-url.util';
 
 @Component({
   selector: 'app-admin-verifications',
@@ -20,24 +20,16 @@ export class AdminVerifications implements OnInit {
   private route = inject(ActivatedRoute);
 
   getDocUrl(fileUrl: string | undefined | null): string {
-    if (!fileUrl) return '#';
-    if (fileUrl.startsWith('http')) return fileUrl;
-    const base = environment.apiUrl.replace('/api/v1', '');
-    return `${base}${fileUrl}`;
+    return resolveMediaUrl(fileUrl) || '#';
   }
 
   getAvatarUrl(avatar: string | undefined | null): string | null {
-    if (!avatar) return null;
-    if (avatar.startsWith('http')) return avatar;
-    const base = environment.apiUrl.replace('/api/v1', '');
-    return `${base}${avatar}`;
+    return resolveMediaUrlOrNull(avatar);
   }
 
   getImageUrl(url: string | undefined | null): string {
-    if (!url) return 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&q=80&w=800';
-    if (url.startsWith('http')) return url;
-    const base = environment.apiUrl.replace('/api/v1', '');
-    return `${base}${url.startsWith('/') ? '' : '/'}${url}`;
+    return resolveMediaUrl(url)
+      || 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&q=80&w=800';
   }
 
   getInclusionKeys(pkg: any): string[] {
