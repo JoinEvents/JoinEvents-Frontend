@@ -117,10 +117,11 @@ export class PackageService extends BaseApiService {
       name: String(c['name'] ?? ''),
       nameHindi: c['nameHindi'] as string | undefined,
       description: String(c['description'] ?? ''),
-      icon: String(c['icon'] ?? 'sparkles'),
-      category: (c['categoryKey'] ?? c['category'] ?? 'custom') as EventType['category'],
-      colorClass: (c['colorClass'] as string) ?? 'event-wedding',
-      gradient: (c['gradient'] as string) ?? 'linear-gradient(135deg,#E91E8C,#FF6B6B)',
+      // Only what the catalogue says; screens fall back to the theme when a value is unset.
+      icon: String(c['icon'] ?? ''),
+      category: String(c['categoryKey'] ?? c['category'] ?? ''),
+      colorClass: (c['colorClass'] as string | null) ?? undefined,
+      gradient: (c['gradient'] as string | null) || undefined,
       startingPrice: Number(c['startingPrice'] ?? 0),
       popularServices: (c['popularServices'] as string[]) ?? []
     };
