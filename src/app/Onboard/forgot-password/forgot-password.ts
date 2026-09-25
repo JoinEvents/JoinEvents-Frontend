@@ -26,7 +26,8 @@ export class ForgotPassword {
     this.isLoading.set(true);
     this.errorMessage.set('');
 
-    this.http.post(`${environment.apiUrl}/auth/forgot-password`, { email: this.email }).subscribe({
+    const normalizedEmail = this.email.trim().toLowerCase();
+    this.http.post(`${environment.apiUrl}/auth/forgot-password`, { email: normalizedEmail }).subscribe({
       next: () => {
         this.isLoading.set(false);
         this.isSubmitted.set(true);
