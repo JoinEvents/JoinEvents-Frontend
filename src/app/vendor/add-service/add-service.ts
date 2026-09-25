@@ -62,6 +62,8 @@ export class VendorAddService implements OnInit, OnDestroy {
   private http = inject(HttpClient);
 
   suggestions = signal<any[]>([]);
+  /** The vendor's profile city, used to centre the map when nothing better is known. */
+  private profileCity = '';
   searchQuery = '';
 
   // KYC and Profile Verification Signals
@@ -154,16 +156,10 @@ export class VendorAddService implements OnInit, OnDestroy {
     const catDef = this.categories().find(c => c.category === key);
     const catId = catDef?.id || key;
     const tiersList = this.eventTierService.tiers().filter(t => t.categoryId === catId || t.categoryId === key);
-    const orderMap: Record<string, number> = {
-      'silver': 1,
-      'gold': 2,
-      'platinum': 3
-    };
-    return [...tiersList].sort((a, b) => {
-      const orderA = orderMap[a.name.toLowerCase().trim()] || 99;
-      const orderB = orderMap[b.name.toLowerCase().trim()] || 99;
-      return orderA - orderB;
-    });
+    // Cheapest first, from each tier's own price ranges — no tier names baked in.
+    const floor = (t: { priceRanges?: any[] }) =>
+      (t.priceRanges ?? []).reduce((sum: number, r: any) => sum + (Number(r.minPrice) || 0), 0);
+    return [...tiersList].sort((a, b) => floor(a) - floor(b) || a.name.localeCompare(b.name));
   });
 
   selectedTierObject = computed(() => {
@@ -182,7 +178,7 @@ export class VendorAddService implements OnInit, OnDestroy {
     description: '',
     
     // Address Details
-    country: 'India',
+    country: '',
     state: '',
     city: '',
     locality: '',
@@ -200,7 +196,8 @@ export class VendorAddService implements OnInit, OnDestroy {
     roomPrice: 0,
     basePrice: 0,
     rent: 0,
-    unit: 'per event',
+    // No UI sets this; readers treat an empty unit as "per event". Kept as loaded on edit.
+    unit: '',
 
     // Capacity
     maxCapacity: 0,
@@ -208,10 +205,11 @@ export class VendorAddService implements OnInit, OnDestroy {
     totalRooms: 0,
 
     // Policies
-    cateringPolicy: 'Inhouse Only',
-    decorPolicy: 'Panel Decorators Only',
-    alcoholPolicy: 'No Alcohol Allowed',
-    djPolicy: 'Inhouse DJ Only',
+    // Free text written by the vendor.
+    cateringPolicy: '',
+    decorPolicy: '',
+    alcoholPolicy: '',
+    djPolicy: '',
 
     // Amenities
     hasAc: false,
@@ -221,7 +219,7 @@ export class VendorAddService implements OnInit, OnDestroy {
 
     // Spaces (repurposed for Day-wise Plan)
     spaces: [
-      { name: 'Welcome & Setup', type: 'Welcome ceremony and setup details.', seating: 0, floating: 0 }
+      { name: '', type: '', seating: 0, floating: 0 }
     ],
 
     // Package Includes
@@ -233,20 +231,9 @@ export class VendorAddService implements OnInit, OnDestroy {
 
   newIncludeItem = signal('');
 
-  countries = ['India', 'USA', 'UK', 'UAE'];
-  states = ['Telangana', 'Andhra Pradesh', 'Karnataka', 'Maharashtra', 'Delhi', 'Gujarat', 'Tamil Nadu'];
-  cities = ['Hyderabad', 'Bangalore', 'Mumbai', 'Pune', 'Delhi', 'Chennai', 'Ahmedabad'];
-  localities = ['Banjara Hills', 'Jubilee Hills', 'Gachibowli', 'Kondapur', 'Madhapur', 'Whitefield', 'Indiranagar', 'Andheri', 'Powai'];
-  streets = ['Main Road', '2nd Cross', 'Sector 5', 'Ring Road', 'MG Road'];
-  landmarks = ['Near Metro Station', 'Opposite Mall', 'Behind Hospital', 'Near City Center'];
 
   availableInclusions = signal<string[]>([]);
 
-  availableThemes: string[] = [
-    'Silver',
-    'Gold',
-    'Platinum'
-  ];
 
   ngOnInit() {
     this.isCheckingKyc.set(true);
@@ -258,6 +245,7 @@ export class VendorAddService implements OnInit, OnDestroy {
         this.isCheckingKyc.set(false);
         const isVerified = res.verification?.isVerified || false;
         const profile = res.profile;
+        this.profileCity = [profile?.city, profile?.address].find((v: any) => typeof v === 'string' && v.trim()) || '';
         
         const hasBusinessName = profile?.businessName && profile.businessName.trim() !== '' && profile.businessName !== 'My Vendor Business';
         const hasDescription = profile?.description && profile.description.trim() !== '';
@@ -284,13 +272,9 @@ export class VendorAddService implements OnInit, OnDestroy {
     });
 
     this.eventTierService.loadAll().subscribe({
-      next: (tiers) => {
-        if (tiers && tiers.length > 0) {
-          this.availableThemes = tiers.map(t => t.name);
-        }
-      },
       error: (err) => {
-        if (!environment.production) { console.error('Failed to load tiers from API, using fallback themes:', err); }
+        if (!environment.production) { console.error('Failed to load tiers from API:', err); }
+        this.toast.error('Could not load the pricing tiers. Refresh the page to try again.');
       }
     });
 
@@ -363,8 +347,10 @@ export class VendorAddService implements OnInit, OnDestroy {
     }
     try {
       const L = (window as any).L;
-      const defaultLoc: [number, number] = [17.3850, 78.4867]; // Hyderabad
-      this.map = L.map(this.mapElement.nativeElement).setView(defaultLoc, 13);
+      // No city is assumed: start zoomed out, then centre on the package's own
+      // address, the vendor's location, or their profile city (see centreMap).
+      const startLoc: [number, number] = [20, 0];
+      this.map = L.map(this.mapElement.nativeElement).setView(startLoc, 2);
       
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
@@ -382,7 +368,7 @@ export class VendorAddService implements OnInit, OnDestroy {
       });
       L.Marker.prototype.options.icon = DefaultIcon;
 
-      this.marker = L.marker(defaultLoc, { draggable: true }).addTo(this.map);
+      this.marker = L.marker(startLoc, { draggable: true }).addTo(this.map);
 
       this.marker.on('dragend', () => {
         const position = this.marker.getLatLng();
@@ -397,9 +383,46 @@ export class VendorAddService implements OnInit, OnDestroy {
           this.reverseGeocode(event.latlng.lat, event.latlng.lng);
         }
       });
+
+      this.centreMap();
     } catch (err) {
       if (!environment.production) { console.error('Failed to initialize Leaflet Map:', err); }
     }
+  }
+
+  /**
+   * Where the map opens: the address already on the package (editing), else
+   * the browser's location if the vendor allows it, else their profile city.
+   * The map only moves — address fields change when the vendor picks a spot.
+   */
+  private centreMap() {
+    const known = [this.formData.street, this.formData.locality, this.formData.city, this.formData.state, this.formData.country]
+      .filter(Boolean).join(', ');
+    if (known) {
+      this.geocodeAndCentre(known);
+      return;
+    }
+    const fallback = () => { if (this.profileCity) this.geocodeAndCentre(this.profileCity); };
+    if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        pos => this.ngZone.run(() => this.updateMapLocation(pos.coords.latitude, pos.coords.longitude)),
+        () => this.ngZone.run(fallback),
+        { timeout: 8000, maximumAge: 300000 }
+      );
+    } else {
+      fallback();
+    }
+  }
+
+  private geocodeAndCentre(query: string) {
+    const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`;
+    this.http.get<any[]>(url, { headers: { 'X-Suppress-Errors': 'true' } }).subscribe({
+      next: (res) => {
+        const hit = res?.[0];
+        if (hit) this.ngZone.run(() => this.updateMapLocation(parseFloat(hit.lat), parseFloat(hit.lon)));
+      },
+      error: () => void 0
+    });
   }
 
   updateMapLocation(lat: number, lng: number) {
@@ -420,7 +443,7 @@ export class VendorAddService implements OnInit, OnDestroy {
     this.formData.locality = addr.suburb || addr.neighbourhood || addr.village || '';
     this.formData.street = addr.road || '';
     this.formData.pincode = addr.postcode || '';
-    this.formData.country = addr.country || 'India';
+    this.formData.country = addr.country || '';
   }
 
   reverseGeocode(lat: number, lng: number) {
@@ -450,7 +473,7 @@ export class VendorAddService implements OnInit, OnDestroy {
       return;
     }
     
-    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=in&limit=5&addressdetails=1`;
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&addressdetails=1`;
     this.http.get<any[]>(url, { headers: { 'X-Suppress-Errors': 'true' } }).subscribe({
       next: (res) => {
         this.suggestions.set(res || []);
@@ -509,7 +532,7 @@ export class VendorAddService implements OnInit, OnDestroy {
         // Hydrate Address
         const addr = svc.address || svc.Address;
         if (addr) {
-          this.formData.country = addr.country || addr.Country || 'India';
+          this.formData.country = addr.country || addr.Country || '';
           this.formData.state = addr.state || addr.State || '';
           this.formData.city = addr.city || addr.City || '';
           this.formData.locality = addr.locality || addr.Locality || '';
@@ -526,7 +549,7 @@ export class VendorAddService implements OnInit, OnDestroy {
           this.formData.roomPrice = pricing.roomPrice || pricing.RoomPrice || 0;
           this.formData.basePrice = pricing.basePrice || pricing.BasePrice || 0;
           this.formData.rent = pricing.rent || pricing.Rent || 0;
-          this.formData.unit = pricing.unit || pricing.Unit || 'per event';
+          this.formData.unit = pricing.unit || pricing.Unit || '';
           this.formData.cuisine = pricing.cuisine || pricing.Cuisine || '';
           this.formData.cuisineType = pricing.cuisineType || pricing.CuisineType || 'veg';
         }
@@ -542,10 +565,10 @@ export class VendorAddService implements OnInit, OnDestroy {
         // Hydrate Policies
         const pol = svc.policies || svc.Policies;
         if (pol) {
-          this.formData.cateringPolicy = pol.cateringPolicy || pol.CateringPolicy || 'Inhouse Only';
-          this.formData.decorPolicy = pol.decorPolicy || pol.DecorPolicy || 'Panel Decorators Only';
-          this.formData.alcoholPolicy = pol.alcoholPolicy || pol.AlcoholPolicy || 'No Alcohol Allowed';
-          this.formData.djPolicy = pol.djPolicy || pol.DjPolicy || 'Inhouse DJ Only';
+          this.formData.cateringPolicy = pol.cateringPolicy || pol.CateringPolicy || '';
+          this.formData.decorPolicy = pol.decorPolicy || pol.DecorPolicy || '';
+          this.formData.alcoholPolicy = pol.alcoholPolicy || pol.AlcoholPolicy || '';
+          this.formData.djPolicy = pol.djPolicy || pol.DjPolicy || '';
         }
 
         // Hydrate Amenities
@@ -578,9 +601,9 @@ export class VendorAddService implements OnInit, OnDestroy {
           inc.forEach((item: string) => {
             if (parsedInclusionDetails[item]) {
               let minVal = parsedInclusionDetails[item].minPrice || 0;
-              if (item.toLowerCase() === 'catering' && this.formData.vegPrice) {
+              if (this.inclusionKind(item) === 'catering' && this.formData.vegPrice) {
                 minVal = this.formData.vegPrice;
-              } else if (item.toLowerCase() === 'venue' && this.formData.rent) {
+              } else if (this.inclusionKind(item) === 'venue' && this.formData.rent) {
                 minVal = this.formData.rent;
               }
               details[item] = {
@@ -593,9 +616,9 @@ export class VendorAddService implements OnInit, OnDestroy {
               };
             } else {
               let minVal = 0;
-              if (item.toLowerCase() === 'catering') {
+              if (this.inclusionKind(item) === 'catering') {
                 minVal = this.formData.vegPrice;
-              } else if (item.toLowerCase() === 'venue') {
+              } else if (this.inclusionKind(item) === 'venue') {
                 minVal = this.formData.rent;
               }
               details[item] = {
@@ -670,8 +693,9 @@ export class VendorAddService implements OnInit, OnDestroy {
   }
 
   validateStep2(): boolean {
-    if (!this.formData.theme) {
-      this.toast.error('Please select a Service Tier (Silver, Gold, or Platinum).');
+    // A tier is required only when the admin has set tiers up for this category.
+    if (this.filteredTiers().length > 0 && !this.formData.theme) {
+      this.toast.error('Please select a Service Tier.');
       return false;
     }
     if (this.formData.includes.length === 0) {
@@ -692,7 +716,7 @@ export class VendorAddService implements OnInit, OnDestroy {
       }
 
       // Check pricing
-      if (inc.toLowerCase() === 'catering') {
+      if (this.inclusionKind(inc) === 'catering') {
         if (!this.formData.cuisine || !this.formData.cuisine.trim()) {
           this.toast.error('Cuisine is required.');
           this.activeInclusionTab.set(inc);
@@ -712,7 +736,7 @@ export class VendorAddService implements OnInit, OnDestroy {
             return false;
           }
         }
-      } else if (inc.toLowerCase() === 'venue') {
+      } else if (this.inclusionKind(inc) === 'venue') {
         if (!this.formData.rent || this.formData.rent <= 0) {
           this.toast.error('Venue Rent Amount is required and must be greater than ₹0.');
           this.activeInclusionTab.set(inc);
@@ -815,9 +839,9 @@ export class VendorAddService implements OnInit, OnDestroy {
         updated[inc] = current[inc];
       } else {
         let defaultPrice = 0;
-        if (inc.toLowerCase() === 'catering') {
+        if (this.inclusionKind(inc) === 'catering') {
           defaultPrice = this.formData.vegPrice || this.formData.nonVegPrice || 0;
-        } else if (inc.toLowerCase() === 'venue') {
+        } else if (this.inclusionKind(inc) === 'venue') {
           defaultPrice = this.formData.rent || 0;
         }
         updated[inc] = {
@@ -908,6 +932,18 @@ export class VendorAddService implements OnInit, OnDestroy {
     this.availableInclusions.set(cat ? cat.popularServices || [] : []);
   }
 
+  /**
+   * How a service is priced — mirrors the API's base-price rule, which treats
+   * any service whose name contains "catering" as per plate. A venue carries
+   * rent, capacity, rooms, policies and amenities.
+   */
+  inclusionKind(name: string): 'catering' | 'venue' | 'service' {
+    const n = (name || '').trim().toLowerCase();
+    if (n.includes('catering')) return 'catering';
+    if (n === 'venue') return 'venue';
+    return 'service';
+  }
+
   getInclusionPriceLimit(incName: string) {
     const tierObj = this.selectedTierObject();
     if (!tierObj || !tierObj.priceRanges) return null;
@@ -931,7 +967,10 @@ export class VendorAddService implements OnInit, OnDestroy {
         this.inclusionPriceErrors[incName] = `Price must be at least ₹${limit.minPrice.toLocaleString()}.`;
         return false;
       }
-      if (val > limit.maxPrice) {
+      // The upper bound is the higher of the service's prices (mixed catering has two);
+      // a tier maximum of 0 means the admin set no upper limit.
+      const top = Math.max(val, details.maxPrice || 0);
+      if (limit.maxPrice > 0 && top > limit.maxPrice) {
         this.inclusionPriceErrors[incName] = `Price cannot exceed ₹${limit.maxPrice.toLocaleString()}.`;
         return false;
       }

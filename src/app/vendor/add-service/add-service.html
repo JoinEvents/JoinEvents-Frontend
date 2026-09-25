@@ -131,49 +131,37 @@
           <div class="col-lg-6">
             <div class="row g-3">
               <div class="col-md-6">
-                <label class="ee-form-label">Country *</label>
-                <select class="ee-form-control" [(ngModel)]="formData.country">
-                  @for (c of countries; track c) { <option [value]="c">{{c}}</option> }
-                </select>
-              </div>
-              <div class="col-md-6">
-                <label class="ee-form-label">State *</label>
-                <select class="ee-form-control" [(ngModel)]="formData.state">
-                  <option value="">Select State</option>
-                  @for (s of states; track s) { <option [value]="s">{{s}}</option> }
-                </select>
-              </div>
-              <div class="col-md-6">
-                <label class="ee-form-label">City *</label>
-                <select class="ee-form-control" [(ngModel)]="formData.city">
-                  <option value="">Select City</option>
-                  @for (city of cities; track city) { <option [value]="city">{{city}}</option> }
-                </select>
+                <label class="ee-form-label">Street / Area *</label>
+                <input type="text" class="ee-form-control" [(ngModel)]="formData.street" placeholder="Street or area">
               </div>
               <div class="col-md-6">
                 <label class="ee-form-label">Locality *</label>
-                <select class="ee-form-control" [(ngModel)]="formData.locality">
-                  <option value="">Select Locality</option>
-                  @for (l of localities; track l) { <option [value]="l">{{l}}</option> }
-                </select>
+                <input type="text" class="ee-form-control" [(ngModel)]="formData.locality" placeholder="Locality / neighbourhood">
               </div>
               <div class="col-md-6">
-                <label class="ee-form-label">Street / Area *</label>
-                <select class="ee-form-control" [(ngModel)]="formData.street">
-                  <option value="">Select Street / Area</option>
-                  @for (st of streets; track st) { <option [value]="st">{{st}}</option> }
-                </select>
+                <label class="ee-form-label">City *</label>
+                <input type="text" class="ee-form-control" [(ngModel)]="formData.city" placeholder="City">
+              </div>
+              <div class="col-md-6">
+                <label class="ee-form-label">State *</label>
+                <input type="text" class="ee-form-control" [(ngModel)]="formData.state" placeholder="State">
               </div>
               <div class="col-md-6">
                 <label class="ee-form-label">Pincode *</label>
-                <input type="text" class="ee-form-control" [(ngModel)]="formData.pincode" placeholder="e.g. 500081">
+                <input type="text" class="ee-form-control" [(ngModel)]="formData.pincode" placeholder="Postal code" inputmode="numeric">
+              </div>
+              <div class="col-md-6">
+                <label class="ee-form-label">Country *</label>
+                <input type="text" class="ee-form-control" [(ngModel)]="formData.country" placeholder="Country">
               </div>
               <div class="col-12">
                 <label class="ee-form-label">Landmark</label>
-                <select class="ee-form-control" [(ngModel)]="formData.landmark">
-                  <option value="">Select Landmark</option>
-                  @for (lm of landmarks; track lm) { <option [value]="lm">{{lm}}</option> }
-                </select>
+                <input type="text" class="ee-form-control" [(ngModel)]="formData.landmark" placeholder="Nearby landmark (optional)">
+              </div>
+              <div class="col-12">
+                <p class="form-hint mb-0" style="font-size: 0.78rem;">
+                  Search or click on the map to fill these in, then check them — every field can be edited.
+                </p>
               </div>
             </div>
           </div>
@@ -233,7 +221,7 @@
               <label class="tier-radio-card" [class.selected]="selectedTierName() === t.name">
                 <input type="radio" name="serviceTier" [value]="t.name" [(ngModel)]="formData.theme" (ngModelChange)="selectedTierName.set($event)" class="tier-radio-input">
                 
-                <div class="tier-card-header" [style.background]="t.gradient || 'linear-gradient(135deg,#6B7280,#374151)'">
+                <div class="tier-card-header" [style.background]="t.gradient || 'var(--gradient-primary)'">
                   <div class="tier-card-icon">
                     <i class="bi" [class]="t.icon || 'bi-layers'"></i>
                   </div>
@@ -341,24 +329,15 @@
                     </div>
 
                     <div class="col-12">
-                      @if (activeTab.toLowerCase() === 'catering') {
+                      @if (inclusionKind(activeTab) === 'catering') {
                         <div class="row g-3">
                           <!-- Cuisine Selection -->
                           <div class="col-md-6">
                             <label class="ee-form-label">Cuisine *</label>
-                            <p class="form-hint mb-2" style="font-size: 0.75rem;">Select cuisine style</p>
+                            <p class="form-hint mb-2" style="font-size: 0.75rem;">The cuisine(s) you serve</p>
                             <div class="input-group-modern py-2">
-                              <select class="border-0 bg-transparent w-100 outline-none fw-600 text-main" name="cuisine" [(ngModel)]="formData.cuisine" style="color: var(--text-main) !important; background-color: transparent;">
-                                <option value="" disabled selected>Select Cuisine</option>
-                                <option value="South Indian">South Indian</option>
-                                <option value="North Indian">North Indian</option>
-                                <option value="Chinese">Chinese</option>
-                                <option value="Continental">Continental</option>
-                                <option value="Italian">Italian</option>
-                                <option value="Punjabi">Punjabi</option>
-                                <option value="Mughlai">Mughlai</option>
-                                <option value="Multicuisine">Multicuisine</option>
-                              </select>
+<input type="text" class="border-0 bg-transparent w-100 outline-none fw-600 text-main" name="cuisine"
+                                     [(ngModel)]="formData.cuisine" placeholder="e.g. South Indian, Multicuisine">
                             </div>
                           </div>
 
@@ -421,7 +400,7 @@
                             <i class="bi bi-exclamation-circle-fill"></i> {{ inclusionPriceErrors[activeTab] }}
                           </div>
                         }
-                      } @else if (activeTab.toLowerCase() === 'venue') {
+                      } @else if (inclusionKind(activeTab) === 'venue') {
                         <div class="row g-3">
                           <div class="col-md-4">
                             <label class="ee-form-label">Rent Amount *</label>
@@ -488,22 +467,32 @@
                             <label class="ee-form-label">Catering Policy</label>
                             <div class="input-group-modern py-2">
                               <i class="bi bi-egg-fried text-primary me-2 ms-1" style="font-size: 1.1rem;"></i>
-                              <select class="border-0 bg-transparent w-100 outline-none fw-600" [(ngModel)]="formData.cateringPolicy">
-                                <option>Inhouse Only</option>
-                                <option>Outside Allowed</option>
-                                <option>Both Allowed</option>
-                              </select>
+<input type="text" class="border-0 bg-transparent w-100 outline-none fw-600" [(ngModel)]="formData.cateringPolicy"
+                                     placeholder="e.g. In-house only, outside allowed">
                             </div>
                           </div>
                           <div class="col-md-6">
                             <label class="ee-form-label">Alcohol Policy</label>
                             <div class="input-group-modern py-2">
                               <i class="bi bi-cup-straw text-primary me-2 ms-1" style="font-size: 1.1rem;"></i>
-                              <select class="border-0 bg-transparent w-100 outline-none fw-600" [(ngModel)]="formData.alcoholPolicy">
-                                <option>No Alcohol</option>
-                                <option>Inhouse Served</option>
-                                <option>Outside Allowed</option>
-                              </select>
+<input type="text" class="border-0 bg-transparent w-100 outline-none fw-600" [(ngModel)]="formData.alcoholPolicy"
+                                     placeholder="e.g. Not allowed, served in-house">
+                            </div>
+                          </div>
+                          <div class="col-md-6">
+                            <label class="ee-form-label">Decor Policy</label>
+                            <div class="input-group-modern py-2">
+                              <i class="bi bi-flower1 text-primary me-2 ms-1" style="font-size: 1.1rem;"></i>
+                              <input type="text" class="border-0 bg-transparent w-100 outline-none fw-600" [(ngModel)]="formData.decorPolicy"
+                                     placeholder="e.g. Panel decorators only">
+                            </div>
+                          </div>
+                          <div class="col-md-6">
+                            <label class="ee-form-label">DJ Policy</label>
+                            <div class="input-group-modern py-2">
+                              <i class="bi bi-music-note-beamed text-primary me-2 ms-1" style="font-size: 1.1rem;"></i>
+                              <input type="text" class="border-0 bg-transparent w-100 outline-none fw-600" [(ngModel)]="formData.djPolicy"
+                                     placeholder="e.g. In-house DJ only">
                             </div>
                           </div>
                         </div>
