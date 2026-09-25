@@ -10,6 +10,8 @@ import { HttpErrorResponse } from '@angular/common/http';
 export function serverMessage(error: unknown, fallback: string): string {
   if (error instanceof HttpErrorResponse) {
     if (error.status === 0) return 'Could not reach the server. Check your connection and try again.';
+    // A server fault carries no reason meant for the user ("Internal Server Error").
+    if (error.status >= 500) return fallback;
     const body = error.error as { error?: unknown; message?: unknown } | string | null;
     if (typeof body === 'string' && body.trim() && body.length < 300) return body;
     if (body && typeof body === 'object') {

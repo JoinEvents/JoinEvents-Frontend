@@ -166,7 +166,7 @@ export class Checkout implements OnInit {
       },
       error: err => {
         this.isProcessing.set(false);
-        this.setErrorMessage(err?.error?.error || 'Could not price this booking. Please go back and try again.');
+        this.setErrorMessage(this.reason(err) || 'Could not price this booking. Please go back and try again.');
       }
     });
   }
@@ -192,7 +192,7 @@ export class Checkout implements OnInit {
           onNotFound();
           return;
         }
-        this.setErrorMessage(err?.error?.error || 'Could not load this booking.');
+        this.setErrorMessage(this.reason(err) || 'Could not load this booking.');
       }
     });
   }
@@ -245,6 +245,13 @@ export class Checkout implements OnInit {
       this.cardExpiry.set('12/29');
       this.cardCvv.set('123');
     }
+  }
+
+  /** The server's reason for a refusal; a server fault ("Internal Server Error") gets a plain retry message. */
+  private reason(err: any): string {
+    if (err?.status === 0) return 'Could not reach the server. Check your connection and try again.';
+    if (err?.status >= 500) return 'Something went wrong on our side. Please try again in a moment.';
+    return err?.error?.error || '';
   }
 
   setErrorMessage(msg: string) {
@@ -304,7 +311,7 @@ export class Checkout implements OnInit {
       },
       error: err => {
         this.isProcessing.set(false);
-        this.setErrorMessage(err?.error?.error || 'Failed to create the booking.');
+        this.setErrorMessage(this.reason(err) || 'Failed to create the booking.');
       }
     });
   }
@@ -336,13 +343,13 @@ export class Checkout implements OnInit {
           },
           error: err => {
             this.isProcessing.set(false);
-            this.setErrorMessage(err?.error?.error || 'Failed to confirm the payment. Check My Bookings for its status.');
+            this.setErrorMessage(this.reason(err) || 'Failed to confirm the payment. Check My Bookings for its status.');
           }
         });
       },
       error: err => {
         this.isProcessing.set(false);
-        this.setErrorMessage(err?.error?.error || 'Failed to start the payment.');
+        this.setErrorMessage(this.reason(err) || 'Failed to start the payment.');
       }
     });
   }

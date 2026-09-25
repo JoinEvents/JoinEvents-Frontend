@@ -15,4 +15,9 @@ describe('serverMessage', () => {
     expect(serverMessage(new HttpErrorResponse({ status: 500, error: null }), 'fallback')).toBe('fallback');
     expect(serverMessage(new Error('x'), 'fallback')).toBe('fallback');
   });
+
+  it("never shows a server fault's own text such as 'Internal Server Error'", () => {
+    const err = new HttpErrorResponse({ status: 500, error: { error: 'Internal Server Error', message: 'An unexpected error occurred.' } });
+    expect(serverMessage(err, 'We could not create the booking.')).toBe('We could not create the booking.');
+  });
 });
