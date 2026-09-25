@@ -111,7 +111,11 @@ import { StatusPillComponent } from '../../shared/components/status-pill.compone
           <!-- Money ------------------------------------------------------- -->
           <div class="je-section-head"><h2>Payment</h2></div>
           <div class="je-card">
-            <div class="line"><span class="je-sm je-muted">Base amount</span><span class="je-sm">{{ b.baseAmount | inr }}</span></div>
+            @for (item of b.services; track item.serviceId) {
+              <div class="line"><span class="je-sm je-muted">{{ item.serviceName }}</span><span class="je-sm">{{ item.price | inr }}</span></div>
+            } @empty {
+              <div class="line"><span class="je-sm je-muted">Package (before GST)</span><span class="je-sm">{{ b.baseAmount | inr }}</span></div>
+            }
             @if (b.extraServicesAmount) {
               <div class="line"><span class="je-sm je-muted">Extra services</span><span class="je-sm">{{ b.extraServicesAmount | inr }}</span></div>
             }
@@ -121,8 +125,8 @@ import { StatusPillComponent } from '../../shared/components/status-pill.compone
             <div class="line"><span class="je-sm je-muted">GST ({{ b.gstPercent }}%)</span>
               <span class="je-sm">{{ gst(b) | inr }}</span></div>
             <div class="line line--total"><strong>Total</strong><strong class="je-price">{{ b.totalAmount | inr }}</strong></div>
-            <div class="line"><span class="je-sm je-muted">Advance paid</span>
-              <span class="je-sm">{{ (b.finalPaidAmount ?? b.advanceAmount) | inr }}</span></div>
+            <div class="line"><span class="je-sm je-muted">Paid so far</span>
+              <span class="je-sm">{{ paid(b) | inr }}</span></div>
             @if (balanceDue(b) > 0) {
               <div class="line"><span class="je-sm je-bold">Balance due</span>
                 <span class="je-sm je-bold">{{ balanceDue(b) | inr }}</span></div>
@@ -153,9 +157,9 @@ import { StatusPillComponent } from '../../shared/components/status-pill.compone
           <!-- Actions ----------------------------------------------------- -->
           <div class="je-section-head"><h2>Actions</h2></div>
           <div class="acts">
-            @if (balanceDue(b) > 0 && b.status !== 'cancelled') {
+            @if (canPay(b)) {
               <ion-button expand="block" class="je-btn-gradient" (click)="payBalance(b)">
-                Pay balance {{ balanceDue(b) | inr }}
+                @if (paid(b) === 0) { Pay now } @else { Pay balance {{ balanceDue(b) | inr }} }
               </ion-button>
             }
             @if (b.status === 'completed' && !b.review) {
@@ -337,14 +341,23 @@ export class BookingDetailPage implements OnInit {
     }));
   }
 
+  /** The GST share of the total, as the server priced it. */
   gst(booking: Booking): number {
-    const base = (booking.baseAmount ?? 0) + (booking.extraServicesAmount ?? 0);
-    return Math.round(base * ((booking.gstPercent ?? 0) / 100));
+    const gst = (booking.totalAmount ?? 0) - (booking.damageCharges ?? 0) - (booking.baseAmount ?? 0);
+    return Math.max(0, Math.round(gst * 100) / 100);
+  }
+
+  /** What has been paid so far, from confirmed payments. */
+  paid(booking: Booking): number {
+    return booking.amountPaid ?? (booking.status === 'pending' ? 0 : booking.finalPaidAmount ?? booking.advanceAmount ?? 0);
   }
 
   balanceDue(booking: Booking): number {
-    const paid = booking.finalPaidAmount ?? booking.advanceAmount ?? 0;
-    return Math.max(0, (booking.totalAmount ?? 0) - paid);
+    return booking.balanceDue ?? Math.max(0, (booking.totalAmount ?? 0) - this.paid(booking));
+  }
+
+  canPay(booking: Booking): boolean {
+    return this.balanceDue(booking) > 0 && !['cancelled', 'rejected', 'disputed'].includes(booking.status);
   }
 
   canCancel(booking: Booking): boolean {

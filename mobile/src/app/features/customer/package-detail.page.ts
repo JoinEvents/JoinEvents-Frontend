@@ -12,7 +12,7 @@ import { MessengerService } from '../../core/services/messenger.service';
 import { FavoritesService } from '../../core/services/favorites.service';
 import { ShareService } from '../../core/services/share.service';
 import { ToastService } from '../../core/services/toast.service';
-import { EventPackage } from '../../core/models/event.model';
+import { EventPackage, PackageServiceDetail } from '../../core/models/event.model';
 import { CurrencyInrPipe } from '../../shared/pipes/currency-inr.pipe';
 import { TimeAgoPipe } from '../../shared/pipes/time-ago.pipe';
 import { JoinPartsPipe } from '../../shared/pipes/join-parts.pipe';
@@ -22,6 +22,9 @@ import { JoinPartsPipe } from '../../shared/pipes/join-parts.pipe';
  * sticky book bar. The bar stays pinned because price and the primary action
  * are what the user scrolls back up to find.
  */
+/** Catering priced under this is a per-plate rate, charged per guest (as the API prices it). */
+const PER_PLATE_THRESHOLD = 5000;
+
 @Component({
   selector: 'app-package-detail',
   standalone: true,
@@ -135,27 +138,58 @@ import { JoinPartsPipe } from '../../shared/pipes/join-parts.pipe';
             }
           }
 
-          <!-- Inclusions ----------------------------------------------------- -->
+          <!-- What's included: each service as the vendor described it ------- -->
           @if (p.services.length) {
             <div class="je-section-head"><h2>What's included</h2></div>
-            <div class="je-card">
+            <ion-accordion-group class="je-card je-card--flush" [multiple]="true">
               @for (service of p.services; track service) {
-                <div class="inc">
-                  <ion-icon name="checkmark-circle" color="success" />
-                  <span class="je-sm">{{ service }}</span>
-                </div>
+                @if (p.serviceDetails?.[service]; as d) {
+                  <ion-accordion [value]="service">
+                    <ion-item slot="header" lines="none">
+                      <ion-icon name="checkmark-circle" color="success" slot="start" />
+                      <ion-label>
+                        <span class="je-sm svc-name">{{ service }}</span>
+                        @if (servicePrice(service, d); as price) { <p class="je-xs je-muted">{{ price }}</p> }
+                      </ion-label>
+                    </ion-item>
+                    <div slot="content" class="svc">
+                      @if (d.images.length) {
+                        <div class="svc__photos">
+                          @for (image of d.images; track image) { <img [src]="image" [alt]="service" loading="lazy" /> }
+                        </div>
+                      }
+                      @if (d.description) { <p class="je-sm je-muted svc__desc">{{ d.description }}</p> }
+                      @if (d.keyFeatures.length) {
+                        <strong class="je-xs svc__label">Highlights</strong>
+                        <ul class="svc__list">@for (f of d.keyFeatures; track f) { <li class="je-sm">{{ f }}</li> }</ul>
+                      }
+                      @if (d.inclusions.length) {
+                        <strong class="je-xs svc__label">Includes</strong>
+                        <ul class="svc__list">@for (i of d.inclusions; track i) { <li class="je-sm">{{ i }}</li> }</ul>
+                      }
+                      @if (!d.description && !d.keyFeatures.length && !d.inclusions.length && !d.images.length) {
+                        <p class="je-xs je-soft svc__desc">The vendor has not added more details for this service.</p>
+                      }
+                    </div>
+                  </ion-accordion>
+                } @else {
+                  <div class="inc">
+                    <ion-icon name="checkmark-circle" color="success" />
+                    <span class="je-sm">{{ service }}</span>
+                  </div>
+                }
               }
-            </div>
+            </ion-accordion-group>
           }
 
-          <!-- Add-ons --------------------------------------------------------- -->
-          @if (p.addons?.length) {
-            <div class="je-section-head"><h2>Optional add-ons</h2></div>
+          <!-- Food and venue facilities --------------------------------------- -->
+          @if (facilities().length) {
+            <div class="je-section-head"><h2>Food &amp; facilities</h2></div>
             <div class="je-card">
-              @for (addon of p.addons; track addon.id) {
-                <div class="addon">
-                  <span class="je-sm">{{ addon.name }}</span>
-                  <strong class="je-sm">+{{ addon.price | inr }}</strong>
+              @for (fact of facilities(); track fact) {
+                <div class="inc">
+                  <ion-icon name="information-circle-outline" color="medium" />
+                  <span class="je-sm">{{ fact }}</span>
                 </div>
               }
             </div>
@@ -215,7 +249,7 @@ import { JoinPartsPipe } from '../../shared/pipes/join-parts.pipe';
         <!-- Sticky book bar ------------------------------------------------------ -->
         <div class="je-action-bar">
           <div class="bar__price">
-            <span class="je-xs je-soft">Starting at</span>
+            <span class="je-xs je-soft">{{ p.maxGuests ? 'For ' + p.maxGuests + ' guests, incl. GST' : 'Incl. GST' }}</span>
             <strong class="je-price">{{ p.price | inr }}</strong>
           </div>
           <ion-button class="je-btn-gradient bar__cta" (click)="book()">Book now</ion-button>
@@ -267,6 +301,15 @@ import { JoinPartsPipe } from '../../shared/pipes/join-parts.pipe';
             font-size: var(--je-fs-sm); font-weight: 600; }
 
     .inc { display: flex; align-items: center; gap: 10px; padding: 7px 0; }
+    ion-accordion-group .inc { padding: 10px 16px; }
+    .svc-name { font-weight: 600; }
+    .svc { padding: 0 16px 14px; }
+    .svc__photos { display: flex; gap: 8px; overflow-x: auto; margin-bottom: 10px; scrollbar-width: none; }
+    .svc__photos img { width: 120px; height: 84px; flex-shrink: 0; border-radius: var(--je-radius-sm); object-fit: cover; }
+    .svc__desc { margin: 0 0 10px; line-height: 1.55; }
+    .svc__label { display: block; margin: 6px 0 2px; color: var(--je-text-muted); }
+    .svc__list { margin: 0 0 6px; padding-left: 18px; }
+    .svc__list li { line-height: 1.6; }
     .inc ion-icon { font-size: 17px; flex-shrink: 0; }
 
     .addon { display: flex; align-items: center; justify-content: space-between; padding: 8px 0;
@@ -321,7 +364,35 @@ export class PackageDetailPage implements OnInit {
     if (!pkg) return [];
     const images = [...(pkg.images ?? [])];
     if (pkg.image && !images.includes(pkg.image)) images.unshift(pkg.image);
+    for (const detail of Object.values(pkg.serviceDetails ?? {})) {
+      for (const image of detail.images) if (!images.includes(image)) images.push(image);
+    }
     return images;
+  }
+
+  /** A service's price as the vendor set it; catering at a plate rate is per plate. */
+  servicePrice(name: string, detail: PackageServiceDetail): string {
+    if (!detail.minPrice) return '';
+    const money = (n: number) => `₹${n.toLocaleString('en-IN')}`;
+    const perPlate = name.toLowerCase().includes('catering') && detail.minPrice < PER_PLATE_THRESHOLD;
+    const range = detail.maxPrice > detail.minPrice ? `${money(detail.minPrice)} – ${money(detail.maxPrice)}` : money(detail.minPrice);
+    return `${range}${perPlate ? ' per plate' : ''} + GST`;
+  }
+
+  /** Cuisine, rooms and amenities the vendor recorded on the package. */
+  facilities(): string[] {
+    const pkg = this.pkg();
+    if (!pkg) return [];
+    const facts: string[] = [];
+    if (pkg.pricing?.cuisine) facts.push(`Cuisine: ${pkg.pricing.cuisine}`);
+    const food = { veg: 'Veg', nonveg: 'Non-veg', mixed: 'Veg & non-veg' }[pkg.pricing?.cuisineType ?? ''];
+    if (food) facts.push(`Food: ${food}`);
+    if (pkg.capacity?.totalRooms) facts.push(`${pkg.capacity.totalRooms} rooms`);
+    if (pkg.amenities?.hasAc) facts.push('Air conditioning');
+    if (pkg.amenities?.hasPowerBackup) facts.push('Power backup');
+    if (pkg.amenities?.hasChangingRooms) facts.push('Changing rooms');
+    if (pkg.amenities?.hasParking) facts.push('Parking');
+    return facts;
   }
 
   hasPolicies(): boolean {

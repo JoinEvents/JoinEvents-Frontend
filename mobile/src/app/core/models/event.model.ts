@@ -58,7 +58,17 @@ export interface EventPackage {
     basePrice?: number;
     rent?: number;
     unit?: string;
+    cuisine?: string;
+    cuisineType?: string;
   };
+  amenities?: {
+    hasAc?: boolean;
+    hasPowerBackup?: boolean;
+    hasChangingRooms?: boolean;
+    hasParking?: boolean;
+  };
+  /** What the vendor entered for each service in the package, keyed by service name. */
+  serviceDetails?: Record<string, PackageServiceDetail>;
   capacity?: {
     maxGuests?: number;
     parkingCapacity?: number;
@@ -78,3 +88,13 @@ export interface EventPackage {
   }[];
 }
 
+
+/** One service of a package as the vendor described it. Prices are before GST. */
+export interface PackageServiceDetail {
+  description: string;
+  minPrice: number;
+  maxPrice: number;
+  images: string[];
+  keyFeatures: string[];
+  inclusions: string[];
+}
