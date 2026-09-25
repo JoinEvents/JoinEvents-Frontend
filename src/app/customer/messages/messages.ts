@@ -5,7 +5,8 @@ import { AuthService } from '../../core/services/auth.service';
 import { ChatThread, ChatMessage } from '../../core/models/message.model';
 import { CommonModule } from '@angular/common';
 import { timer, of } from 'rxjs';
-import { switchMap, catchError, map } from 'rxjs/operators';
+import { switchMap, catchError, map, filter } from 'rxjs/operators';
+import { RealtimeService } from '../../core/services/realtime.service';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 
@@ -22,6 +23,7 @@ export class CustomerMessages implements OnInit, AfterViewChecked {
   private messenger = inject(MessengerService);
   private auth = inject(AuthService);
   private destroyRef = inject(DestroyRef);
+  private realtime = inject(RealtimeService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
 
@@ -44,6 +46,29 @@ export class CustomerMessages implements OnInit, AfterViewChecked {
   ngOnInit() {
     this.destroyRef.onDestroy(() => {
       this.messenger.activeThreadId.set(null);
+    });
+
+    // Messages arrive the moment they are sent: into the open conversation, and the list
+    // refreshes for the others.
+    this.messenger.liveMessages$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(m => {
+      const active = this.selectedThread();
+      if (active && m.threadId === active.id) {
+        this.messages.update(list => {
+          if (list.some(x => x.id === m.id)) return list;
+          // Our own optimistic copy becomes the saved message.
+          const temp = list.findIndex(x => typeof x.id === 'string' && x.id.startsWith('temp-') && x.content === m.content && this.isSent(m));
+          if (temp >= 0) {
+            const copy = [...list];
+            copy[temp] = m;
+            return copy;
+          }
+          return [...list, m];
+        });
+        if (!this.isSent(m)) this.messenger.markAsRead(active.id).subscribe();
+        setTimeout(() => this.scrollToBottom(), 50);
+      }
+      const me = this.user()?.id;
+      if (me) this.messenger.getChatThreads(me).pipe(catchError(() => of([]))).subscribe(t => { if (t.length) this.threads.set(t); });
     });
 
     const userId = this.user()?.id || 'c1';
@@ -118,7 +143,9 @@ export class CustomerMessages implements OnInit, AfterViewChecked {
       takeUntilDestroyed(this.destroyRef),
       switchMap(active => {
         if (!active) return of([]);
+        // Live messages arrive over the hub; polling only covers a dropped connection.
         return timer(0, 3000).pipe(
+          filter(tick => tick === 0 || !this.realtime.connected()),
           switchMap(() => this.messenger.getChatMessages(active.id).pipe(
             switchMap(newMsgs => {
               const currentIds = this.messages().filter(m => typeof m.id === 'string' && !m.id.startsWith('temp-')).map(m => m.id || '').join(',');
@@ -148,6 +175,7 @@ export class CustomerMessages implements OnInit, AfterViewChecked {
     // Background polling for threads/status every 5 seconds
     timer(5000, 5000).pipe(
       takeUntilDestroyed(this.destroyRef),
+      filter(() => !this.realtime.connected()),
       switchMap(() => this.messenger.getChatThreads(userId).pipe(catchError(() => of([]))))
     ).subscribe(ts => {
       if (ts.length) {

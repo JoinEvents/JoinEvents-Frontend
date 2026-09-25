@@ -3,7 +3,8 @@ import { BaseApiService } from './base-api.service';
 import { API_ROUTES } from '../constants/api.constants';
 import { ChatThread, ChatMessage } from '../models/message.model';
 import { Observable, of, throwError, timer } from 'rxjs';
-import { map, catchError } from 'rxjs/operators';
+import { map, catchError, filter } from 'rxjs/operators';
+import { RealtimeService } from './realtime.service';
 import { AuthService } from './auth.service';
 import { ToastService } from './toast.service';
 
@@ -14,14 +15,50 @@ export class MessengerService extends BaseApiService {
   public unreadThreadsCount = signal<number>(0);
   public activeThreadId = signal<string | null>(null);
   private lastNotifiedMessages = new Map<string, string>();
+  private realtime = inject(RealtimeService);
+
+  /** Messages in any of the user's conversations, the moment they are sent. */
+  readonly liveMessages$: Observable<ChatMessage> = this.realtime.messages$.pipe(
+    map(m => {
+      const me = this.auth.currentUser();
+      const role = me?.role || 'customer';
+      const mine = m.senderId?.toLowerCase() === me?.id?.toLowerCase();
+      return {
+        id: m.messageId,
+        threadId: m.threadId,
+        senderId: m.senderId,
+        senderName: m.senderName,
+        content: m.content,
+        timestamp: m.timestamp,
+        senderRole: mine ? role : (role === 'customer' ? 'vendor' : 'customer'),
+        isRead: mine,
+        type: 'text'
+      } as ChatMessage;
+    })
+  );
 
   constructor() {
     super();
     this.startPolling();
+
+    // A new message refreshes the conversation list (and the unread badge) at once; a message
+    // from someone else outside the open conversation also shows a toast.
+    this.liveMessages$.subscribe(m => {
+      const me = this.auth.currentUser();
+      if (!me) return;
+      const fromMe = m.senderId?.toLowerCase() === me.id?.toLowerCase();
+      if (!fromMe && m.threadId !== this.activeThreadId()) {
+        this.toast.info(`New message from ${m.senderName || 'your contact'}: "${m.content}"`);
+        this.lastNotifiedMessages.set(m.threadId, 'live');
+      }
+      this.getChatThreads(me.id).pipe(catchError(() => of([]))).subscribe();
+    });
   }
 
+  /** Polls only while the live connection is down (and once on start). */
   private startPolling() {
     timer(0, 10000).pipe(
+      filter(tick => tick === 0 || !this.realtime.connected()),
       catchError(() => of([]))
     ).subscribe(() => {
       const user = this.auth.currentUser();
@@ -64,7 +101,10 @@ export class MessengerService extends BaseApiService {
         mapped.forEach(t => {
           if (t.unreadCount > 0 && t.id !== this.activeThreadId()) {
             const lastTime = this.lastNotifiedMessages.get(t.id);
-            if (lastTime !== t.lastMessageTime) {
+            if (lastTime === 'live') {
+              // Already announced when it arrived live.
+              this.lastNotifiedMessages.set(t.id, t.lastMessageTime);
+            } else if (lastTime !== t.lastMessageTime) {
               this.lastNotifiedMessages.set(t.id, t.lastMessageTime);
               this.toast.info(`New message from ${t.subject}: "${t.lastMessage}"`);
             }
