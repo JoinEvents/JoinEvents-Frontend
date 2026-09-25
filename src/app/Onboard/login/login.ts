@@ -50,7 +50,6 @@ export class Login implements OnInit {
         if (!result.success) {
           this.toast.error(result.message);
         } else {
-          this.toast.success('Login successful!');
           if (this.rememberMe) {
             localStorage.setItem('joinevents_remember_email', this.email);
             localStorage.setItem('joinevents_remember_me', 'true');

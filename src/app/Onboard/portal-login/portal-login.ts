@@ -52,8 +52,6 @@ export class PortalLogin implements OnInit {
       next: (result) => {
         if (!result.success) {
           this.toast.error(result.message);
-        } else {
-          this.toast.success('Login successful!');
         }
         this.isLoading = false;
       },

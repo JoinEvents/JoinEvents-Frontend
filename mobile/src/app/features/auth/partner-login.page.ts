@@ -109,7 +109,7 @@ export class PartnerLoginPage {
         void this.toast.error(result.message);
         return;
       }
-      void this.toast.success(result.message);
+      // Signed in: go straight to the app; landing there is the confirmation.
       void this.router.navigateByUrl(this.auth.homeRoute(), { replaceUrl: true });
     });
   }
