@@ -1,0 +1,79 @@
+# Builds an installable debug APK of the mobile app, so it can be tested on a
+# phone or emulator without a local Android toolchain. Download it from the
+# run's "Artifacts" section (joinevents-debug-apk).
+name: Mobile Android APK
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'mobile/**'
+      - '.github/workflows/mobile-android-apk.yml'
+  pull_request:
+    paths:
+      - 'mobile/**'
+      - '.github/workflows/mobile-android-apk.yml'
+  workflow_dispatch:
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build web bundle (production API)
+        run: npm run build:prod
+
+      # android/ is gitignored (see mobile/README.md), so it is generated fresh.
+      - name: Generate Android project
+        run: npx cap add android
+
+      - name: Add app permissions
+        run: |
+          MANIFEST=android/app/src/main/AndroidManifest.xml
+          for p in CAMERA POST_NOTIFICATIONS READ_MEDIA_IMAGES ACCESS_NETWORK_STATE; do
+            grep -q "android.permission.$p\"" "$MANIFEST" || \
+              sed -i "s#<uses-permission android:name=\"android.permission.INTERNET\" />#&\n    <uses-permission android:name=\"android.permission.$p\" />#" "$MANIFEST"
+          done
+          grep uses-permission "$MANIFEST"
+
+      # Optional: push notifications need Firebase config, provided as a repo secret.
+      - name: Add Firebase config
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
+            echo "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
+          else
+            echo "::warning::GOOGLE_SERVICES_JSON secret not set; push notifications will not work in this APK."
+          fi
+
+      - name: Sync web bundle into Android
+        run: npx cap sync android
+
+      - name: Build debug APK
+        working-directory: mobile/android
+        run: ./gradlew assembleDebug --no-daemon
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: joinevents-debug-apk
+          path: mobile/android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 14
