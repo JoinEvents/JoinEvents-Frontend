@@ -5,7 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { SupportService } from '../../core/services/support.service';
 import { SupportTicket } from '../../core/models/message.model';
 import { ToastService } from '../../core/services/toast.service';
-import { environment } from '../../../environments/environment';
+import { resolveMediaUrl } from '../../core/utils/media-url.util';
 
 // Trigger build reload
 @Component({
@@ -96,9 +96,7 @@ export class SupportDetailComponent implements OnInit {
   }
 
   resolveAttachmentUrl(url: string | undefined): string {
-    if (!url) return '';
-    const base = environment.apiUrl.replace('/api/v1', '');
-    return `${base}${url}`;
+    return resolveMediaUrl(url);
   }
 
   priorityColor(p: string): string {

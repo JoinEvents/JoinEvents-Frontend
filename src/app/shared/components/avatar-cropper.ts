@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ProfileService } from '../../core/services/profile.service';
 import { AuthService } from '../../core/services/auth.service';
 import { ToastService } from '../../core/services/toast.service';
+import { resolveMediaUrl, withCacheBuster } from '../../core/utils/media-url.util';
 
 @Component({
   selector: 'app-avatar-cropper',
@@ -502,7 +503,7 @@ export class AvatarCropperComponent {
           if (res && res.avatarUrl) {
             this.toast.success('Profile photo updated successfully! 📸');
             
-            const cacheBustedUrl = res.avatarUrl + '?t=' + new Date().getTime();
+            const cacheBustedUrl = withCacheBuster(resolveMediaUrl(res.avatarUrl));
             this.authService.updateUserProfile({ avatar: cacheBustedUrl });
 
             this.uploadSuccess.emit(cacheBustedUrl);
