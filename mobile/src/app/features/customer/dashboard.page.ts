@@ -127,8 +127,9 @@ import { StatusPillComponent } from '../../shared/components/status-pill.compone
         <div class="cats">
           @for (category of categories(); track category.id) {
             <a class="cat" [routerLink]="['/customer/tabs/events']" [queryParams]="{ category: category.id }">
-              <span class="cat__art" [style.background]="category.gradient">
-                <ion-icon name="sparkles" />
+              <span class="cat__art" [style.background]="category.gradient || 'var(--je-gradient-primary)'">
+                <!-- The icon the admin chose (Bootstrap Icons, as on the web). -->
+                @if (category.icon) { <i class="bi {{ category.icon }}"></i> } @else { <ion-icon name="sparkles" /> }
               </span>
               <span class="cat__name je-truncate">{{ category.name }}</span>
               @if (category.startingPrice) {
@@ -200,7 +201,7 @@ import { StatusPillComponent } from '../../shared/components/status-pill.compone
     .cat { display: flex; flex-direction: column; align-items: center; gap: 6px; text-decoration: none; }
     .cat__art { width: 56px; height: 56px; display: grid; place-items: center;
                 border-radius: var(--je-radius-md); color: #fff; }
-    .cat__art ion-icon { font-size: 23px; }
+    .cat__art ion-icon, .cat__art i { font-size: 23px; }
     .cat__name { font-size: var(--je-fs-xs); font-weight: 600; color: var(--je-text-main);
                  max-width: 100%; text-align: center; }
     .cat__price { text-align: center; }

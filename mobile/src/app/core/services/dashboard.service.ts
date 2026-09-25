@@ -36,9 +36,9 @@ export class DashboardService extends BaseApiService {
             id: String(c['categoryKey'] ?? c['id'] ?? ''),
             name: String(c['name'] ?? ''),
             description: String(c['description'] ?? ''),
-            icon: String(c['icon'] ?? 'sparkles'),
-            category: (c['categoryKey'] ?? 'custom') as EventType['category'],
-            gradient: (c['gradient'] as string) ?? 'linear-gradient(135deg,#E91E8C,#FF6B6B)',
+            icon: String(c['icon'] ?? ''),
+            category: String(c['categoryKey'] ?? ''),
+            gradient: (c['gradient'] as string | null) || undefined,
             startingPrice: Number(c['startingPrice'] ?? 0)
           }))
         ),

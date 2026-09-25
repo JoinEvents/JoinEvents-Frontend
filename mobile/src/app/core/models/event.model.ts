@@ -1,4 +1,5 @@
-export type EventCategory = 'wedding' | 'birthday' | 'corporate' | 'religious' | 'social' | 'custom' | 'beauty' | 'travel' | 'shopping';
+/** An admin-defined category key (e.g. "wedding") — categories come from the catalogue, not a fixed list. */
+export type EventCategory = string;
 
 export interface EventType {
   /** The category key — what packages are filed under and search filters by. */
@@ -8,6 +9,7 @@ export interface EventType {
   name: string;
   nameHindi?: string;
   description?: string;
+  /** Bootstrap Icons class from the catalogue (e.g. "bi-hearts"); empty when none is set. */
   icon: string;
   category: EventCategory;
   colorClass?: string;
