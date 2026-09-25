@@ -142,6 +142,9 @@
           <div class="col-12 col-lg-4">
             <div class="card border-0 shadow-sm p-4 rounded-4 bg-glass h-100">
               <h6 class="fw-800 text-navy mb-4"><i class="bi bi-star-fill text-warning me-2"></i> Rating Trend (12 Months)</h6>
+              @if (!hasRatings()) {
+                <div class="text-muted small text-center py-5">No reviews yet. Your rating trend appears once customers review you.</div>
+              } @else {
               <div class="svg-container" style="height: 220px; width: 100%;">
                 <svg viewBox="0 0 250 180" style="width: 100%; height: 100%; overflow: visible;">
                   <path 
@@ -174,6 +177,7 @@
                   }
                 </svg>
               </div>
+              }
             </div>
           </div>
         </div>
@@ -182,7 +186,7 @@
       <!-- Recent Booking Requests -->
       <div class="ee-card mb-5 p-0">
         <div class="p-4 border-bottom d-flex align-items-center justify-content-between">
-          <h6 class="fw-800 m-0 color-navy"><i class="bi bi-clock-history me-2 text-warning"></i> Recent Booking Requests</h6>
+          <h6 class="fw-800 m-0 color-navy"><i class="bi bi-clock-history me-2 text-warning"></i> Paid Bookings to Confirm</h6>
           <a routerLink="/vendor/bookings" class="btn btn-outline-secondary btn-sm px-3 rounded-pill fw-700">Explore All</a>
         </div>
         <div class="request-list">
@@ -196,10 +200,12 @@
             </div>
             <div class="req-price">₹{{ req.amount.toLocaleString('en-IN') }}</div>
             <div class="req-actions">
-              <button class="btn-req-accept" title="Accept" (click)="acceptRequest(req.id)"><i class="bi bi-check-circle-fill"></i></button>
-              <button class="btn-req-decline" title="Decline" (click)="declineRequest(req.id)"><i class="bi bi-x-circle-fill"></i></button>
+              <button class="btn-req-accept" title="Confirm booking" (click)="confirmRequest(req.id)"><i class="bi bi-check-circle-fill"></i></button>
+              <a class="btn-req-decline" title="Open in bookings to cancel" routerLink="/vendor/bookings"><i class="bi bi-box-arrow-up-right"></i></a>
             </div>
           </div>
+          } @empty {
+            <div class="text-muted small text-center py-4">No paid bookings waiting for you.</div>
           }
           }
         </div>

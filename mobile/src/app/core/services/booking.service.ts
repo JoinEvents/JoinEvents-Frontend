@@ -55,6 +55,14 @@ export class BookingService extends BaseApiService {
     return toResult(this.post<Booking>(API_ROUTES.BOOKINGS.CREATE, request, false), 'We could not create the booking.');
   }
 
+  /** Moves a booking to a new status, with the server's reason when it refuses. */
+  moveTo(bookingId: string, status: BookingStatus): Observable<ApiResult<unknown>> {
+    return toResult(
+      this.patch<unknown>(API_ROUTES.BOOKINGS.STATUS(bookingId), { status }, false),
+      'Could not update the booking. Please try again.'
+    );
+  }
+
   updateStatus(bookingId: string, status: BookingStatus): Observable<boolean> {
     return this.ok(this.patch<unknown>(API_ROUTES.BOOKINGS.STATUS(bookingId), { status }, false));
   }

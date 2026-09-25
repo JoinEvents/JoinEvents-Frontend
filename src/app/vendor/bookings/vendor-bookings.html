@@ -1,9 +1,10 @@
 <div class="page-header"><h1>Booking Requests</h1><p>Review and respond to incoming service booking requests</p></div>
 
 <div class="d-flex gap-2 mb-4 flex-wrap">
-  @for (f of ['all','pending','confirmed','in_progress','cancelled','completed']; track f) {
-    <button class="filter-chip" [class.active]="filter() === f" (click)="filter.set(f)">
-      {{ (f === 'in_progress' ? 'Executing' : f === 'confirmed' ? 'Upcoming' : f) | titlecase }}
+  @for (f of filters; track f.id) {
+    <button class="filter-chip" [class.active]="filter() === f.id" (click)="filter.set(f.id)">
+      {{ f.label }}
+      @if (f.id === 'advance_paid' && toConfirmCount() > 0) { <span class="badge bg-warning text-dark ms-1">{{ toConfirmCount() }}</span> }
     </button>
   }
 </div>
@@ -25,19 +26,29 @@
           <span><i class="bi bi-calendar2 me-1"></i>{{ req.eventDate }}</span>
           <span><i class="bi bi-hash me-1"></i>{{ req.bookingId }}</span>
           <span class="vrc-amount"><i class="bi bi-currency-rupee me-1"></i>₹{{ req.amount.toLocaleString('en-IN') }}</span>
+          <span><i class="bi bi-wallet2 me-1"></i>Paid ₹{{ req.amountPaid.toLocaleString('en-IN') }}@if (req.balanceDue > 0) { · Due ₹{{ req.balanceDue.toLocaleString('en-IN') }} }</span>
         </div>
         @if (req.status === 'pending') {
           <div class="vrc-actions">
-            <button class="req-btn accept" (click)="acceptRequest(req.id)">
-              <i class="bi bi-check-circle me-1"></i> Accept Request
-            </button>
+            <span class="small text-muted me-auto align-self-center">The customer has not paid yet. You can take it once they pay.</span>
             <button class="req-btn decline" (click)="declineRequest(req.id)">
               <i class="bi bi-x-circle me-1"></i> Decline
             </button>
           </div>
         }
 
-        @if (['advance_paid', 'confirmed'].includes(req.status)) {
+        @if (req.status === 'advance_paid') {
+          <div class="vrc-actions">
+            <button class="req-btn accept" (click)="confirmBooking(req.id)">
+              <i class="bi bi-check-circle me-1"></i> Confirm Booking
+            </button>
+            <button class="req-btn decline" (click)="cancelPrompt.set(req.id)">
+              <i class="bi bi-x-circle me-1"></i> Cancel Booking
+            </button>
+          </div>
+        }
+
+        @if (req.status === 'confirmed') {
           <div class="vrc-actions">
             <button class="req-btn accept" (click)="startExecution(req.id)">
               <i class="bi bi-play-circle me-1"></i> Start Event
@@ -165,14 +176,10 @@
               </div>
             </div>
             <div class="row g-2 text-muted small mb-3">
-              <div class="col-6"><i class="bi bi-geo-alt me-1"></i> Location: Venue TBA</div>
-              <div class="col-6"><i class="bi bi-clock me-1"></i> Time: 6:00 PM - 11:00 PM</div>
-              <div class="col-6"><i class="bi bi-people me-1"></i> Guests: Approx. 150</div>
+              @if (req.packageName) { <div class="col-6"><i class="bi bi-box-seam me-1"></i> Package: {{ req.packageName }}</div> }
+              <div class="col-6"><i class="bi bi-geo-alt me-1"></i> Venue: {{ req.venue || '—' }}@if (req.city && !(req.venue || '').includes(req.city)) {, {{ req.city }}}</div>
+              <div class="col-6"><i class="bi bi-people me-1"></i> Guests: {{ req.guestCount || '—' }}</div>
               <div class="col-6"><i class="bi bi-shield-lock me-1"></i> Contact: Via JoinEvents Chat <span class="badge bg-success bg-opacity-25 text-success x-small ms-1">Protected</span></div>
-            </div>
-            <div class="p-2 rounded bg-light border small text-dark mb-3" style="background: rgba(0,0,0,0.02) !important;">
-              <strong class="d-block mb-1">Vendor Instructions:</strong> 
-              Please ensure that the services match the premium package quality standard. Customer expects setup to be complete 2 hours before the event.
             </div>
             <div class="services-progress pt-3 border-top">
               <h6 class="fw-bold mb-2 small text-dark d-flex align-items-center gap-1">
