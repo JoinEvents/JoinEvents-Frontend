@@ -1,5 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
-import { TitleCasePipe } from '@angular/common';
+import { Component, effect, inject, signal, untracked } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import {
   IonContent, IonHeader, IonToolbar, IonTitle, IonIcon, IonToggle,
@@ -10,17 +9,18 @@ import { ViewWillEnter } from '@ionic/angular';
 
 import { VendorPackageService, VendorPackage } from '../../core/services/vendor-package.service';
 import { ToastService } from '../../core/services/toast.service';
+import { PackageService } from '../../core/services/package.service';
+import { EventType } from '../../core/models/event.model';
 import { CurrencyInrPipe } from '../../shared/pipes/currency-inr.pipe';
 import { ListSkeletonComponent } from '../../shared/components/list-skeleton.component';
 import { EmptyStateComponent } from '../../shared/components/empty-state.component';
-import { StatusPillComponent } from '../../shared/components/status-pill.component';
 
 /** The vendor's catalogue, with inline activate/deactivate and swipe-to-delete. */
 @Component({
   selector: 'app-vendor-packages',
   standalone: true,
   imports: [
-    TitleCasePipe, RouterLink, CurrencyInrPipe, ListSkeletonComponent, EmptyStateComponent, StatusPillComponent,
+    RouterLink, CurrencyInrPipe, ListSkeletonComponent, EmptyStateComponent,
     IonContent, IonHeader, IonToolbar, IonTitle, IonIcon, IonToggle,
     IonFab, IonFabButton, IonRefresher, IonRefresherContent,
     IonItemSliding, IonItemOptions, IonItemOption, IonList
@@ -61,13 +61,16 @@ import { StatusPillComponent } from '../../shared/components/status-pill.compone
                     <div class="card__body">
                       <strong class="je-sm je-clamp-2">{{ pkg.name }}</strong>
                       <span class="je-xs je-muted">
-                        {{ pkg.category | titlecase }}
-                        @if (pkg.tier) { · {{ pkg.tier | titlecase }} }
+                        {{ categoryName(pkg.category) }}
+                        @if (pkg.tier) { · {{ pkg.tier }} }
                       </span>
                       <span class="je-price je-sm">{{ pkg.price | inr }}</span>
-                      <app-status-pill [status]="pkg.status" />
+                      <span class="je-pill" [class]="'je-pill--' + statusOf(pkg).tone">{{ statusOf(pkg).label }}</span>
                     </div>
                   </a>
+                  @if (pkg.status === 'Rejected' && pkg.verificationComment) {
+                    <p class="je-xs note"><strong>Reviewer:</strong> {{ pkg.verificationComment }}</p>
+                  }
 
                   <div class="card__foot">
                     <div class="metrics">
@@ -119,22 +122,52 @@ import { StatusPillComponent } from '../../shared/components/status-pill.compone
     .metrics span { display: inline-flex; align-items: center; gap: 4px; }
     .live { display: flex; align-items: center; gap: 8px; }
     .fab { --background: var(--je-gradient-primary); --color: #fff; }
+    .note { margin: 10px 0 0; padding: 8px 10px; border-radius: var(--je-radius-sm);
+            background: var(--je-bg-light); color: var(--je-text-main); }
   `]
 })
 export class VendorPackagesPage implements ViewWillEnter {
   private packageService = inject(VendorPackageService);
   private toast = inject(ToastService);
   private router = inject(Router);
+  private catalogue = inject(PackageService);
 
   readonly loading = signal(true);
   readonly packages = signal<VendorPackage[]>([]);
+  private readonly categories = signal<EventType[]>([]);
+
+  constructor() {
+    // Reload after the editor saves (see VendorPackageService.version).
+    let first = true;
+    effect(() => {
+      this.packageService.version();
+      if (!first) untracked(() => this.load(undefined, true));
+      first = false;
+    });
+    this.catalogue.getEventTypes().subscribe(types => this.categories.set(types));
+  }
+
+  /** Category names from the catalogue; the package stores the key. */
+  categoryName(key: string): string {
+    return this.categories().find(c => c.id === key)?.name ?? key;
+  }
+
+  /** The API's review states, in the vendor's words. */
+  statusOf(pkg: VendorPackage): { label: string; tone: string } {
+    switch (pkg.status) {
+      case 'Active': return { label: 'Verified', tone: 'confirmed' };
+      case 'Rejected': return { label: 'Changes needed', tone: 'rejected' };
+      case 'PendingReview': return { label: 'Under review', tone: 'pending' };
+      default: return { label: pkg.status || 'Unknown', tone: 'neutral' };
+    }
+  }
 
   ionViewWillEnter(): void {
     this.load();
   }
 
-  load(event?: CustomEvent): void {
-    this.loading.set(true);
+  load(event?: CustomEvent, quiet = false): void {
+    if (!event && !quiet) this.loading.set(true);
     this.packageService.getMyPackages().subscribe(packages => {
       this.packages.set(packages);
       this.loading.set(false);
@@ -150,10 +183,10 @@ export class VendorPackagesPage implements ViewWillEnter {
     // Optimistic: the toggle has already moved, so reflect it and roll back on failure.
     this.packages.update(list => list.map(p => (p.id === pkg.id ? { ...p, isActive } : p)));
 
-    this.packageService.toggleStatus(pkg.id, isActive).subscribe(success => {
-      if (success) return;
+    this.packageService.toggleStatus(pkg.id, isActive).subscribe(error => {
+      if (!error) return;
       this.packages.update(list => list.map(p => (p.id === pkg.id ? { ...p, isActive: !isActive } : p)));
-      void this.toast.error('Could not change the package status.');
+      void this.toast.error(error);
     });
   }
 
@@ -166,9 +199,9 @@ export class VendorPackagesPage implements ViewWillEnter {
     );
     if (!confirmed) return;
 
-    this.packageService.remove(pkg.id).subscribe(success => {
-      if (!success) {
-        void this.toast.error('Could not delete the package.');
+    this.packageService.remove(pkg.id).subscribe(error => {
+      if (error) {
+        void this.toast.error(error);
         return;
       }
       void this.toast.success('Package deleted.');

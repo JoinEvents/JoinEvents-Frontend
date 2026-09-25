@@ -43,6 +43,11 @@ import { ProfileService } from '../../core/services/profile.service';
         </div>
 
         <ion-list class="je-card je-card--flush menu" [inset]="false">
+          <ion-item routerLink="/vendor/profile" [detail]="true" lines="full">
+            <ion-icon name="storefront-outline" slot="start" color="medium" />
+            <ion-label>Business profile</ion-label>
+          </ion-item>
+
           <ion-item routerLink="/vendor/messages" [detail]="true" lines="full">
             <ion-icon name="chatbubbles-outline" slot="start" color="medium" />
             <ion-label>Messages</ion-label>

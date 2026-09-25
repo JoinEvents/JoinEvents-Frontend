@@ -19,9 +19,10 @@ export const vendorRoutes: Routes = [
   },
 
   { path: 'calendar', loadComponent: () => import('./calendar.page').then(m => m.VendorCalendarPage) },
-  { path: 'package/new', loadComponent: () => import('./edit-package.page').then(m => m.VendorEditPackagePage) },
-  { path: 'package/:id', loadComponent: () => import('./edit-package.page').then(m => m.VendorEditPackagePage) },
+  { path: 'package/new', loadComponent: () => import('./package-editor/package-editor.page').then(m => m.VendorPackageEditorPage) },
+  { path: 'package/:id', loadComponent: () => import('./package-editor/package-editor.page').then(m => m.VendorPackageEditorPage) },
   { path: 'finance', loadComponent: () => import('./finance.page').then(m => m.VendorFinancePage) },
+  { path: 'profile', loadComponent: () => import('./business-profile.page').then(m => m.VendorBusinessProfilePage) },
   { path: 'verification', loadComponent: () => import('./verification.page').then(m => m.VendorVerificationPage) },
   { path: 'messages', loadComponent: () => import('./messages.page').then(m => m.VendorMessagesPage) },
   { path: 'chat/:threadId', loadComponent: () => import('../customer/chat.page').then(m => m.ChatPage) },

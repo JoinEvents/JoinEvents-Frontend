@@ -43,6 +43,8 @@ export const API_ROUTES = {
   EVENT_CATEGORIES: '/event-categories',
   /** Active pricing tiers, public: what vendors pick from and customers filter by. */
   TIERS: '/tiers',
+  /** Permanent image upload (package/service photos): returns { url, path }. */
+  IMAGE_UPLOAD: '/files/images',
   /** Admin catalogue: every category and tier, active or not, with full CRUD. */
   ADMIN_CATALOGUE: {
     CATEGORIES: '/admin/event-categories',

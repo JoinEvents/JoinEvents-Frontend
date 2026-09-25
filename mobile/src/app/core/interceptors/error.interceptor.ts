@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { catchError, throwError } from 'rxjs';
 
 import { AuthService } from '../services/auth.service';
+import { environment } from '../../../environments/environment';
 import { ToastService } from '../services/toast.service';
 import { LoggerService } from '../services/logger.service';
 
@@ -17,6 +18,9 @@ import { LoggerService } from '../services/logger.service';
  *   so no toast is raised for them.
  */
 export const errorInterceptor: HttpInterceptorFn = (req, next) => {
+  // Only our API's failures mean anything about the session; third-party
+  // callers (e.g. the address lookup) handle their own errors.
+  if (!req.url.startsWith(environment.apiUrl)) return next(req);
   const auth = inject(AuthService);
   const router = inject(Router);
   const toast = inject(ToastService);

@@ -1,6 +1,7 @@
 import { HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { AuthService } from '../services/auth.service';
+import { environment } from '../../../environments/environment';
 
 /**
  * Attaches the bearer token to every JoinEvents API call.
@@ -9,6 +10,8 @@ import { AuthService } from '../services/auth.service';
  * boundary itself, and overriding Content-Type would corrupt uploads.
  */
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
+  // Third-party calls (e.g. the address lookup) must never carry the user's token.
+  if (!req.url.startsWith(environment.apiUrl)) return next(req);
   const auth = inject(AuthService);
   const token = auth.getToken();
 

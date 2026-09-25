@@ -12,7 +12,7 @@ import { CategoryPayload, EventCategory } from '../../../core/models/catalogue.m
 import { distinctByUse, toSlug } from '../../../core/utils/catalogue.util';
 import { GradientFieldComponent } from './gradient-field.component';
 import { IconFieldComponent } from './icon-field.component';
-import { TagListComponent } from './tag-list.component';
+import { TagListComponent } from '../../../shared/components/tag-list.component';
 import { ListSkeletonComponent } from '../../../shared/components/list-skeleton.component';
 
 /**

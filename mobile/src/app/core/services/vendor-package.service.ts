@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, signal } from '@angular/core';
 import { Observable, of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 
@@ -14,7 +14,10 @@ export interface VendorPackage {
   tier: string;
   price: number;
   isActive: boolean;
+  /** API status: Active (verified, live), PendingReview or Rejected. */
   status: string;
+  /** The reviewer's note when a package is sent back. */
+  verificationComment?: string;
   images: string[];
   maxGuests?: number;
   totalBookings?: number;
@@ -29,7 +32,18 @@ export interface SaveResult {
 
 @Injectable({ providedIn: 'root' })
 export class VendorPackageService extends BaseApiService {
-  getMyPackages(category?: string, status?: string, page = 1, pageSize = 20): Observable<VendorPackage[]> {
+  /**
+   * Bumped after a package is saved in the editor. The list lives in a tab
+   * outlet that gets no ionViewWillEnter when a page above the tabs is popped,
+   * so it reloads on this instead.
+   */
+  readonly version = signal(0);
+
+  markChanged(): void {
+    this.version.update(v => v + 1);
+  }
+
+  getMyPackages(category?: string, status?: string, page = 1, pageSize = 100): Observable<VendorPackage[]> {
     return this.get<unknown>(API_ROUTES.VENDOR_PACKAGES.BASE, { category, status, page, pageSize }, false).pipe(
       map(res => this.unwrap(res).map(p => this.toPackage(p))),
       catchError(() => of([] as VendorPackage[]))
@@ -65,21 +79,19 @@ export class VendorPackageService extends BaseApiService {
     );
   }
 
-  remove(id: string): Observable<boolean> {
-    return this.ok(this.delete<unknown>(API_ROUTES.VENDOR_PACKAGES.BY_ID(id), false));
+  /** Resolves null on success, or the server's reason. */
+  remove(id: string): Observable<string | null> {
+    return this.delete<unknown>(API_ROUTES.VENDOR_PACKAGES.BY_ID(id)).pipe(
+      map(() => null),
+      catchError(err => of(serverMessage(err, 'Could not delete the package.')))
+    );
   }
 
-  toggleStatus(id: string, isActive: boolean): Observable<boolean> {
-    return this.ok(this.patch<unknown>(API_ROUTES.VENDOR_PACKAGES.STATUS(id), { isActive }, false));
-  }
-
-  /** Uploads gallery images captured with the device camera or picked from the roll. */
-  uploadImages(id: string, files: { blob: Blob; name: string }[]): Observable<SaveResult> {
-    const form = new FormData();
-    files.forEach(f => form.append('files', f.blob, f.name));
-    return this.post<unknown>(API_ROUTES.VENDOR_PACKAGES.IMAGES(id), form).pipe(
-      map(() => ({ id })),
-      catchError(err => of({ error: serverMessage(err, 'The photos could not be uploaded.') }))
+  /** Resolves null on success, or the server's reason. */
+  toggleStatus(id: string, isActive: boolean): Observable<string | null> {
+    return this.patch<unknown>(API_ROUTES.VENDOR_PACKAGES.STATUS(id), { isActive }).pipe(
+      map(() => null),
+      catchError(err => of(serverMessage(err, 'Could not change the package status.')))
     );
   }
 
@@ -88,10 +100,12 @@ export class VendorPackageService extends BaseApiService {
       id: String(p['id'] ?? ''),
       name: String(p['name'] ?? ''),
       category: String(p['category'] ?? p['categoryKey'] ?? ''),
-      tier: String(p['tier'] ?? ''),
+      // The API stores the tier name as the package's theme.
+      tier: String(p['theme'] ?? p['tier'] ?? ''),
       price: Number((p['pricing'] as Record<string, unknown> | undefined)?.['basePrice'] ?? p['price'] ?? p['basePrice'] ?? 0),
       isActive: Boolean(p['isActive'] ?? true),
-      status: String(p['status'] ?? 'draft'),
+      status: String(p['status'] ?? ''),
+      verificationComment: (p['verificationComment'] as string | null) ?? undefined,
       images: Array.isArray(p['images'])
         ? (p['images'] as unknown[])
             .map(item => resolveMediaUrl(typeof item === 'string' ? item : (item as { url?: string } | null)?.url))
@@ -101,10 +115,6 @@ export class VendorPackageService extends BaseApiService {
       totalBookings: p['totalBookings'] as number | undefined,
       rating: p['rating'] as number | undefined
     };
-  }
-
-  private ok(source: Observable<unknown>): Observable<boolean> {
-    return source.pipe(map(() => true), catchError(() => of(false)));
   }
 
   private unwrap(res: unknown): Record<string, unknown>[] {
