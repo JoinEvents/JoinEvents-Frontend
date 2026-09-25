@@ -1,4 +1,4 @@
-import { Component, signal, OnInit, OnDestroy, inject, HostListener, ChangeDetectionStrategy } from '@angular/core';
+import { Component, signal, computed, OnInit, OnDestroy, inject, HostListener, ChangeDetectionStrategy } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { DashboardService } from '../../core/services/dashboard.service';
@@ -60,6 +60,8 @@ export class CustomerDashboard implements OnInit, OnDestroy {
   activeCardCarouselIndex = signal<Record<string, number>>({});
   isLocationDropdownOpen = signal<boolean>(false);
 
+  /** Set once the profile or the user has picked a city, so listings no longer choose it. */
+  private cityChosen = false;
   private campaignTimer: any;
   private hoverTimers: Record<string, any> = {};
 
@@ -92,7 +94,7 @@ export class CustomerDashboard implements OnInit, OnDestroy {
     },
     {
       title: 'Get Custom Vendor Bids',
-      subtitle: 'Post a custom request for proposal (RFP) and receive quotes from 10+ vendors in 1 hour.',
+      subtitle: 'Describe your event once and compare quotes from verified vendors.',
       btnText: 'Create RFP Request',
       btnRoute: '/rfp',
       icon: 'bi-file-earmark-text-fill',
@@ -110,12 +112,45 @@ export class CustomerDashboard implements OnInit, OnDestroy {
     }
   ];
 
-  readonly featuredVendors = [
-    { name: 'Royal Palace Decorators', category: 'Decoration', rating: 4.9, reviews: 142, city: 'Delhi NCR', avatar: 'RP', badge: 'Elite Partner' },
-    { name: 'Gourmet Banquet Catering', category: 'Catering', rating: 4.8, reviews: 96, city: 'Bengaluru', avatar: 'GB', badge: 'Verified' },
-    { name: 'DJ Soundwaves & Lights', category: 'Entertainment', rating: 4.9, reviews: 210, city: 'Mumbai', avatar: 'DJ', badge: 'Elite Partner' },
-    { name: 'Styling & Blush Makeup', category: 'Makeup', rating: 4.7, reviews: 68, city: 'Delhi NCR', avatar: 'SB', badge: 'Verified' }
-  ];
+  /** Vendors behind the listed packages, best rated first. */
+  readonly featuredVendors = computed(() => {
+    const byVendor = new Map<string, { name: string; category: string; city: string; rating: number; reviews: number; packages: number }>();
+    for (const p of this.allPackages()) {
+      const name = p.vendorName;
+      if (!name || name === 'JoinEvents Partner') continue;
+      const v = byVendor.get(name) ?? { name, category: this.getEventTypeName(p.category), city: p.location || '', rating: 0, reviews: 0, packages: 0 };
+      v.packages++;
+      if ((p.rating || 0) > v.rating) v.rating = p.rating || 0;
+      v.reviews += p.totalReviews || 0;
+      byVendor.set(name, v);
+    }
+    return [...byVendor.values()]
+      .sort((a, b) => b.rating - a.rating || b.reviews - a.reviews || b.packages - a.packages)
+      .slice(0, 4)
+      .map(v => ({ ...v, avatar: v.name.split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase() }));
+  });
+
+  /** The lowest listed package price per category, so a category card never reads "From ₹0k". */
+  readonly categoryFrom = computed(() => {
+    const from: Record<string, number> = {};
+    for (const p of this.allPackages()) {
+      const key = String(p.category || '').toLowerCase();
+      if (p.price > 0 && (!from[key] || p.price < from[key])) from[key] = p.price;
+    }
+    return from;
+  });
+
+  /** True when nothing is listed in the chosen city and other cities' packages are shown instead. */
+  readonly popularIsFallback = signal(false);
+
+  /** Bookings still ahead of the customer: not cancelled, rejected or finished; soonest first. */
+  readonly upcomingBookings = computed(() => {
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    return this.bookings()
+      .filter(b => !['cancelled', 'rejected', 'completed', 'settled'].includes(b.status))
+      .filter(b => new Date(b.eventDate).getTime() >= today.getTime())
+      .sort((a, b) => new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime());
+  });
 
   readonly stats = signal([
     { label: 'Upcoming Events', value: '0', icon: 'bi-calendar-event', gradient: 'linear-gradient(135deg,#FF6B35,#F59E0B)', iconBg: 'rgba(255,107,53,0.12)', iconColor: 'var(--primary)', route: '/bookings' },
@@ -147,6 +182,8 @@ export class CustomerDashboard implements OnInit, OnDestroy {
           const matchedCity = this.cities.find(c => c.toLowerCase().includes(customer.city.toLowerCase()));
           if (matchedCity) {
             this.selectedCity.set(matchedCity);
+            this.cityChosen = true;
+            this.filterPackages();
           }
         }
       }
@@ -156,8 +193,9 @@ export class CustomerDashboard implements OnInit, OnDestroy {
     this.dashboardService.getBookings().subscribe({
       next: b => {
         this.bookings.set(b);
-        const upcoming = b.filter(book => book.status === 'confirmed' || book.status === 'pending' || book.status === 'in_progress').length;
-        const active = b.filter(book => book.status === 'confirmed' || book.status === 'in_progress').length;
+        const upcoming = this.upcomingBookings().length;
+        // Paid for and going ahead: the vendor has the booking in hand.
+        const active = b.filter(book => ['advance_paid', 'confirmed', 'in_progress'].includes(book.status)).length;
         
         this.stats.update(s => {
           const updated = [...s];
@@ -227,6 +265,7 @@ export class CustomerDashboard implements OnInit, OnDestroy {
           activeImageIndex: 0
         }));
         this.allPackages.set(mapped);
+        this.defaultCityFromListings();
         this.filterPackages();
         this.packagesLoading.set(false);
       },
@@ -264,15 +303,25 @@ export class CustomerDashboard implements OnInit, OnDestroy {
     const popular = pkgs.filter(p => {
       const loc = (p.location || '').toLowerCase();
       // Check if location contains city string
-      return loc.includes(city) || city.includes(loc);
+      return !!loc && (loc.includes(city) || city.includes(loc));
     });
 
-    if (popular.length === 0) {
-      // Fallback: show any 4 packages if none exist in this city
-      this.popularPackages.set(pkgs.slice(0, 4));
-    } else {
-      this.popularPackages.set(popular.slice(0, 4));
+    // Nothing listed in this city yet: show other cities' packages, and say so.
+    this.popularIsFallback.set(popular.length === 0 && pkgs.length > 0);
+    this.popularPackages.set((popular.length ? popular : pkgs).slice(0, 4));
+  }
+
+  /** Without a city on the profile, start where most packages are listed rather than a fixed city. */
+  private defaultCityFromListings() {
+    if (this.cityChosen) return;
+    const counts = new Map<string, number>();
+    for (const p of this.allPackages()) {
+      const loc = String(p.location || '').toLowerCase();
+      const city = this.cities.find(c => loc && (loc.includes(c.toLowerCase()) || c.toLowerCase().includes(loc)));
+      if (city) counts.set(city, (counts.get(city) ?? 0) + 1);
     }
+    const best = [...counts.entries()].sort((a, b) => b[1] - a[1])[0];
+    if (best) this.selectedCity.set(best[0]);
   }
 
   onCityChange() {
@@ -287,6 +336,7 @@ export class CustomerDashboard implements OnInit, OnDestroy {
   onSelectCity(event: MouseEvent, city: string) {
     event.stopPropagation();
     this.selectedCity.set(city);
+    this.cityChosen = true;
     this.isLocationDropdownOpen.set(false);
     this.onCityChange();
   }
@@ -321,6 +371,12 @@ export class CustomerDashboard implements OnInit, OnDestroy {
 
   isFavorite(id: string): boolean {
     return this.favoritesService.isFavorite(id);
+  }
+
+  /** How far along a booking is, for the timeline bar. */
+  planningProgress(status: string): number {
+    const map: Record<string, number> = { pending: 25, advance_paid: 50, confirmed: 75, in_progress: 90 };
+    return map[status] ?? (status === 'cancelled' || status === 'rejected' ? 0 : 100);
   }
 
   getStatusBadgeClass(status: string): string {
