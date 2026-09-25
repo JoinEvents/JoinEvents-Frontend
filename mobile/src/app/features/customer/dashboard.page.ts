@@ -5,7 +5,7 @@ import { DatePipe } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import {
   IonContent, IonHeader, IonToolbar, IonButtons, IonButton, IonIcon, IonBadge,
-  IonRefresher, IonRefresherContent, IonSkeletonText
+  IonRefresher, IonRefresherContent, IonSkeletonText, IonFab, IonFabButton
 } from '@ionic/angular/standalone';
 
 import { DashboardService } from '../../core/services/dashboard.service';
@@ -30,7 +30,7 @@ import { StatusPillComponent } from '../../shared/components/status-pill.compone
   imports: [
     DatePipe, RouterLink, CurrencyInrPipe, StatusPillComponent,
     IonContent, IonHeader, IonToolbar, IonButtons, IonButton, IonIcon, IonBadge,
-    IonRefresher, IonRefresherContent, IonSkeletonText
+    IonRefresher, IonRefresherContent, IonSkeletonText, IonFab, IonFabButton
   ],
   template: `
     <ion-header class="ion-no-border">
@@ -167,9 +167,25 @@ import { StatusPillComponent } from '../../shared/components/status-pill.compone
           }
         }
       </div>
+      <!-- Room for the Roshi button, so it never covers the last card -->
+      <div class="fab-space"></div>
+
+      <!-- Roshi, the event concierge -->
+      <ion-fab slot="fixed" vertical="bottom" horizontal="end" class="roshi-fab">
+        <ion-fab-button routerLink="/customer/roshi" aria-label="Ask Roshi, your event concierge">
+          <ion-icon name="sparkles" />
+        </ion-fab-button>
+        <span class="roshi-fab__label">Ask Roshi</span>
+      </ion-fab>
     </ion-content>
   `,
   styles: [`
+    .fab-space { height: 76px; }
+    .roshi-fab { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .roshi-fab ion-fab-button { --background: var(--je-gradient-primary); --background-activated: var(--je-gradient-primary);
+                                --box-shadow: 0 10px 24px rgba(217, 70, 239, 0.35); }
+    .roshi-fab__label { font-size: 10px; font-weight: 700; color: var(--je-text-main); background: var(--je-bg-card);
+                        padding: 2px 8px; border-radius: var(--je-radius-full); box-shadow: var(--je-shadow-sm); }
     .greet { display: flex; flex-direction: column; padding-left: 16px; line-height: 1.25; }
     .greet strong { font-family: var(--je-font-heading); font-size: var(--je-fs-md); }
     .dot { position: absolute; top: 2px; right: 2px; font-size: 10px; padding: 2px 5px; }

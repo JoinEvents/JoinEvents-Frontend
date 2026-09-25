@@ -1,192 +1,149 @@
 <!-- Floating Action Button -->
-<button class="ai-fab" (click)="toggleChat()" [class.hidden]="isOpen()">
+<button class="ai-fab" (click)="toggleChat()" [class.hidden]="isOpen()" aria-label="Ask Roshi, your event concierge">
   <div class="ai-fab-glow"></div>
   <i class="bi bi-stars"></i>
-  <span class="tooltip-text">Roshi</span>
+  <span class="tooltip-text">Ask Roshi</span>
 </button>
 
-<!-- AI Chat Widget -->
-<div class="ai-chat-widget" [class.open]="isOpen()">
-  
+<!-- Roshi -->
+<div class="ai-chat-widget" [class.open]="isOpen()" role="dialog" aria-label="Roshi, event concierge">
+
   <div class="chat-header">
     <div class="ai-avatar">
-      <i class="bi bi-robot"></i>
+      <i class="bi bi-stars"></i>
       <span class="online-dot"></span>
     </div>
     <div class="ai-info">
       <h6 class="m-0 fw-800">Roshi</h6>
-      <span class="status">AI Event Concierge</span>
+      <span class="status">Your event concierge</span>
     </div>
-    <button class="btn-close-chat" (click)="toggleChat()"><i class="bi bi-x-lg"></i></button>
+    <button class="btn-new-chat" (click)="newChat()" title="New conversation" aria-label="New conversation"><i class="bi bi-arrow-counterclockwise"></i></button>
+    <button class="btn-close-chat" (click)="toggleChat()" aria-label="Close"><i class="bi bi-x-lg"></i></button>
   </div>
 
-  <div class="chat-body" #chatContainer>
-    @for (msg of chatHistory(); track msg.id) {
-      
-      <!-- AI Text Message -->
-      @if (msg.sender === 'ai' && msg.type === 'text') {
+  <div class="chat-body" #chatContainer aria-live="polite">
+    @for (msg of messages(); track msg.id) {
+      @if (msg.from === 'user') {
+        <div class="msg-row user">
+          <div class="msg-bubble user-bubble">{{ msg.text }}</div>
+        </div>
+      } @else {
         <div class="msg-row ai">
           <div class="msg-avatar"><i class="bi bi-stars"></i></div>
-          <div class="msg-bubble ai-bubble" [innerHTML]="sanitizeHtml(msg.content)"></div>
+          <div class="msg-bubble ai-bubble roshi-text" [class.failed]="msg.failed" [innerHTML]="msg.html"></div>
         </div>
-      }
+        @if (msg.failed) {
+          <div class="msg-row ai-cards">
+            <button class="ai-nav-btn" (click)="retry()"><i class="bi bi-arrow-repeat"></i><span>Try again</span></button>
+          </div>
+        }
 
-      <!-- User Message -->
-      @if (msg.sender === 'user') {
-        <div class="msg-row user">
-          <div class="msg-bubble user-bubble">{{ msg.content }}</div>
-        </div>
-      }
-
-      <!-- Package Cards -->
-      @if (msg.sender === 'ai' && msg.type === 'packages' && msg.packages) {
-        <div class="msg-row ai-cards">
-          <div class="ai-carousel">
-            @for (pkg of msg.packages; track pkg.id) {
-              <div class="ai-pkg-card" [routerLink]="['/book', pkg.id]">
-                <div class="ai-pkg-img-wrapper">
-                  <img [src]="pkg.image" alt="pkg">
-                  <div class="ai-pkg-meta-badges">
-                    <span class="ai-pkg-tier">{{ pkg.tier }}</span>
-                    @if (pkg.sustainabilityTags?.length) {
-                      <span class="badge-eco"><i class="bi bi-leaf-fill"></i> Eco</span>
-                    }
-                  </div>
-                </div>
-                <div class="ai-pkg-info">
-                  <h6 class="ai-pkg-name">{{ pkg.name }}</h6>
-                  @if (pkg.location) {
-                    <div class="ai-pkg-loc">
-                      <i class="bi bi-geo-alt-fill"></i> {{ pkg.location }}
+        @for (card of msg.cards ?? []; track $index) {
+          <!-- Packages -->
+          @if (card.type === 'packages' && card.packages?.length) {
+            <div class="msg-row ai-cards">
+              <div class="ai-carousel">
+                @for (pkg of card.packages; track pkg.id) {
+                  <button class="ai-pkg-card" (click)="open('package:' + pkg.id, pkg.category)">
+                    <div class="ai-pkg-img-wrapper">
+                      @if (pkg.image) {
+                        <img [src]="pkg.image" [alt]="pkg.name" loading="lazy">
+                      } @else {
+                        <div class="ai-pkg-img-placeholder"><i class="bi bi-image"></i></div>
+                      }
                     </div>
-                  }
-                  <div class="d-flex justify-content-between align-items-center mt-2">
-                    <div class="ai-pkg-price">
-                      {{ pkg.price >= 100000 ? '₹' + (pkg.price / 100000).toFixed(1) + 'L' : '₹' + (pkg.price / 1000).toFixed(0) + 'K' }}
-                    </div>
-                    @if (pkg.rating) {
-                      <div class="ai-pkg-rating">
-                        <i class="bi bi-star-fill text-warning"></i> {{ pkg.rating }}
-                        <span class="rating-count">({{ pkg.totalReviews || 0 }})</span>
+                    <div class="ai-pkg-info">
+                      <h6 class="ai-pkg-name">{{ pkg.name }}</h6>
+                      <div class="ai-pkg-loc">
+                        <i class="bi bi-shop"></i> {{ pkg.vendorName }}@if (pkg.city) { · {{ pkg.city }} }
                       </div>
-                    }
-                  </div>
-                </div>
-              </div>
-            }
-          </div>
-        </div>
-      }
-
-      <!-- Booking Cards -->
-      @if (msg.sender === 'ai' && msg.type === 'bookings' && msg.bookings) {
-        <div class="msg-row ai-cards">
-          <div class="ai-carousel">
-            @for (bk of msg.bookings; track bk.id) {
-              <div class="ai-booking-card" (click)="navigateTo('/bookings')">
-                <div class="booking-card-header">
-                  <span class="booking-number">#{{ bk.bookingNumber }}</span>
-                  <span class="booking-status" [class]="getStatusClass(bk.status)">{{ getStatusLabel(bk.status) }}</span>
-                </div>
-                <div class="booking-card-body">
-                  <div class="booking-event-name">{{ bk.eventName || bk.packageName || 'Event' }}</div>
-                  @if (bk.eventDate) {
-                    <div class="booking-detail">
-                      <i class="bi bi-calendar3"></i> {{ bk.eventDate }}
+                      <div class="d-flex justify-content-between align-items-center mt-2">
+                        <div class="ai-pkg-price">{{ shortPrice(pkg.price) }}</div>
+                        @if (pkg.reviews > 0) {
+                          <div class="ai-pkg-rating">
+                            <i class="bi bi-star-fill text-warning"></i> {{ pkg.rating }}
+                            <span class="rating-count">({{ pkg.reviews }})</span>
+                          </div>
+                        } @else if (pkg.maxGuests) {
+                          <div class="ai-pkg-rating"><i class="bi bi-people"></i> {{ pkg.maxGuests }}</div>
+                        }
+                      </div>
                     </div>
-                  }
-                  @if (bk.city || bk.venue) {
-                    <div class="booking-detail">
-                      <i class="bi bi-geo-alt"></i> {{ bk.venue || bk.city }}
-                    </div>
-                  }
-                  <div class="booking-amount">
-                    {{ formatCurrency(bk.totalAmount) }}
-                  </div>
-                </div>
+                  </button>
+                }
               </div>
-            }
-          </div>
-        </div>
-      }
-
-      <!-- Loyalty Card -->
-      @if (msg.sender === 'ai' && msg.type === 'loyalty' && msg.loyaltyData) {
-        <div class="msg-row ai-cards">
-          <div class="ai-loyalty-card" (click)="navigateTo('/rewards')">
-            <div class="loyalty-header">
-              <span class="loyalty-tier-icon">{{ getTierIcon(msg.loyaltyData.tier) }}</span>
-              <span class="loyalty-tier-name">{{ msg.loyaltyData.tier }} Member</span>
             </div>
-            <div class="loyalty-points">
-              <span class="points-value">{{ msg.loyaltyData.points }}</span>
-              <span class="points-label">Loyalty Points</span>
-            </div>
-            @if (msg.loyaltyData.pointsToNextTier) {
-              <div class="loyalty-progress-text">
-                {{ msg.loyaltyData.pointsToNextTier }} points to next tier
-              </div>
-            }
-            <div class="loyalty-cta">View Rewards →</div>
-          </div>
-        </div>
-      }
+          }
 
-      <!-- RFP Cards -->
-      @if (msg.sender === 'ai' && msg.type === 'rfps' && msg.rfps) {
-        <div class="msg-row ai-cards">
-          <div class="ai-carousel">
-            @for (rfp of msg.rfps; track rfp.id) {
-              <div class="ai-rfp-card" (click)="navigateTo('/get-quotes')">
-                <div class="rfp-card-header">
-                  <span class="rfp-title">{{ rfp.title }}</span>
-                  <span class="rfp-status" [class]="getStatusClass(rfp.status)">{{ getStatusLabel(rfp.status) }}</span>
-                </div>
-                <div class="rfp-card-body">
-                  <div class="rfp-detail">
-                    <i class="bi bi-calendar3"></i> {{ rfp.eventDate }}
-                  </div>
-                  <div class="rfp-detail">
-                    <i class="bi bi-geo-alt"></i> {{ rfp.city }}
-                  </div>
-                  <div class="rfp-detail">
-                    <i class="bi bi-people"></i> {{ rfp.guestCount }} guests
-                  </div>
-                  <div class="rfp-budget">
-                    {{ formatCurrency(rfp.budgetMin) }} - {{ formatCurrency(rfp.budgetMax) }}
-                  </div>
-                  @if (rfp.bids?.length) {
-                    <div class="rfp-bids-count">
-                      <i class="bi bi-inbox"></i> {{ rfp.bids.length }} bid{{ rfp.bids.length > 1 ? 's' : '' }}
+          <!-- Bookings -->
+          @if (card.type === 'bookings' && card.bookings?.length) {
+            <div class="msg-row ai-cards">
+              <div class="ai-carousel">
+                @for (bk of card.bookings; track bk.id) {
+                  <button class="ai-booking-card" (click)="open('booking:' + bk.id)">
+                    <div class="booking-card-header">
+                      <span class="booking-number">{{ bk.bookingNumber }}</span>
+                      <span class="booking-status" [class]="statusClass(bk.status)">{{ statusLabel(bk.status) }}</span>
                     </div>
-                  }
-                </div>
+                    <div class="booking-card-body">
+                      <div class="booking-event-name">{{ bk.eventName }}</div>
+                      <div class="booking-detail"><i class="bi bi-calendar3"></i> {{ bk.eventDate | date: 'EEE, d MMM y' }}</div>
+                      @if (bk.vendorName) {
+                        <div class="booking-detail"><i class="bi bi-shop"></i> {{ bk.vendorName }}</div>
+                      }
+                      <div class="booking-amount">
+                        {{ money(bk.totalAmount) }}
+                        @if (bk.balanceDue > 0 && bk.amountPaid > 0) {
+                          <span class="booking-due">{{ money(bk.balanceDue) }} due</span>
+                        }
+                      </div>
+                    </div>
+                  </button>
+                }
               </div>
-            }
-          </div>
-        </div>
-      }
+            </div>
+          }
 
-      <!-- Navigation Links -->
-      @if (msg.sender === 'ai' && msg.type === 'nav-links' && msg.navLinks) {
-        <div class="msg-row ai-cards">
-          <div class="ai-nav-links">
-            @for (link of msg.navLinks; track link.route) {
-              <button class="ai-nav-btn" (click)="navigateTo(link.route)">
-                <i class="bi" [class]="link.icon"></i>
-                <span>{{ link.label }}</span>
-                <i class="bi bi-arrow-right"></i>
+          <!-- Rewards -->
+          @if (card.type === 'rewards' && card.rewards; as r) {
+            <div class="msg-row ai-cards">
+              <button class="ai-loyalty-card" (click)="open('rewards')">
+                <div class="loyalty-header">
+                  <span class="loyalty-tier-icon">{{ tierIcon(r.tier) }}</span>
+                  <span class="loyalty-tier-name">{{ r.tier }} member</span>
+                </div>
+                <div class="loyalty-points">
+                  <span class="points-value">{{ r.points | number }}</span>
+                  <span class="points-label">reward points</span>
+                </div>
+                @if (r.nextTier && r.pointsToNextTier) {
+                  <div class="loyalty-progress-text">{{ r.pointsToNextTier | number }} to {{ r.nextTier }}</div>
+                }
+                <div class="loyalty-cta">View rewards →</div>
               </button>
-            }
+            </div>
+          }
+        }
+
+        @if (msg.actions?.length) {
+          <div class="msg-row ai-cards">
+            <div class="ai-nav-links">
+              @for (action of msg.actions; track action.target) {
+                <button class="ai-nav-btn" (click)="open(action.target)">
+                  <span>{{ action.label }}</span>
+                  <i class="bi bi-arrow-right"></i>
+                </button>
+              }
+            </div>
           </div>
-        </div>
+        }
       }
     }
 
     @if (isThinking()) {
       <div class="msg-row ai">
         <div class="msg-avatar"><i class="bi bi-stars"></i></div>
-        <div class="msg-bubble thinking-bubble">
+        <div class="msg-bubble thinking-bubble" aria-label="Roshi is typing">
           <span class="dot"></span><span class="dot"></span><span class="dot"></span>
         </div>
       </div>
@@ -194,24 +151,24 @@
   </div>
 
   <div class="chat-footer">
-    <!-- Suggestion Chips -->
-    @if (suggestionChips().length > 0) {
+    @if (suggestions().length > 0 && !isThinking()) {
       <div class="suggestion-chips-container">
-        @for (chip of suggestionChips(); track chip) {
-          <button class="suggestion-chip" (click)="selectChip(chip)" [disabled]="isThinking()">
-            {{ chip }}
-          </button>
+        @for (chip of suggestions(); track chip) {
+          <button class="suggestion-chip" (click)="selectChip(chip)">{{ chip }}</button>
         }
       </div>
     }
-    
+
     <div class="input-wrapper">
-      <input type="text" [(ngModel)]="userInput" (keyup.enter)="sendMessage()" placeholder="Ask Roshi anything..." [disabled]="isThinking()">
-      <button class="btn-send" (click)="sendMessage()" [disabled]="!userInput.trim() || isThinking()">
+      <input #chatInput type="text" [(ngModel)]="userInput" (keyup.enter)="sendMessage()" maxlength="1000"
+             placeholder="Ask about packages, bookings, refunds…" [disabled]="isThinking()" aria-label="Message Roshi">
+      <button class="btn-send" (click)="sendMessage()" [disabled]="!userInput.trim() || isThinking()" aria-label="Send">
         <i class="bi bi-send-fill"></i>
       </button>
     </div>
-    <div class="chat-branding">Powered by JoinEvents AI</div>
+    <div class="chat-branding">
+      {{ poweredBy() === 'claude' ? 'Roshi uses AI and can make mistakes. Check details before you pay.' : 'Answers come from your JoinEvents account.' }}
+    </div>
   </div>
 
 </div>

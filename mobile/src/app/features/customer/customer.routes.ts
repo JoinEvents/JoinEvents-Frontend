@@ -39,6 +39,7 @@ export const customerRoutes: Routes = [
   { path: 'book/:packageId', loadComponent: () => import('./booking.page').then(m => m.CustomerBookingPage) },
   { path: 'checkout/:bookingId', loadComponent: () => import('./checkout.page').then(m => m.CheckoutPage) },
   { path: 'booking/:id', loadComponent: () => import('./booking-detail.page').then(m => m.BookingDetailPage) },
+  { path: 'roshi', loadComponent: () => import('./roshi.page').then(m => m.RoshiPage) },
   { path: 'chat/:threadId', loadComponent: () => import('./chat.page').then(m => m.ChatPage) },
   { path: 'quotes', loadComponent: () => import('./quotes.page').then(m => m.CustomerQuotesPage) },
   { path: 'quotes/create', loadComponent: () => import('./create-quote.page').then(m => m.CreateQuotePage) },
