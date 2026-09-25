@@ -14,6 +14,7 @@ import { NetworkService } from './core/services/network.service';
 import { PushService } from './core/services/push.service';
 import { FavoritesService } from './core/services/favorites.service';
 import { LocationService } from './core/services/location.service';
+import { ProfileService } from './core/services/profile.service';
 import { OfflineBannerComponent } from './shared/components/offline-banner.component';
 
 @Component({
@@ -35,6 +36,7 @@ export class AppComponent implements OnInit {
   private push = inject(PushService);
   private favorites = inject(FavoritesService);
   private location = inject(LocationService);
+  private profile = inject(ProfileService);
   private router = inject(Router);
 
   constructor() {
@@ -46,6 +48,8 @@ export class AppComponent implements OnInit {
     // come out of it, and the router's guards read the session synchronously.
     await this.storage.hydrate();
     this.auth.restoreSession();
+    // Pick up profile changes made elsewhere (e.g. a new photo on the website).
+    this.profile.refreshCurrentUser();
     this.theme.init();
     this.favorites.init();
     this.location.init();
@@ -57,6 +61,7 @@ export class AppComponent implements OnInit {
       await SplashScreen.hide();
       await this.push.init();
       this.wireHardwareBackButton();
+      void CapacitorApp.addListener('resume', () => this.profile.refreshCurrentUser());
     }
   }
 

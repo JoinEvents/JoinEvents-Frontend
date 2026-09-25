@@ -7,16 +7,39 @@ import { BaseApiService } from './base-api.service';
 import { API_ROUTES } from '../constants/api.constants';
 import { CustomerProfile } from '../models/user.model';
 import { AuthService } from './auth.service';
+import { resolveMediaUrl } from '../utils/media-url.util';
 
 @Injectable({ providedIn: 'root' })
 export class ProfileService extends BaseApiService {
   private auth = inject(AuthService);
 
+  /**
+   * Fetches the profile and syncs the stored session with it. The session is
+   * only written at login, so without this a photo or name changed on the
+   * website would never reach the app until the user signed out and back in.
+   */
   getProfile(): Observable<CustomerProfile | null> {
     return this.get<unknown>(API_ROUTES.PROFILE.BASE).pipe(
       map(res => this.single<CustomerProfile>(res)),
+      map(profile => {
+        if (profile) {
+          // The avatar is always taken from the server, so a removed photo clears too.
+          this.auth.updateUserProfile({
+            ...(profile.name ? { name: profile.name } : {}),
+            ...(profile.phone ? { phone: profile.phone } : {}),
+            avatar: resolveMediaUrl(profile.avatar)
+          });
+        }
+        return profile;
+      }),
       catchError(() => of(null))
     );
+  }
+
+  /** Fire-and-forget session refresh for app start, resume and page entry. */
+  refreshCurrentUser(): void {
+    if (!this.auth.isAuthenticated()) return;
+    this.getProfile().subscribe();
   }
 
   updateProfile(data: Record<string, unknown>): Observable<boolean> {
@@ -74,7 +97,7 @@ export class ProfileService extends BaseApiService {
         form.append('file', blob, `avatar.${photo.format || 'jpg'}`);
         return this.post<{ url?: string; avatarUrl?: string }>(API_ROUTES.PROFILE.AVATAR, form, false).pipe(
           map(res => {
-            const url = res?.url ?? res?.avatarUrl ?? null;
+            const url = resolveMediaUrl(res?.url ?? res?.avatarUrl) ?? null;
             if (url) this.auth.updateUserProfile({ avatar: url });
             return url;
           })
