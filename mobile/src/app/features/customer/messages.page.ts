@@ -99,7 +99,8 @@ export class CustomerMessagesPage implements ViewWillEnter {
   private toast = inject(ToastService);
 
   readonly loading = signal(true);
-  readonly threads = signal<ChatThread[]>([]);
+  /** Shared with the service, so a live message re-orders the list while it is on screen. */
+  readonly threads = this.messenger.threads;
 
   /** Refreshes each time the tab is shown, not only on first mount. */
   ionViewWillEnter(): void {
@@ -108,8 +109,7 @@ export class CustomerMessagesPage implements ViewWillEnter {
 
   load(event?: CustomEvent): void {
     this.loading.set(true);
-    this.messenger.getThreads().subscribe(threads => {
-      this.threads.set(threads);
+    this.messenger.getThreads().subscribe(() => {
       this.loading.set(false);
       void (event?.target as HTMLIonRefresherElement | undefined)?.complete();
     });

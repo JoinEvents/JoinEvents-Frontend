@@ -108,7 +108,8 @@ export class VendorMessagesPage implements ViewWillEnter {
   private toast = inject(ToastService);
 
   readonly loading = signal(true);
-  readonly threads = signal<ChatThread[]>([]);
+  /** Shared with the service, so a live message re-orders the list while it is on screen. */
+  readonly threads = this.messenger.threads;
 
   ionViewWillEnter(): void {
     this.load();
@@ -116,8 +117,7 @@ export class VendorMessagesPage implements ViewWillEnter {
 
   load(event?: CustomEvent): void {
     this.loading.set(true);
-    this.messenger.getThreads().subscribe(threads => {
-      this.threads.set(threads);
+    this.messenger.getThreads().subscribe(() => {
       this.loading.set(false);
       void (event?.target as HTMLIonRefresherElement | undefined)?.complete();
     });

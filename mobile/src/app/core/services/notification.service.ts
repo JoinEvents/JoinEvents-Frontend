@@ -4,6 +4,8 @@ import { catchError, map, tap } from 'rxjs/operators';
 
 import { BaseApiService } from './base-api.service';
 import { API_ROUTES } from '../constants/api.constants';
+import { RealtimeService } from './realtime.service';
+import { ToastService } from './toast.service';
 
 export type NotificationType = 'booking' | 'message' | 'payment' | 'verification' | 'system';
 
@@ -32,6 +34,20 @@ export class NotificationService extends BaseApiService {
   readonly items = signal<NotificationItem[]>([]);
   readonly unreadCount = computed(() => this.items().filter(n => !n.isRead).length);
   readonly loading = signal(false);
+
+  private realtime = inject(RealtimeService);
+  private toast = inject(ToastService);
+
+  constructor() {
+    super();
+    // Notifications arrive the moment the server raises them (a booking confirmed, a payment made).
+    this.realtime.notifications$.subscribe(n => {
+      const [item] = this.normalize([n]);
+      if (!item || this.items().some(existing => existing.id === item.id)) return;
+      this.items.update(list => [item, ...list]);
+      void this.toast.info(item.body ? `${item.title}: ${item.body}` : item.title);
+    });
+  }
 
   /** Fire-and-forget refresh, used by push handlers and tab entry. */
   refresh(): void {
@@ -94,7 +110,7 @@ export class NotificationService extends BaseApiService {
     const list = Array.isArray(payload) ? payload : (payload?.data ?? []);
     return (list as Record<string, unknown>[]).map(n => ({
       id: String(n['id'] ?? n['notificationId'] ?? ''),
-      type: (n['type'] as NotificationType) ?? 'system',
+      type: toType(n['type']),
       title: String(n['title'] ?? 'Notification'),
       body: String(n['body'] ?? n['message'] ?? ''),
       isRead: Boolean(n['isRead'] ?? n['read'] ?? false),
@@ -103,4 +119,12 @@ export class NotificationService extends BaseApiService {
       entityId: (n['entityId'] as string) ?? undefined
     }));
   }
+}
+
+const TYPES: NotificationType[] = ['booking', 'message', 'payment', 'verification', 'system'];
+
+/** The server's types are free text ("Booking", "booking_confirmed", …); map them onto the icons we have. */
+function toType(raw: unknown): NotificationType {
+  const value = String(raw ?? '').toLowerCase();
+  return TYPES.find(t => value.includes(t)) ?? (value.includes('chat') ? 'message' : 'system');
 }

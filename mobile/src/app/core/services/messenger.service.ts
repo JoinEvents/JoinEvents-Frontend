@@ -1,6 +1,10 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
 import { Observable, of, timer } from 'rxjs';
-import { catchError, map, switchMap, tap } from 'rxjs/operators';
+import { catchError, filter, map, switchMap, tap } from 'rxjs/operators';
+
+import { RealtimeService } from './realtime.service';
+import { AuthService } from './auth.service';
+import { ToastService } from './toast.service';
 
 import { BaseApiService } from './base-api.service';
 import { API_ROUTES } from '../constants/api.constants';
@@ -15,7 +19,10 @@ export interface ChatThread {
   lastMessage: string;
   lastMessageAt: string;
   unreadCount: number;
-  status: 'pending' | 'accepted' | 'rejected' | 'expired';
+  /** pending → the vendor has not answered yet; active/accepted → open; rejected/closed → locked. */
+  status: 'pending' | 'accepted' | 'active' | 'rejected' | 'closed' | 'expired';
+  /** The booked event or quote request the conversation is about. */
+  eventTitle?: string;
   rfpId?: string;
   bookingId?: string;
 }
@@ -33,8 +40,40 @@ export interface ChatMessage {
 
 @Injectable({ providedIn: 'root' })
 export class MessengerService extends BaseApiService {
+  private realtime = inject(RealtimeService);
+  private auth = inject(AuthService);
+  private toast = inject(ToastService);
+
+  /** The conversation on screen, so a message there does not also raise a toast. */
+  readonly activeThreadId = signal<string | null>(null);
+
   readonly threads = signal<ChatThread[]>([]);
   readonly totalUnread = signal(0);
+
+  /** Messages in any of the user's conversations, the moment they are sent. */
+  readonly liveMessages$: Observable<ChatMessage> = this.realtime.messages$.pipe(
+    map(m => ({
+      id: m.messageId,
+      threadId: m.threadId,
+      senderId: m.senderId,
+      senderName: m.senderName,
+      body: m.content,
+      sentAt: m.timestamp,
+      isRead: false
+    }))
+  );
+
+  constructor() {
+    super();
+    // A new message refreshes the conversation list and the unread badges, and is announced
+    // unless it is the user's own or the conversation is already open.
+    this.realtime.messages$.subscribe(m => {
+      this.getThreads().subscribe();
+      if (m.senderId === this.auth.currentUser()?.id || m.threadId === this.activeThreadId()) return;
+      const preview = m.content.length > 60 ? m.content.slice(0, 57) + '…' : m.content;
+      void this.toast.info(`${m.senderName || 'New message'}: ${preview}`);
+    });
+  }
 
   getThreads(): Observable<ChatThread[]> {
     return this.get<unknown>(API_ROUTES.MESSENGER.THREADS).pipe(
@@ -55,16 +94,19 @@ export class MessengerService extends BaseApiService {
   }
 
   /**
-   * Polls an open conversation. The backend has no socket channel today, so
-   * the chat screen subscribes to this while visible and unsubscribes on leave
-   * — polling a closed screen would drain the battery for nothing.
+   * Loads an open conversation, then refreshes it only while the live connection is down:
+   * messages normally arrive over the hub (liveMessages$).
    */
   pollMessages(threadId: string): Observable<ChatMessage[]> {
-    return timer(0, environment.chatPollSeconds * 1000).pipe(switchMap(() => this.getMessages(threadId)));
+    return timer(0, environment.chatPollSeconds * 1000).pipe(
+      filter(tick => tick === 0 || !this.realtime.connected()),
+      switchMap(() => this.getMessages(threadId))
+    );
   }
 
-  send(threadId: string, body: string, attachmentUrl?: string): Observable<ChatMessage | null> {
-    return this.post<unknown>(API_ROUTES.MESSENGER.MESSAGES(threadId), { body, attachmentUrl }, false).pipe(
+  send(threadId: string, body: string): Observable<ChatMessage | null> {
+    // The API names the text "Content"; the app used to send "body", so messages went out empty.
+    return this.post<unknown>(API_ROUTES.MESSENGER.MESSAGES(threadId), { content: body }, false).pipe(
       map(res => this.toMessage(this.single(res), threadId)),
       catchError(() => of(null))
     );
@@ -115,30 +157,31 @@ export class MessengerService extends BaseApiService {
     return ((payload && typeof payload === 'object' && 'data' in payload ? payload.data : payload) ?? {}) as Record<string, unknown>;
   }
 
+  /** The API's thread preview: ThreadId, RecipientId, RecipientName, … (camel-cased on arrival). */
   private toThread(t: Record<string, unknown>): ChatThread {
     return {
-      id: String(t['id'] ?? t['threadId'] ?? ''),
-      participantId: String(t['participantId'] ?? t['vendorId'] ?? t['customerId'] ?? ''),
-      participantName: String(t['participantName'] ?? t['vendorName'] ?? t['customerName'] ?? 'Conversation'),
-      participantAvatar: t['participantAvatar'] as string | undefined,
+      id: String(t['threadId'] ?? t['id'] ?? ''),
+      participantId: String(t['recipientId'] ?? t['participantId'] ?? ''),
+      participantName: String(t['recipientName'] ?? t['participantName'] ?? 'Conversation'),
+      participantAvatar: (t['recipientAvatar'] ?? t['participantAvatar']) as string | undefined,
       participantRole: t['participantRole'] as string | undefined,
-      lastMessage: String(t['lastMessage'] ?? t['lastMessageBody'] ?? ''),
-      lastMessageAt: String(t['lastMessageAt'] ?? t['updatedAt'] ?? new Date().toISOString()),
+      lastMessage: String(t['lastMessage'] ?? ''),
+      lastMessageAt: String(t['updatedAt'] ?? t['lastMessageAt'] ?? new Date().toISOString()),
       unreadCount: Number(t['unreadCount'] ?? 0),
       status: (String(t['status'] ?? 'accepted').toLowerCase() as ChatThread['status']),
-      rfpId: t['rfpId'] as string | undefined,
-      bookingId: t['bookingId'] as string | undefined
+      rfpId: (t['rfpId'] as string | null) ?? undefined,
+      eventTitle: (t['eventTitle'] as string | null) ?? undefined
     };
   }
 
   private toMessage(m: Record<string, unknown>, threadId: string): ChatMessage {
     return {
-      id: String(m['id'] ?? m['messageId'] ?? crypto.randomUUID()),
+      id: String(m['messageId'] ?? m['id'] ?? crypto.randomUUID()),
       threadId: String(m['threadId'] ?? threadId),
       senderId: String(m['senderId'] ?? ''),
       senderName: m['senderName'] as string | undefined,
-      body: String(m['body'] ?? m['message'] ?? m['content'] ?? ''),
-      sentAt: String(m['sentAt'] ?? m['createdAt'] ?? new Date().toISOString()),
+      body: String(m['content'] ?? m['body'] ?? m['message'] ?? ''),
+      sentAt: String(m['timestamp'] ?? m['sentAt'] ?? m['createdAt'] ?? new Date().toISOString()),
       isRead: Boolean(m['isRead'] ?? false),
       attachmentUrl: m['attachmentUrl'] as string | undefined
     };
