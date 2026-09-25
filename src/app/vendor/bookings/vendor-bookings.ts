@@ -1,5 +1,5 @@
 import { Component, signal, computed, OnInit, inject } from '@angular/core';
-import { TitleCasePipe, DecimalPipe } from '@angular/common';
+import { DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { BookingService } from '../../core/services/booking.service';
 import { ReviewService } from '../../core/services/review.service';
@@ -7,9 +7,13 @@ import { BookingStatus } from '../../core/models/booking.model';
 import { ToastService } from '../../core/services/toast.service';
 import { FormsModule } from '@angular/forms';
 
-interface VendorBookingReq { id: string; bookingId: string; customerName: string; eventDate: string; eventName: string; amount: number; status: BookingStatus; review?: any; services?: any[]; }
+interface VendorBookingReq {
+  id: string; bookingId: string; customerName: string; eventDate: string; eventName: string; amount: number; status: BookingStatus;
+  packageName?: string; venue?: string; city?: string; guestCount?: number; amountPaid: number; balanceDue: number;
+  review?: any; services?: any[];
+}
 
-@Component({ selector: 'app-vendor-bookings', standalone: true, imports: [TitleCasePipe, DecimalPipe, RouterLink, FormsModule], templateUrl: './vendor-bookings.html', styleUrl: './vendor-bookings.css' })
+@Component({ selector: 'app-vendor-bookings', standalone: true, imports: [DecimalPipe, RouterLink, FormsModule], templateUrl: './vendor-bookings.html', styleUrl: './vendor-bookings.css' })
 export class VendorBookings implements OnInit {
   private bookingService = inject(BookingService);
   private reviewService = inject(ReviewService);
@@ -27,11 +31,17 @@ export class VendorBookings implements OnInit {
         const mapped: VendorBookingReq[] = (bookings || []).map(b => ({
           id: b.id,
           bookingId: b.bookingNumber || `BK-${b.id.substring(0, 8).toUpperCase()}`,
-          customerName: b.customerName || 'Customer',
+          customerName: b.customerName || '',
           eventDate: b.eventDate,
           eventName: b.eventName,
           amount: b.totalAmount,
           status: b.status,
+          packageName: b.packageName,
+          venue: b.venue,
+          city: b.city,
+          guestCount: b.guestCount,
+          amountPaid: b.amountPaid ?? 0,
+          balanceDue: b.balanceDue ?? b.totalAmount,
           review: b.review,
           services: b.services
         }));
@@ -42,6 +52,18 @@ export class VendorBookings implements OnInit {
       }
     });
   }
+
+  readonly filters = [
+    { id: 'all', label: 'All' },
+    { id: 'advance_paid', label: 'To Confirm' },
+    { id: 'pending', label: 'Awaiting Payment' },
+    { id: 'confirmed', label: 'Upcoming' },
+    { id: 'in_progress', label: 'Executing' },
+    { id: 'completed', label: 'Completed' },
+    { id: 'cancelled', label: 'Cancelled' }
+  ];
+
+  toConfirmCount = computed(() => this.requests().filter(r => r.status === 'advance_paid').length);
 
   get filtered() { const f = this.filter(); return f === 'all' ? this.requests() : this.requests().filter(r => r.status === f); }
 
@@ -66,17 +88,14 @@ export class VendorBookings implements OnInit {
     this.selectedBookingId.update(curr => curr === id ? null : id);
   }
 
-  acceptRequest(id: string) { 
-    this.bookingService.updateBookingStatus(id, 'advance_paid').subscribe(() => {
-      this.requestsData.update(rs => rs.map(r => r.id === id ? { ...r, status: 'advance_paid' as any } : r));
-      this.toast.success('Request accepted! Waiting for customer advance payment.');
-    });
+  /** A paid booking the vendor takes on: Paid → Confirmed. */
+  confirmBooking(id: string) {
+    this.move(id, 'confirmed', 'Booking confirmed. The customer has been notified.');
   }
-  declineRequest(id: string) { 
-    this.bookingService.updateBookingStatus(id, 'rejected').subscribe(() => {
-      this.requestsData.update(rs => rs.map(r => r.id === id ? { ...r, status: 'rejected' as any } : r));
-      this.toast.info('Request declined.');
-    });
+
+  /** An unpaid booking the vendor cannot take: Pending → Rejected, freeing the date. */
+  declineRequest(id: string) {
+    this.move(id, 'rejected', 'Request declined.');
   }
 
   cancelBooking(id: string, reason: string) {
@@ -84,25 +103,38 @@ export class VendorBookings implements OnInit {
       this.toast.error('Please provide a reason for cancellation.');
       return;
     }
-    this.bookingService.cancelBooking(id, reason, 'vendor').subscribe(() => {
-      this.requestsData.update(rs => rs.map(r => r.id === id ? { ...r, status: 'cancelled' as any } : r));
-      this.cancelPrompt.set(null);
-      this.toast.warning('Booking cancelled.');
+    this.bookingService.cancelBooking(id, reason, 'vendor').subscribe({
+      next: () => {
+        this.requestsData.update(rs => rs.map(r => r.id === id ? { ...r, status: 'cancelled' as any } : r));
+        this.cancelPrompt.set(null);
+        this.toast.warning('Booking cancelled.');
+      },
+      error: err => this.toast.error(this.reason(err, 'Could not cancel the booking.'))
     });
   }
 
   startExecution(id: string) {
-    this.bookingService.updateBookingStatus(id, 'in_progress').subscribe(() => {
-      this.requestsData.update(rs => rs.map(r => r.id === id ? { ...r, status: 'in_progress' as any } : r));
-      this.toast.success('Event execution started!');
-    });
+    this.move(id, 'in_progress', 'Event execution started!');
   }
 
   completeBooking(id: string) {
-    this.bookingService.updateBookingStatus(id, 'completed').subscribe(() => {
-      this.requestsData.update(rs => rs.map(r => r.id === id ? { ...r, status: 'completed' as any } : r));
-      this.toast.success('Event marked as completed.');
+    this.move(id, 'completed', 'Event marked as completed.');
+  }
+
+  /** Moves a booking to a new status, updating the list only once the server has accepted it. */
+  private move(id: string, status: BookingStatus, success: string) {
+    this.bookingService.updateBookingStatus(id, status).subscribe({
+      next: () => {
+        this.requestsData.update(rs => rs.map(r => r.id === id ? { ...r, status } : r));
+        this.toast.success(success);
+      },
+      error: err => this.toast.error(this.reason(err, 'Could not update the booking. Please try again.'))
     });
+  }
+
+  private reason(err: any, fallback: string): string {
+    if (err?.status >= 500 || err?.status === 0) return fallback;
+    return err?.error?.error || fallback;
   }
 
   showDamageModal = signal<string | null>(null);
@@ -158,8 +190,8 @@ export class VendorBookings implements OnInit {
 
   statusColor(s: string): string { 
     const m: Record<string,string> = { 
-      pending:'ee-badge-warning', 
-      advance_paid:'ee-badge-info',
+      pending:'ee-badge-secondary', 
+      advance_paid:'ee-badge-warning',
       confirmed:'ee-badge-primary', 
       in_progress:'ee-badge-primary', 
       rejected:'ee-badge-danger', 
@@ -171,14 +203,15 @@ export class VendorBookings implements OnInit {
   }
   statusLabel(s: string): string { 
     const m: Record<string,string> = { 
-      pending:'Pending Request', 
-      advance_paid:'Waiting for Payment',
+      pending:'Awaiting Customer Payment', 
+      advance_paid:'Paid — Confirm Booking',
       confirmed:'Confirmed', 
       in_progress:'In Progress', 
       rejected:'Declined', 
       cancelled:'Cancelled', 
       completed:'Completed',
-      settled: 'Fully Settled'
+      settled: 'Fully Settled',
+      disputed: 'Disputed'
     }; 
     return m[s] || s; 
   }

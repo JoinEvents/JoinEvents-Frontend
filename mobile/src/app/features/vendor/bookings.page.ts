@@ -18,9 +18,10 @@ import { EmptyStateComponent } from '../../shared/components/empty-state.compone
 type Tab = 'requests' | 'confirmed' | 'completed';
 
 /**
- * Booking requests and the vendor's schedule. Accepting or declining is the
- * single most time-sensitive action a vendor takes, so it is inline on the
- * card rather than behind a detail screen.
+ * Booking requests and the vendor's schedule. A paid booking waits for the
+ * vendor to accept it; accepting or declining is the single most
+ * time-sensitive action a vendor takes, so it is inline on the card rather
+ * than behind a detail screen.
  */
 @Component({
   selector: 'app-vendor-bookings',
@@ -84,17 +85,27 @@ type Tab = 'requests' | 'confirmed' | 'completed';
                 <div class="money">
                   <span class="je-price">{{ booking.totalAmount | inr }}</span>
                   <span class="je-xs je-soft">
-                    Your payout {{ (booking.vendorPayoutAmount ?? booking.totalAmount * 0.85) | inr: true }}
+                    Paid {{ paid(booking) | inr: true }}@if (due(booking) > 0) { · due {{ due(booking) | inr: true }} }
                   </span>
+                  @if (booking.vendorPayoutAmount) {
+                    <span class="je-xs je-soft">Your payout {{ booking.vendorPayoutAmount | inr: true }}</span>
+                  }
                 </div>
 
-                @if (booking.status === 'advance_paid' || booking.status === 'pending') {
+                @if (booking.status === 'advance_paid') {
                   <div class="acts">
                     <ion-button size="small" fill="outline" color="danger" (click)="decline(booking)">
                       Decline
                     </ion-button>
                     <ion-button size="small" class="je-btn-gradient" (click)="accept(booking)">
                       Accept
+                    </ion-button>
+                  </div>
+                } @else if (booking.status === 'pending') {
+                  <div class="acts acts--col">
+                    <span class="je-xs je-soft">Awaiting customer payment</span>
+                    <ion-button size="small" fill="outline" color="danger" (click)="reject(booking)">
+                      Decline
                     </ion-button>
                   </div>
                 } @else if (booking.status === 'confirmed') {
@@ -104,12 +115,12 @@ type Tab = 'requests' | 'confirmed' | 'completed';
                         <ion-icon slot="icon-only" name="call-outline" />
                       </ion-button>
                     }
-                    <ion-button size="small" class="je-btn-gradient" (click)="markStatus(booking, 'in_progress')">
+                    <ion-button size="small" class="je-btn-gradient" (click)="markStatus(booking, 'in_progress', 'Event started.')">
                       Start event
                     </ion-button>
                   </div>
                 } @else if (booking.status === 'in_progress') {
-                  <ion-button size="small" class="je-btn-gradient" (click)="markStatus(booking, 'completed')">
+                  <ion-button size="small" class="je-btn-gradient" (click)="markStatus(booking, 'completed', 'Event marked as completed.')">
                     Mark complete
                   </ion-button>
                 }
@@ -179,6 +190,25 @@ export class VendorBookingsPage implements ViewWillEnter {
     });
   }
 
+  paid(booking: Booking): number {
+    return booking.amountPaid ?? 0;
+  }
+
+  due(booking: Booking): number {
+    return booking.balanceDue ?? Math.max(0, booking.totalAmount - this.paid(booking));
+  }
+
+  /** An unpaid request the vendor cannot take: nothing to refund, the date is freed. */
+  async reject(booking: Booking): Promise<void> {
+    const confirmed = await this.toast.confirm(
+      'Decline this request?',
+      'The customer has not paid yet, so nothing is refunded. The date becomes free again.',
+      'Decline',
+      true
+    );
+    if (confirmed) this.markStatus(booking, 'rejected', 'Request declined.');
+  }
+
   accept(booking: Booking): void {
     this.markStatus(booking, 'confirmed', 'Booking confirmed — the customer has been notified.');
   }
@@ -206,9 +236,9 @@ export class VendorBookingsPage implements ViewWillEnter {
   }
 
   markStatus(booking: Booking, status: BookingStatus, message?: string): void {
-    this.bookingService.updateStatus(booking.id, status).subscribe(success => {
-      if (!success) {
-        void this.toast.error('Could not update the booking. Please try again.');
+    this.bookingService.moveTo(booking.id, status).subscribe(result => {
+      if (!result.ok) {
+        void this.toast.error(result.error);
         return;
       }
       void this.toast.success(message ?? 'Booking updated.');
@@ -226,7 +256,7 @@ export class VendorBookingsPage implements ViewWillEnter {
 
   emptyMessage(): string {
     switch (this.tab()) {
-      case 'requests': return 'New booking requests will land here for you to accept or decline.';
+      case 'requests': return 'Paid bookings land here for you to accept, with requests still awaiting payment.';
       case 'confirmed': return 'Bookings you have accepted appear here in date order.';
       case 'completed': return 'Completed, settled and cancelled bookings are kept here.';
     }

@@ -41,17 +41,22 @@ export class VendorDashboard implements OnInit {
   esgScore = signal<any>({ score: 0, offset: '0 Tons', trend: '0%' });
   pendingCollaborations = signal<any[]>([]);
 
+  /** The trend is 0 for months before the first review; nothing to plot until there is one. */
+  hasRatings = computed(() => (this.analyticsData()?.averageRatingTrend ?? []).some(r => r > 0));
+
   stats = computed(() => {
     const data = this.analyticsData();
     const earnings = data ? `₹${((data.totalEarnings || 0) / 100000).toFixed(1)}L` : '₹0.0L';
-    const pending = data?.bookingCountByStatus?.['pending']?.toString() ?? '0';
+    // Paid bookings waiting for this vendor to confirm them.
+    const toConfirm = data?.bookingCountByStatus?.['toConfirm']?.toString() ?? '0';
     const upcoming = data?.bookingCountByStatus?.['accepted']?.toString() ?? '0';
+    const rating = this.dashboard()?.rating;
     
     return [
       { label: 'Total Earnings', value: earnings, icon: 'bi-currency-rupee', color: 'var(--success)', bg: 'rgba(22,163,74,0.1)' },
-      { label: 'Pending Requests', value: pending, icon: 'bi-clock-history', color: 'var(--warning)', bg: 'rgba(217,119,6,0.1)' },
+      { label: 'Bookings to Confirm', value: toConfirm, icon: 'bi-clock-history', color: 'var(--warning)', bg: 'rgba(217,119,6,0.1)' },
       { label: 'Upcoming Jobs', value: upcoming, icon: 'bi-calendar-check', color: 'var(--secondary)', bg: 'rgba(107,33,168,0.1)' },
-      { label: 'Overall Rating', value: '4.8 ★', icon: 'bi-star-half', color: 'var(--accent)', bg: 'rgba(245,158,11,0.1)' },
+      { label: 'Overall Rating', value: rating ? `${rating} ★` : 'No reviews yet', icon: 'bi-star-half', color: 'var(--accent)', bg: 'rgba(245,158,11,0.1)' },
     ];
   });
 
@@ -104,22 +109,20 @@ export class VendorDashboard implements OnInit {
     if (url) window.open(url, '_blank', 'width=600,height=400');
   }
 
-  acceptRequest(id: string) {
-    this.bookingService.updateBookingStatus(id, 'advance_paid').subscribe(() => {
-      this.toast.success('Request accepted! Waiting for customer advance payment.');
-      this.api.getDashboardData().subscribe(d => {
-        this.dashboard.set(d);
-      });
+  /** Confirms a paid booking (Paid → Confirmed); the customer is notified. */
+  confirmRequest(id: string) {
+    this.bookingService.updateBookingStatus(id, 'confirmed').subscribe({
+      next: () => {
+        this.toast.success('Booking confirmed. The customer has been notified.');
+        this.refreshAfterAction();
+      },
+      error: err => this.toast.error(err?.status < 500 && err?.error?.error ? err.error.error : 'Could not confirm the booking. Please try again.')
     });
   }
 
-  declineRequest(id: string) {
-    this.bookingService.updateBookingStatus(id, 'rejected').subscribe(() => {
-      this.toast.info('Request declined.');
-      this.api.getDashboardData().subscribe(d => {
-        this.dashboard.set(d);
-      });
-    });
+  private refreshAfterAction() {
+    this.api.getDashboardData().subscribe(d => this.dashboard.set(d));
+    this.api.getAnalytics().subscribe(res => this.analyticsData.set(res));
   }
 
   acceptCollaboration(id: string) {
