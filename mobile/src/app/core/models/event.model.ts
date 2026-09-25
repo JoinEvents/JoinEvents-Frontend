@@ -1,7 +1,10 @@
 export type EventCategory = 'wedding' | 'birthday' | 'corporate' | 'religious' | 'social' | 'custom' | 'beauty' | 'travel' | 'shopping';
 
 export interface EventType {
+  /** The category key — what packages are filed under and search filters by. */
   id: string;
+  /** The server's record id — what tiers reference as their categoryId. */
+  uuid?: string;
   name: string;
   nameHindi?: string;
   description?: string;
@@ -20,7 +23,8 @@ export interface EventPackage {
   vendorName?: string;
   vendorDescription?: string;
   name: string;
-  tier: 'basic' | 'standard' | 'premium';
+  /** Name of the admin-defined pricing tier (stored by the API as the package's theme). */
+  tier: string;
   price: number;
   description: string;
   services: string[];

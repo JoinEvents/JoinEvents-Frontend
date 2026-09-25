@@ -15,6 +15,12 @@ export const adminRoutes: Routes = [
     ]
   },
 
+  // Catalogue editors: full-screen forms, 'new' or a record id.
+  { path: 'catalogue/category/new', loadComponent: () => import('./catalogue/category-editor.page').then(m => m.AdminCategoryEditorPage) },
+  { path: 'catalogue/category/:id', loadComponent: () => import('./catalogue/category-editor.page').then(m => m.AdminCategoryEditorPage) },
+  { path: 'catalogue/tier/new', loadComponent: () => import('./catalogue/tier-editor.page').then(m => m.AdminTierEditorPage) },
+  { path: 'catalogue/tier/:id', loadComponent: () => import('./catalogue/tier-editor.page').then(m => m.AdminTierEditorPage) },
+
   { path: 'audit', loadComponent: () => import('./audit.page').then(m => m.AdminAuditPage) },
   { path: 'verifications', loadComponent: () => import('../support/verifications.page').then(m => m.VerificationsPage) },
   { path: 'disputes', loadComponent: () => import('../support/reviews.page').then(m => m.ReviewModerationPage) },

@@ -6,6 +6,7 @@ import { BaseApiService } from './base-api.service';
 import { API_ROUTES } from '../constants/api.constants';
 import { resolveMediaUrl } from '../utils/media-url.util';
 import { EventPackage, EventType } from '../models/event.model';
+import { Tier } from '../models/catalogue.model';
 
 export interface PackageSearchParams {
   category?: string;
@@ -32,12 +33,13 @@ export class PackageService extends BaseApiService {
 
   /** Paged package search — the mobile browse and infinite-scroll feed. */
   search(params: PackageSearchParams = {}): Observable<EventPackage[]> {
+    // Named as the API's SearchPackages reads them; minPrice/maxPrice/guests were silently ignored.
     const query = {
       category: params.category,
       city: params.city,
-      minPrice: params.minPrice,
-      maxPrice: params.maxPrice,
-      guests: params.guests,
+      priceMin: params.minPrice,
+      priceMax: params.maxPrice,
+      maxGuests: params.guests,
       tier: params.tier,
       eventDate: params.date,
       sortBy: params.sort,
@@ -63,6 +65,14 @@ export class PackageService extends BaseApiService {
           catchError(() => of(null))
         )
       )
+    );
+  }
+
+  /** Active pricing tiers as the admin configured them (all categories). */
+  getTiers(): Observable<Tier[]> {
+    return this.get<unknown>(API_ROUTES.TIERS).pipe(
+      map(res => this.unwrap(res) as unknown as Tier[]),
+      catchError(() => of([] as Tier[]))
     );
   }
 
@@ -103,6 +113,7 @@ export class PackageService extends BaseApiService {
   private toEventType(c: Record<string, unknown>): EventType {
     return {
       id: String(c['categoryKey'] ?? c['id'] ?? ''),
+      uuid: c['id'] !== undefined ? String(c['id']) : undefined,
       name: String(c['name'] ?? ''),
       nameHindi: c['nameHindi'] as string | undefined,
       description: String(c['description'] ?? ''),
@@ -124,7 +135,7 @@ export class PackageService extends BaseApiService {
       vendorName: p['vendorName'] as string | undefined,
       vendorDescription: p['vendorDescription'] as string | undefined,
       name: String(p['name'] ?? p['packageName'] ?? 'Package'),
-      tier: (String(p['tier'] ?? 'standard').toLowerCase() as EventPackage['tier']),
+      tier: String(p['theme'] ?? p['tier'] ?? ''),
       price: Number(p['price'] ?? p['basePrice'] ?? 0),
       description: String(p['description'] ?? ''),
       services: (p['services'] as string[]) ?? (p['inclusions'] as string[]) ?? [],

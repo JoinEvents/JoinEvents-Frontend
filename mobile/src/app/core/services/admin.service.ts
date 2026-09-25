@@ -47,44 +47,6 @@ export class AdminService extends BaseApiService {
     return this.listOf(API_ROUTES.ADMIN_DIRECTORY.AUDIT);
   }
 
-  // ---- catalogue configuration -------------------------------------------
-
-  getCategories(): Observable<Record<string, unknown>[]> {
-    return this.listOf(API_ROUTES.EVENT_CATEGORIES);
-  }
-
-  createCategory(payload: Record<string, unknown>): Observable<boolean> {
-    return this.ok(this.post<unknown>(API_ROUTES.EVENT_CATEGORIES, payload, false));
-  }
-
-  updateCategory(id: string, payload: Record<string, unknown>): Observable<boolean> {
-    return this.ok(this.put<unknown>(`${API_ROUTES.EVENT_CATEGORIES}/${id}`, payload, false));
-  }
-
-  deleteCategory(id: string): Observable<boolean> {
-    return this.ok(this.delete<unknown>(`${API_ROUTES.EVENT_CATEGORIES}/${id}`, false));
-  }
-
-  toggleCategory(id: string, isActive: boolean): Observable<boolean> {
-    return this.ok(this.patch<unknown>(`${API_ROUTES.EVENT_CATEGORIES}/${id}/status`, { isActive }, false));
-  }
-
-  getTiers(): Observable<Record<string, unknown>[]> {
-    return this.listOf('/tiers');
-  }
-
-  createTier(payload: Record<string, unknown>): Observable<boolean> {
-    return this.ok(this.post<unknown>('/tiers', payload, false));
-  }
-
-  updateTier(id: string, payload: Record<string, unknown>): Observable<boolean> {
-    return this.ok(this.put<unknown>(`/tiers/${id}`, payload, false));
-  }
-
-  deleteTier(id: string): Observable<boolean> {
-    return this.ok(this.delete<unknown>(`/tiers/${id}`, false));
-  }
-
   /** Everything the admin home screen needs, joined so one failure is contained. */
   getDashboardBundle(): Observable<{
     overview: AdminOverview | null;

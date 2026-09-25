@@ -77,7 +77,9 @@ export class ToastService {
           }
         ]
       });
-      await alert.onDidDismiss().then(detail => {
+      // Not awaited: onDidDismiss only settles after the alert is shown and
+      // closed, so awaiting it before present() left every confirm invisible.
+      void alert.onDidDismiss().then(detail => {
         if (detail.role === 'backdrop') resolve(false);
       });
       await alert.present();
