@@ -44,7 +44,8 @@ import { ToastService } from '../../core/services/toast.service';
         <form [formGroup]="requestForm" (ngSubmit)="requestCode()">
           <ion-item class="je-field" lines="none">
             <ion-icon name="mail-outline" slot="start" color="medium" />
-            <ion-input formControlName="email" type="email" placeholder="Email address" inputmode="email" />
+            <ion-input formControlName="email" type="email" placeholder="Email address" inputmode="email"
+                       autocapitalize="none" autocorrect="off" spellcheck="false" />
           </ion-item>
           <ion-button expand="block" type="submit" class="je-btn-gradient" [disabled]="busy()">
             @if (busy()) { <ion-spinner name="crescent" /> } @else { Send code }

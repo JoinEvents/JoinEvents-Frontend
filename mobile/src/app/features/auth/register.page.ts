@@ -53,7 +53,8 @@ import { UserRole } from '../../core/models/user.model';
         <ion-item class="je-field" lines="none">
           <ion-icon name="mail-outline" slot="start" color="medium" />
           <ion-input formControlName="email" type="email" placeholder="Email address"
-                     autocomplete="email" inputmode="email" />
+                     autocomplete="email" inputmode="email"
+                     autocapitalize="none" autocorrect="off" spellcheck="false" />
         </ion-item>
 
         <ion-item class="je-field" lines="none">
@@ -70,7 +71,8 @@ import { UserRole } from '../../core/models/user.model';
         <ion-item class="je-field" lines="none">
           <ion-icon name="lock-closed-outline" slot="start" color="medium" />
           <ion-input formControlName="password" [type]="showPassword() ? 'text' : 'password'"
-                     placeholder="Password" autocomplete="new-password" />
+                     placeholder="Password" autocomplete="new-password"
+                     autocapitalize="none" autocorrect="off" spellcheck="false" />
           <ion-icon slot="end" color="medium" [name]="showPassword() ? 'eye-off-outline' : 'eye-outline'"
                     (click)="showPassword.set(!showPassword())" />
         </ion-item>

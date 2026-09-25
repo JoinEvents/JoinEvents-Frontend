@@ -36,7 +36,8 @@ import { ToastService } from '../../core/services/toast.service';
                   [class.je-field--invalid]="invalid('email')">
           <ion-icon name="mail-outline" slot="start" color="medium" />
           <ion-input formControlName="email" type="email" placeholder="Email address"
-                     autocomplete="email" inputmode="email" enterkeyhint="next" />
+                     autocomplete="email" inputmode="email" enterkeyhint="next"
+                     autocapitalize="none" autocorrect="off" spellcheck="false" />
         </ion-item>
         @if (invalid('email')) {
           <p class="je-error">Enter a valid email address.</p>
@@ -46,7 +47,8 @@ import { ToastService } from '../../core/services/toast.service';
                   [class.je-field--invalid]="invalid('password')">
           <ion-icon name="lock-closed-outline" slot="start" color="medium" />
           <ion-input formControlName="password" [type]="showPassword() ? 'text' : 'password'"
-                     placeholder="Password" autocomplete="current-password" enterkeyhint="go" />
+                     placeholder="Password" autocomplete="current-password" enterkeyhint="go"
+                     autocapitalize="none" autocorrect="off" spellcheck="false" />
           <ion-icon slot="end" color="medium" [name]="showPassword() ? 'eye-off-outline' : 'eye-outline'"
                     (click)="showPassword.set(!showPassword())" />
         </ion-item>

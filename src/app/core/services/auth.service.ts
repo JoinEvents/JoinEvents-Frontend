@@ -67,12 +67,23 @@ export class AuthService {
     return url.startsWith('/') && !url.startsWith('//') && !url.includes('://');
   }
 
+  /**
+   * Browser autofill/password managers can carry a differently-cased or
+   * whitespace-padded email between the register and login forms.
+   * Normalizing here means that never turns into a false "invalid
+   * credentials" — every call site gets this for free.
+   */
+  private normalizeEmail(email: string): string {
+    return (email ?? '').trim().toLowerCase();
+  }
+
   login(email: string, password: string, role: UserRole, returnUrl?: string): Observable<{ success: boolean; message: string }> {
     // Clear any existing session first
     localStorage.removeItem('joinevents_user');
     this.currentUser.set(null);
 
-    return this.http.post<any>(`${this.apiUrl}/auth/login`, { email, password, role }).pipe(
+    const normalizedEmail = this.normalizeEmail(email);
+    return this.http.post<any>(`${this.apiUrl}/auth/login`, { email: normalizedEmail, password, role }).pipe(
       map(response => {
         if (response && response.token) {
           const user: AuthUser = {
@@ -110,7 +121,8 @@ export class AuthService {
     localStorage.removeItem('joinevents_user');
     this.currentUser.set(null);
 
-    return this.http.post<any>(`${this.apiUrl}/auth/register`, { name, email, phone, password, role, referralCode, city, businessName }).pipe(
+    const normalizedEmail = this.normalizeEmail(email);
+    return this.http.post<any>(`${this.apiUrl}/auth/register`, { name, email: normalizedEmail, phone, password, role, referralCode, city, businessName }).pipe(
       map(response => {
         if (response && response.token) {
           const user: AuthUser = {

@@ -65,7 +65,8 @@ export class AuthService {
 
   login(email: string, password: string, role: UserRole): Observable<AuthResult> {
     this.clearSession();
-    return this.http.post<LoginResponse>(`${this.apiUrl}/auth/login`, { email, password, role }).pipe(
+    const normalizedEmail = this.normalizeEmail(email);
+    return this.http.post<LoginResponse>(`${this.apiUrl}/auth/login`, { email: normalizedEmail, password, role }).pipe(
       map(response => this.acceptSession(response, role, 'Login successful!')),
       catchError(error => of(this.toFailure(error, 'Login failed.')))
     );
@@ -82,7 +83,8 @@ export class AuthService {
     businessName?: string;
   }): Observable<AuthResult> {
     this.clearSession();
-    return this.http.post<LoginResponse>(`${this.apiUrl}/auth/register`, payload).pipe(
+    const normalizedPayload = { ...payload, email: this.normalizeEmail(payload.email) };
+    return this.http.post<LoginResponse>(`${this.apiUrl}/auth/register`, normalizedPayload).pipe(
       map(response => this.acceptSession(response, payload.role, 'Registration successful!')),
       catchError(error => of(this.toFailure(error, 'Registration failed.')))
     );
@@ -97,14 +99,16 @@ export class AuthService {
   }
 
   requestPasswordReset(email: string): Observable<AuthResult> {
-    return this.http.post<{ message?: string }>(`${this.apiUrl}/auth/forgot-password`, { email }).pipe(
+    const normalizedEmail = this.normalizeEmail(email);
+    return this.http.post<{ message?: string }>(`${this.apiUrl}/auth/forgot-password`, { email: normalizedEmail }).pipe(
       map(res => ({ success: true, message: res?.message || 'Reset link sent to your email.' })),
       catchError(error => of(this.toFailure(error, 'Could not send the reset link.')))
     );
   }
 
   resetPassword(email: string, otp: string, newPassword: string): Observable<AuthResult> {
-    return this.http.post<{ message?: string }>(`${this.apiUrl}/auth/reset-password`, { email, otp, newPassword }).pipe(
+    const normalizedEmail = this.normalizeEmail(email);
+    return this.http.post<{ message?: string }>(`${this.apiUrl}/auth/reset-password`, { email: normalizedEmail, otp, newPassword }).pipe(
       map(res => ({ success: true, message: res?.message || 'Password updated.' })),
       catchError(error => of(this.toFailure(error, 'Could not reset the password.')))
     );
@@ -159,6 +163,17 @@ export class AuthService {
     this.storage.setObject(USER_KEY, user);
     this.currentUser.set(user);
     return { success: true, message: successMessage };
+  }
+
+  /**
+   * Mobile keyboards can auto-capitalize the first letter of an email field,
+   * and stray leading/trailing whitespace is easy to pick up from autofill.
+   * Normalizing here means a slightly different keystroke between the
+   * register screen and the login screen can never turn into a false
+   * "invalid credentials" — every call site gets this for free.
+   */
+  private normalizeEmail(email: string): string {
+    return email.trim().toLowerCase();
   }
 
   private clearSession(): void {
