@@ -5,7 +5,7 @@ import { DatePipe, DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import {
   IonContent, IonHeader, IonToolbar, IonButtons, IonButton, IonIcon, IonBadge,
-  IonRefresher, IonRefresherContent, IonSkeletonText
+  IonRefresher, IonRefresherContent, IonSkeletonText, IonFab, IonFabButton
 } from '@ionic/angular/standalone';
 
 import { DashboardService } from '../../core/services/dashboard.service';
@@ -37,7 +37,7 @@ interface Todo {
   imports: [
     DatePipe, DecimalPipe, RouterLink, CurrencyInrPipe,
     IonContent, IonHeader, IonToolbar, IonButtons, IonButton, IonIcon, IonBadge,
-    IonRefresher, IonRefresherContent, IonSkeletonText
+    IonRefresher, IonRefresherContent, IonSkeletonText, IonFab, IonFabButton
   ],
   template: `
     <ion-header class="ion-no-border">
@@ -139,16 +139,18 @@ interface Todo {
           }
         </div>
 
-        <!-- 4. Help, when they want it -------------------------------------- -->
-        <a class="roshi" routerLink="/customer/roshi">
-          <span class="roshi__icon"><ion-icon name="sparkles" /></span>
-          <span class="roshi__text">
-            <strong>Ask Roshi</strong>
-            <span class="je-xs je-muted">Packages for your budget, bookings, refunds</span>
-          </span>
-          <ion-icon name="chevron-forward" class="todo__chev" />
-        </a>
       </div>
+
+      <!-- Room for the Roshi button, so it never covers the last card -->
+      <div class="fab-space"></div>
+
+      <!-- Roshi, the event concierge -->
+      <ion-fab slot="fixed" vertical="bottom" horizontal="end" class="roshi-fab">
+        <ion-fab-button routerLink="/customer/roshi" aria-label="Ask Roshi, your event concierge">
+          <ion-icon name="sparkles" />
+        </ion-fab-button>
+        <span class="roshi-fab__label">Ask Roshi</span>
+      </ion-fab>
     </ion-content>
   `,
   styles: [`
@@ -186,15 +188,15 @@ interface Todo {
 
     .list { display: flex; flex-direction: column; border-radius: var(--je-radius-lg); overflow: hidden;
             background: var(--je-bg-card); border: 1px solid var(--je-border-color); }
-    .todo, .roshi { display: flex; align-items: center; gap: 12px; padding: 13px 14px; text-decoration: none; }
+    .todo { display: flex; align-items: center; gap: 12px; padding: 13px 14px; text-decoration: none; }
     .todo + .todo { border-top: 1px solid var(--je-border-color); }
-    .todo__icon, .roshi__icon { width: 38px; height: 38px; flex-shrink: 0; display: grid; place-items: center;
+    .todo__icon { width: 38px; height: 38px; flex-shrink: 0; display: grid; place-items: center;
                                 border-radius: 12px; font-size: 18px; }
     .todo__icon--pay { background: rgba(255,107,53,0.12); color: #ea580c; }
     .todo__icon--wait { background: rgba(59,130,246,0.12); color: #2563eb; }
     .todo__icon--review { background: rgba(245,158,11,0.14); color: #d97706; }
-    .todo__text, .roshi__text { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
-    .todo__text strong, .roshi__text strong { font-size: var(--je-fs-sm); color: var(--je-text-main); }
+    .todo__text { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+    .todo__text strong { font-size: var(--je-fs-sm); color: var(--je-text-main); }
     .todo__chev { color: var(--je-text-soft); font-size: 16px; flex-shrink: 0; }
 
     .cats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
@@ -203,9 +205,13 @@ interface Todo {
     .cat__art ion-icon, .cat__art i { font-size: 24px; }
     .cat__name { font-size: var(--je-fs-xs); font-weight: 600; color: var(--je-text-main); max-width: 100%; text-align: center; }
 
-    .roshi { margin-top: 6px; border-radius: var(--je-radius-lg); background: var(--je-bg-card);
-             border: 1px solid var(--je-border-color); }
-    .roshi__icon { background: var(--je-gradient-primary); color: #fff; }
+    .fab-space { height: 76px; }
+    .roshi-fab { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .roshi-fab ion-fab-button { --background: var(--je-gradient-primary); --background-activated: var(--je-gradient-primary);
+                                --box-shadow: 0 10px 24px rgba(217, 70, 239, 0.35); }
+    .roshi-fab__label { font-size: 10px; font-weight: 700; color: var(--je-text-main); background: var(--je-bg-card);
+                        padding: 2px 8px; border-radius: var(--je-radius-full); box-shadow: var(--je-shadow-sm); }
+    .greet { display: flex; flex-direction: column; padding-left: 16px; line-height: 1.25; }
   `]
 })
 export class CustomerDashboardPage implements OnInit, ViewWillEnter {
