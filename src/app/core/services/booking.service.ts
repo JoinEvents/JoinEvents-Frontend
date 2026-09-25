@@ -2,7 +2,7 @@ import { inject, Injectable, signal } from '@angular/core';
 import { HttpHeaders, HttpParams } from '@angular/common/http';
 import { BaseApiService } from './base-api.service';
 import { API_ROUTES } from '../constants/api.constants';
-import { Booking, BookingStatus } from '../models/booking.model';
+import { Booking, BookingQuote, BookingStatus, CreateBookingRequest } from '../models/booking.model';
 import { Observable } from 'rxjs';
 import { map, tap } from 'rxjs/operators';
 import { AuditService } from './audit.service';
@@ -22,7 +22,8 @@ export class BookingService extends BaseApiService {
     const params = new HttpParams().set('userId', userId);
     const headers = new HttpHeaders()
       .set('X-User-Context', userId);
-    return this.http.get<Booking[]>(`${this.baseUrl}${API_ROUTES.BOOKINGS.BASE}`, { params, headers }).pipe(
+    return this.http.get<unknown>(`${this.baseUrl}${API_ROUTES.BOOKINGS.BASE}`, { params, headers }).pipe(
+      map(res => toBookingList(res)),
       tap(bookings => {
         if (bookings) {
           this.globalBookings.set(bookings); // Fill the empty container with API data
@@ -32,7 +33,8 @@ export class BookingService extends BaseApiService {
   }
 
   getVendorBookings(): Observable<Booking[]> {
-    return this.get<Booking[]>(API_ROUTES.BOOKINGS.VENDOR).pipe(
+    return this.get<unknown>(API_ROUTES.BOOKINGS.VENDOR).pipe(
+      map(res => toBookingList(res)),
       tap(bookings => {
         if (bookings) {
           this.globalBookings.set(bookings);
@@ -268,8 +270,21 @@ export class BookingService extends BaseApiService {
     );
   }
 
-  createBooking(booking: any): Observable<any> {
-    return this.post<any>(API_ROUTES.BOOKINGS.CREATE, booking, false);
+  /**
+   * Creates a booking. The server prices it from the catalogue; only what is being booked is
+   * sent, never an amount.
+   */
+  createBooking(request: CreateBookingRequest): Observable<Booking> {
+    return this.post<Booking>(API_ROUTES.BOOKINGS.CREATE, request, false);
+  }
+
+  getBookingById(bookingId: string): Observable<Booking> {
+    return this.get<Booking>(API_ROUTES.BOOKINGS.BY_ID(bookingId), undefined, false);
+  }
+
+  /** The server's price for a package and guest count: exactly what a booking will charge. */
+  getQuote(packageId: string, guestCount: number): Observable<BookingQuote> {
+    return this.post<BookingQuote>(API_ROUTES.BOOKINGS.QUOTE, { packageId, guestCount }, false);
   }
 
   assignBooking(bookingId: string, employeeName: string): Observable<boolean> {
@@ -306,4 +321,11 @@ export class BookingService extends BaseApiService {
       map(() => true)
     );
   }
+}
+
+/** Booking lists come back paged ({ items, total, ... }); older responses were a bare array. */
+function toBookingList(res: unknown): Booking[] {
+  if (Array.isArray(res)) return res as Booking[];
+  const items = (res as { items?: unknown } | null)?.items;
+  return Array.isArray(items) ? (items as Booking[]) : [];
 }

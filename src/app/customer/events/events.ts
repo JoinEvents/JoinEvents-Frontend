@@ -1,4 +1,4 @@
-import { Component, signal, OnInit, inject, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
+import { Component, signal, computed, OnInit, inject, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { EventCategoryService } from '../../core/services/event-category.service';
@@ -24,15 +24,11 @@ export class CustomerEvents implements OnInit {
   search = '';
   selectedCategory = 'all';
 
-  readonly categories = [
-    { id: 'all', label: 'All Services' },
-    { id: 'wedding', label: '💍 Weddings' },
-    { id: 'birthday', label: '🎂 Birthdays' },
-    { id: 'corporate', label: '💼 Corporate' },
-    { id: 'beauty', label: '💄 Beauty' },
-    { id: 'travel', label: '🚗 Travel' },
-    { id: 'shopping', label: '🎁 Shopping' },
-  ];
+  /** Filter chips: every category in the admin catalogue. */
+  categories = computed(() => [
+    { id: 'all', label: 'All Events' },
+    ...this.events().map(e => ({ id: e.category, label: e.name }))
+  ]);
 
   ngOnInit() {
     this.route.queryParams.subscribe(params => {

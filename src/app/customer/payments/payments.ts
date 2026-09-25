@@ -54,33 +54,27 @@ export class CustomerPayments implements OnInit {
     this.selected.set(b);
   }
 
+  /** The GST share of the total, as the server priced it. */
   gst(b: Booking) {
-    return Math.round((b.baseAmount + b.extraServicesAmount) * 0.18);
+    return Math.max(0, Math.round((b.totalAmount - b.damageCharges - b.baseAmount) * 100) / 100);
+  }
+
+  /** What has been paid so far, from confirmed payments. */
+  paid(b: Booking) {
+    return b.amountPaid ?? (b.status === 'pending' ? 0 : b.advanceAmount);
   }
 
   balance(b: Booking) {
-    return b.totalAmount - b.advanceAmount;
+    return b.balanceDue ?? Math.max(0, b.totalAmount - this.paid(b));
   }
 
+  canPay(b: Booking) {
+    return this.balance(b) > 0 && !['cancelled', 'rejected', 'disputed'].includes(b.status);
+  }
+
+  /** Checkout loads the booking from the server and charges whatever is still due. */
   payBalance(b: Booking) {
-    // Navigate to checkout space
-    this.router.navigate(['/checkout', b.packageId || 'custom'], {
-      state: {
-        bookingDetails: {
-          id: b.id,
-          packageId: b.packageId,
-          packageName: b.packageName,
-          vendorId: b.services?.[0]?.vendorId || '',
-          basePrice: b.baseAmount,
-          addonsTotal: b.extraServicesAmount,
-          gstAmount: this.gst(b),
-          totalAmount: b.totalAmount,
-          advanceAmount: b.advanceAmount,
-          payableAmount: this.balance(b),
-          isBalancePayment: true
-        }
-      }
-    });
+    this.router.navigate(['/checkout', b.id], { state: { bookingId: b.id } });
   }
 
   readonly statusColors: Record<string, string> = { pending:'ee-badge-warning', advance_paid:'ee-badge-info', confirmed:'ee-badge-secondary', in_progress:'ee-badge-primary', completed:'ee-badge-success', settled:'ee-badge-success', cancelled:'ee-badge-danger' };

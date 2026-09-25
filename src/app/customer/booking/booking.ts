@@ -9,7 +9,9 @@ import { AuthService } from '../../core/services/auth.service';
 import { ReviewService } from '../../core/services/review.service';
 import { ToastService } from '../../core/services/toast.service';
 import { BookingService } from '../../core/services/booking.service';
-import { Booking } from '../../core/models/booking.model';
+import { Booking, BookingQuote } from '../../core/models/booking.model';
+import { Subscription } from 'rxjs';
+import { CheckoutDraft, saveCheckoutDraft } from '../checkout/checkout-draft';
 import { EventTierService } from '../../core/services/event-tier.service';
 
 import { FavoritesService } from '../../core/services/favorites.service';
@@ -86,15 +88,20 @@ export class CustomerBooking implements OnInit, OnDestroy, OnChanges {
 
   selectedPackage = signal<any | null>(null);
   similarPackages = signal<any[]>([]);
-  selectedAddons = signal<any[]>([]);
-  includeInsurance = signal(false);
   bookingDate = '';
   isDateAvailable = signal<boolean>(true);
   checkingAvailability = signal<boolean>(false);
+  eventName = '';
+  bookingVenue = '';
   bookingCity = '';
-  bookingGuests = '';
-  couponCode = '';
-  discountAmount = signal(0);
+  bookingGuests: number | null = null;
+
+  /** The server's price for the chosen guest count — what the booking will actually charge. */
+  quote = signal<BookingQuote | null>(null);
+  quoteError = signal('');
+  quoting = signal(false);
+  private quoteSubscription?: Subscription;
+  private quoteTimer?: ReturnType<typeof setTimeout>;
   bookingSuccess = signal(false);
   isLoading = signal(false);
   minDate = new Date().toISOString().split('T')[0];
@@ -353,6 +360,8 @@ export class CustomerBooking implements OnInit, OnDestroy, OnChanges {
   }
 
   ngOnDestroy() {
+    this.quoteSubscription?.unsubscribe();
+    clearTimeout(this.quoteTimer);
     this.stopSlideshow();
     document.body.classList.remove('modal-open');
   }  loadPackage(pkgId: string) {
@@ -363,6 +372,7 @@ export class CustomerBooking implements OnInit, OnDestroy, OnChanges {
         if (pkg) {
           if (!environment.production) { console.log('Loaded Package Data:', pkg); }
           this.selectedPackage.set(pkg);
+          this.prefillBookingFields(pkg);
           const combinedImages = this.getCombinedImages(pkg);
           this.selectedImage.set(combinedImages[0] || pkg.image);
           
@@ -396,6 +406,17 @@ export class CustomerBooking implements OnInit, OnDestroy, OnChanges {
         this.router.navigate([target]);
       }
     });
+  }
+
+  /** Starts the booking form from the package's own capacity and address. */
+  private prefillBookingFields(pkg: any) {
+    const address = pkg.address || {};
+    this.bookingCity = address.city || address.City || '';
+    this.bookingVenue = [address.street || address.Street, address.locality || address.Locality, this.bookingCity]
+      .filter((part: string | undefined) => !!part && part.trim())
+      .join(', ');
+    this.bookingGuests = pkg.maxGuests > 0 ? pkg.maxGuests : null;
+    this.refreshQuote();
   }
 
   loadReviewsForVendor(vendorId: string) {
@@ -542,168 +563,89 @@ export class CustomerBooking implements OnInit, OnDestroy, OnChanges {
     this.startSlideshow(); // Reset timer when manually clicked
   }
 
+  /**
+   * Shows what the vendor entered for one service of the package: its description, photos,
+   * price, key features and inclusions, plus the package facts that belong to it (cuisine and
+   * catering policy for catering; capacity, rooms, amenities and policies for a venue). Nothing
+   * is invented when the vendor left something out.
+   */
   openServiceDetail(serviceName: string) {
     this.selectedModalImage.set(null);
     const pkg = this.selectedPackage();
+    const details = pkg?.inclusionDetails?.[serviceName];
+    const lower = serviceName.toLowerCase();
 
-    const lowerName = serviceName.toLowerCase();
-    if (lowerName.includes('catering') || lowerName.includes('dinner') || lowerName.includes('food') || lowerName.includes('feast') || lowerName.includes('meal') || lowerName.includes('buffet') || lowerName.includes('veg')) {
-      const features = ['Professional Service', 'JoinEvents Verified'];
-      
-      let cuisineText = 'Not Specified';
-      if (pkg?.pricing?.cuisineType === 'mixed' || (pkg?.pricing?.vegPrice && pkg?.pricing?.nonVegPrice)) {
-        cuisineText = 'Veg & Non-Veg (Mixed)';
-      } else if (pkg?.pricing?.cuisineType === 'veg' || pkg?.pricing?.vegPrice) {
-        cuisineText = 'Pure Veg';
-      } else if (pkg?.pricing?.cuisineType === 'nonveg' || pkg?.pricing?.nonVegPrice) {
-        cuisineText = 'Non-Veg Only';
-      }
-      
-      if (pkg?.pricing?.cuisine) {
-        features.push(`Cuisine: ${pkg.pricing.cuisine}`);
-      }
-      features.push(`Cuisine Type: ${cuisineText}`);
-      
-      if (pkg?.pricing?.vegPrice) {
-        features.push(`Veg Menu Price: ₹${pkg.pricing.vegPrice} per plate`);
-      }
-      if (pkg?.pricing?.nonVegPrice) {
-        features.push(`Non-Veg Menu Price: ₹${pkg.pricing.nonVegPrice} per plate`);
-      }
-      if (pkg?.policies?.cateringPolicy) {
-        features.push(`Catering Policy: ${pkg.policies.cateringPolicy}`);
-      }
-      
-      this.selectedServiceDetail.set({
-        name: serviceName,
-        description: `Delight your guests with a customized culinary experience. We offer premium menu choices prepared by expert chefs under strict hygiene standards.`,
-        images: [
-          'https://images.unsplash.com/photo-1555244162-803834f70033?auto=format&fit=crop&q=80&w=800',
-          'https://images.unsplash.com/photo-1530103043960-ef38714abb15?auto=format&fit=crop&q=80&w=800'
-        ],
-        features: features,
-        priceRange: pkg?.pricing?.vegPrice || pkg?.pricing?.nonVegPrice
-          ? `Starting from ₹${pkg?.pricing?.cuisineType === 'nonveg' ? pkg?.pricing?.nonVegPrice : pkg?.pricing?.vegPrice} / Plate`
-          : undefined
-      });
-      return;
+    const features = [...toList(details?.keyFeatures), ...toList(details?.inclusions)];
+
+    if (lower.includes('catering')) {
+      if (pkg?.pricing?.cuisine) features.push(`Cuisine: ${pkg.pricing.cuisine}`);
+      const food = cuisineLabel(pkg?.pricing?.cuisineType);
+      if (food) features.push(`Food: ${food}`);
+      if (pkg?.policies?.cateringPolicy) features.push(`Catering policy: ${pkg.policies.cateringPolicy}`);
+    } else if (lower === 'venue' || lower.includes('venue')) {
+      if (pkg?.maxGuests) features.push(`Capacity: up to ${pkg.maxGuests} guests`);
+      if (pkg?.roomCount) features.push(`Rooms: ${pkg.roomCount}`);
+      if (pkg?.amenities?.hasAc) features.push('Air conditioning');
+      if (pkg?.amenities?.hasPowerBackup) features.push('Power backup');
+      if (pkg?.amenities?.hasChangingRooms) features.push('Changing rooms');
+      if (pkg?.amenities?.hasParking) features.push('Parking');
+      if (pkg?.policies?.alcoholPolicy) features.push(`Alcohol policy: ${pkg.policies.alcoholPolicy}`);
+      if (pkg?.policies?.decorPolicy) features.push(`Decor policy: ${pkg.policies.decorPolicy}`);
+      if (pkg?.policies?.djPolicy) features.push(`DJ policy: ${pkg.policies.djPolicy}`);
     }
 
-    // Check if the service has customized inclusion details in the package's inclusionDetails
-    const customDetails = pkg?.inclusionDetails?.[serviceName];
-    if (customDetails) {
-      let features: string[] = [];
-      if (Array.isArray(customDetails.keyFeatures)) {
-        features = [...customDetails.keyFeatures];
-      } else if (typeof customDetails.keyFeatures === 'string' && customDetails.keyFeatures) {
-        features = customDetails.keyFeatures.split(',').map((f: string) => f.trim()).filter((f: string) => f);
-      }
-
-      if (Array.isArray(customDetails.inclusions)) {
-        features = [...features, ...customDetails.inclusions];
-      } else if (typeof customDetails.inclusions === 'string' && customDetails.inclusions) {
-        const incls = customDetails.inclusions.split(',').map((i: string) => i.trim()).filter((i: string) => i);
-        features = [...features, ...incls];
-      }
-
-      let priceRangeStr = '';
-      if (customDetails.minPrice && customDetails.maxPrice) {
-        if (customDetails.minPrice === customDetails.maxPrice) {
-          priceRangeStr = `₹${customDetails.minPrice.toLocaleString()}`;
-        } else {
-          priceRangeStr = `₹${customDetails.minPrice.toLocaleString()} - ₹${customDetails.maxPrice.toLocaleString()}`;
-        }
-      } else if (customDetails.minPrice) {
-        priceRangeStr = `Starts from ₹${customDetails.minPrice.toLocaleString()}`;
-      }
-
-      this.selectedServiceDetail.set({
-        name: serviceName,
-        description: customDetails.description || `Premium ${serviceName} details provided by our verified partners.`,
-        images: (customDetails.images && customDetails.images.length > 0)
-          ? customDetails.images
-          : (customDetails.imageUrl
-            ? [customDetails.imageUrl]
-            : ['https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&q=80&w=800']),
-        features: features.length > 0 ? features : ['Professional Service', 'JoinEvents Verified', 'Quality Guaranteed'],
-        priceRange: priceRangeStr
-      });
-      return;
-    }
-
-    // Database-driven dynamic fallback details based on standard inclusions
-    let description = `Comprehensive ${serviceName} services provided by our verified professional partners, ensuring top-tier quality and reliability for your event.`;
-    let features = ['Professional Service', 'JoinEvents Verified', 'Quality Guaranteed'];
-    let images = ['https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&q=80&w=800'];
-
-    if (lowerName.includes('venue') || lowerName.includes('suite') || lowerName.includes('hall') || lowerName.includes('banquet') || lowerName.includes('space') || lowerName.includes('room')) {
-      description = `Premium venue space with capacity for up to ${pkg?.maxGuests || 300} guests. Fully managed and configured to fit your event requirements.`;
-      features = [
-        `Capacity: ${pkg?.maxGuests || 300} Guests`,
-        `Rooms Included: ${pkg?.roomCount || 0}`,
-        `AC: ${pkg?.amenities?.hasAc ? 'Yes' : 'No'}`,
-        `Power Backup: ${pkg?.amenities?.hasPowerBackup ? 'Yes' : 'No'}`,
-        `Valet Parking: ${pkg?.amenities?.hasParking ? 'Available' : 'No'}`
-      ];
-      images = ['https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&q=80&w=800'];
-    } else if (lowerName.includes('decor') || lowerName.includes('stage') || lowerName.includes('flower') || lowerName.includes('theme')) {
-      description = `Bespoke decoration setup styled under the theme of the event package.`;
-      features = [
-        `Theme: ${pkg?.theme || 'Premium'}`,
-        `Decor Policy: ${pkg?.policies?.decorPolicy || 'Flexible'}`,
-        `Custom floral & lighting setup`
-      ];
-      images = ['https://images.unsplash.com/photo-1519225421980-715cb0215aed?auto=format&fit=crop&q=80&w=800'];
-    }
+    const images: string[] = Array.isArray(details?.images) && details.images.length
+      ? details.images
+      : (details?.imageUrl ? [details.imageUrl] : []);
 
     this.selectedServiceDetail.set({
       name: serviceName,
-      description: description,
-      images: images,
-      features: features
+      description: details?.description || '',
+      images,
+      features,
+      priceRange: priceRangeLabel(details, lower.includes('catering'))
     });
   }
 
-  getGstAmount() {
-    const base = (this.selectedPackage()?.price || 0) + this.getAddonsTotal();
-    return Math.round(base * 0.18);
+  /** The total for the chosen guest count, or the package's listed price before one is chosen. */
+  getTotalAmount(): number {
+    return this.quote()?.totalAmount ?? (this.selectedPackage()?.price || 0);
   }
 
-  getAddonsTotal() {
-    return this.selectedAddons().reduce((sum, a) => sum + a.price, 0);
+  getAdvanceAmount(): number {
+    return this.quote()?.advanceAmount ?? 0;
   }
 
-  getInsurancePrice() {
-    return this.includeInsurance() ? (this.selectedPackage()?.insurancePrice || 0) : 0;
+  onGuestsChange(value: number | string | null) {
+    const guests = Number(value);
+    this.bookingGuests = Number.isFinite(guests) && guests > 0 ? Math.floor(guests) : null;
+    // Re-price once the customer stops typing.
+    clearTimeout(this.quoteTimer);
+    this.quoteTimer = setTimeout(() => this.refreshQuote(), 350);
   }
 
-  getAdvanceAmount() {
-    const total = this.getTotalAmount();
-    return Math.round(total * 0.2);
-  }
-
-  getTotalAmount() {
-    const base = (this.selectedPackage()?.price || 0) + this.getAddonsTotal() + this.getGstAmount() + this.getInsurancePrice();
-    return base - this.discountAmount();
-  }
-
-  toggleAddon(addon: any) {
-    const current = this.selectedAddons();
-    const index = current.findIndex(a => a.id === addon.id);
-    if (index > -1) {
-      this.selectedAddons.set(current.filter(a => a.id !== addon.id));
-    } else {
-      this.selectedAddons.set([...current, addon]);
+  /** Asks the server for the price of the current package and guest count. */
+  refreshQuote() {
+    const pkg = this.selectedPackage();
+    this.quoteSubscription?.unsubscribe();
+    this.quoteError.set('');
+    if (!pkg || !this.bookingGuests) {
+      this.quote.set(null);
+      this.quoting.set(false);
+      return;
     }
-  }
-
-  applyCoupon() {
-    if (this.couponCode.toUpperCase() === 'WELCOME10') {
-      this.discountAmount.set(Math.round((this.selectedPackage()?.price || 0) * 0.1));
-    } else {
-      alert('Invalid Coupon Code');
-      this.discountAmount.set(0);
-    }
+    this.quoting.set(true);
+    this.quoteSubscription = this.bookingService.getQuote(pkg.id, this.bookingGuests).subscribe({
+      next: quote => {
+        this.quote.set(quote);
+        this.quoting.set(false);
+      },
+      error: err => {
+        this.quote.set(null);
+        this.quoting.set(false);
+        this.quoteError.set(err?.error?.error || 'Could not price this package. Please try again.');
+      }
+    });
   }
 
   onDateChange(date: string) {
@@ -732,38 +674,52 @@ export class CustomerBooking implements OnInit, OnDestroy, OnChanges {
     const pkg = this.selectedPackage();
     if (!pkg) return;
 
+    if (this.userRole() && this.userRole() !== 'customer') {
+      this.toast.error('Sign in with a customer account to book a package.');
+      return;
+    }
     if (!this.bookingDate) {
       this.toast.error('Please select an event date.');
       return;
     }
-
     if (!this.isDateAvailable()) {
       this.toast.error('The selected date is no longer available. Please select another date.');
       return;
     }
+    if (!this.bookingGuests) {
+      this.toast.error('Enter the number of guests.');
+      return;
+    }
+    if (this.quoteError()) {
+      this.toast.error(this.quoteError());
+      return;
+    }
+    if (!this.quote() || this.quoting()) {
+      this.toast.error('Please wait while we price your booking.');
+      return;
+    }
+    if (!this.bookingCity.trim()) {
+      this.toast.error('Enter the city of the event.');
+      return;
+    }
+    if (!this.bookingVenue.trim()) {
+      this.toast.error('Enter the venue of the event.');
+      return;
+    }
 
-    const bookingDetails = {
+    const draft: CheckoutDraft = {
       packageId: pkg.id,
-      packageName: pkg.name,
-      packageCategory: pkg.category,
       vendorId: pkg.vendorId,
-      bookingDate: this.bookingDate,
-      bookingCity: this.bookingCity || pkg.address?.city || pkg.city || '',
-      bookingGuests: this.bookingGuests || '0',
-      selectedAddons: this.selectedAddons(),
-      includeInsurance: this.includeInsurance(),
-      couponCode: this.couponCode,
-      discountAmount: this.discountAmount(),
-      basePrice: pkg.price || 0,
-      addonsTotal: this.getAddonsTotal(),
-      gstAmount: this.getGstAmount(),
-      insurancePrice: this.getInsurancePrice(),
-      totalAmount: this.getTotalAmount(),
-      advanceAmount: this.getAdvanceAmount()
+      packageName: pkg.name,
+      category: pkg.category,
+      eventName: this.eventName.trim() || pkg.name,
+      eventDate: this.bookingDate,
+      venue: this.bookingVenue.trim(),
+      city: this.bookingCity.trim(),
+      guestCount: this.bookingGuests
     };
-
-    sessionStorage.setItem('joinevents_booking_pending', JSON.stringify(bookingDetails));
-    this.router.navigate(['/checkout', pkg.id]);
+    saveCheckoutDraft(draft);
+    this.router.navigate(['/checkout', pkg.id], { state: { checkout: draft } });
   }
 
   handleImageFallback(event: Event, fallbackUrl: string) {
@@ -787,4 +743,32 @@ export class CustomerBooking implements OnInit, OnDestroy, OnChanges {
       routeUrl: `/events/vendors?${pkg.eventTypeId || 'wedding'}=${pkg.id}`
     });
   }
+}
+
+/** A vendor list field, stored either as an array or as comma-separated text. */
+function toList(value: unknown): string[] {
+  if (Array.isArray(value)) return value.map(v => String(v).trim()).filter(Boolean);
+  if (typeof value === 'string') return value.split(',').map(v => v.trim()).filter(Boolean);
+  return [];
+}
+
+function cuisineLabel(type: string | undefined): string {
+  switch (type) {
+    case 'veg': return 'Veg';
+    case 'nonveg': return 'Non-veg';
+    case 'mixed': return 'Veg & non-veg';
+    default: return '';
+  }
+}
+
+/** Catering priced like a plate rate is shown per plate, as the server charges it per guest. */
+const PER_PLATE_THRESHOLD = 5000;
+
+function priceRangeLabel(details: { minPrice?: number; maxPrice?: number } | undefined, isCatering: boolean): string {
+  const min = Number(details?.minPrice) || 0;
+  const max = Number(details?.maxPrice) || 0;
+  if (!min) return '';
+  const suffix = isCatering && min < PER_PLATE_THRESHOLD ? ' per plate' : '';
+  const money = (n: number) => `₹${n.toLocaleString('en-IN')}`;
+  return max > min ? `${money(min)} – ${money(max)}${suffix}` : `${money(min)}${suffix}`;
 }

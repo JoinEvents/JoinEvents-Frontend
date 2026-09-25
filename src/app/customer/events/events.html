@@ -15,7 +15,7 @@
     </div>
     <div class="col-12 col-xl-8">
       <div class="d-flex flex-wrap gap-2 justify-content-xl-end overflow-auto pb-2">
-        @for (cat of categories; track cat.id) {
+        @for (cat of categories(); track cat.id) {
           <button class="filter-chip" [class.active]="selectedCategory === cat.id"
                   (click)="selectedCategory = cat.id; filterEvents()">
             {{ cat.label }}
@@ -41,7 +41,6 @@
         <div class="p-4">
           <div class="d-flex justify-content-between align-items-start mb-2">
             <h5 class="event-card-title">{{ event.name }}</h5>
-            <div class="v-stat rating"><i class="bi bi-star-fill"></i> 4.9</div>
           </div>
           <p class="event-card-desc">{{ event.description }}</p>
           
@@ -64,11 +63,6 @@
                 </div>
               </div>
             }
-          </div>
-
-          <div class="vendor-stats-row">
-            <div class="v-stat"><i class="bi bi-people-fill"></i> 24+ Vendors</div>
-            <div class="v-stat"><i class="bi bi-check-circle-fill"></i> Verified</div>
           </div>
 
           <div class="price-box">
