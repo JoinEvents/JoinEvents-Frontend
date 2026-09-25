@@ -3,6 +3,7 @@ import { Router } from '@angular/router';
 import { Capacitor } from '@capacitor/core';
 import { PushNotifications, Token, PushNotificationSchema, ActionPerformed } from '@capacitor/push-notifications';
 
+import { environment } from '../../../environments/environment';
 import { AuthService } from './auth.service';
 import { LoggerService } from './logger.service';
 import { NotificationService } from './notification.service';
@@ -23,8 +24,16 @@ export class PushService {
   private notifications = inject(NotificationService);
 
   async init(): Promise<void> {
-    if (!Capacitor.isNativePlatform()) return;
+    if (!Capacitor.isNativePlatform() || !environment.pushEnabled) return;
+    try {
+      await this.register();
+    } catch (error) {
+      // Push is best-effort: a failure here must never take the app down with it.
+      this.logger.error('Push setup failed', error);
+    }
+  }
 
+  private async register(): Promise<void> {
     const permission = await PushNotifications.requestPermissions();
     if (permission.receive !== 'granted') {
       this.logger.warn('Push permission not granted');
