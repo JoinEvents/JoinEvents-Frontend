@@ -3,7 +3,7 @@ import { DatePipe } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import {
   IonContent, IonHeader, IonToolbar, IonTitle, IonButtons, IonBackButton, IonButton, IonIcon,
-  IonItem, IonRadio, IonRadioGroup, IonSpinner, IonLabel, NavController
+  IonItem, IonRadio, IonRadioGroup, IonSpinner, NavController
 } from '@ionic/angular/standalone';
 
 import { BookingService } from '../../core/services/booking.service';
@@ -50,7 +50,7 @@ interface CheckoutSummary {
   imports: [
     DatePipe, CurrencyInrPipe,
     IonContent, IonHeader, IonToolbar, IonTitle, IonButtons, IonBackButton, IonButton, IonIcon,
-    IonItem, IonRadio, IonRadioGroup, IonSpinner, IonLabel
+    IonItem, IonRadio, IonRadioGroup, IonSpinner
   ],
   template: `
     <ion-header class="ion-no-border">
@@ -88,46 +88,55 @@ interface CheckoutSummary {
             }
           </div>
 
-          <!-- Amount ---------------------------------------------------------- -->
+          <!-- Amount: each whole row is the radio, so tapping anywhere on it selects it ----- -->
           @if (canChooseSplit()) {
             <div class="je-section-head"><h2>How much to pay now</h2></div>
             <div class="je-card je-card--flush">
-              <ion-radio-group [value]="split()" (ionChange)="split.set($any($event.detail.value))">
-                <ion-item lines="full" class="method">
-                  <ion-label>
-                    <strong class="je-sm">Advance ({{ s.advancePercent }}%)</strong>
-                    <p class="je-xs je-muted">Balance of {{ (s.totalAmount - s.advanceAmount) | inr }} due later</p>
-                  </ion-label>
-                  <strong slot="end" class="je-sm amt">{{ s.advanceAmount | inr }}</strong>
-                  <ion-radio slot="end" value="advance" aria-label="Pay the advance" />
-                </ion-item>
-                <ion-item lines="none" class="method">
-                  <ion-label>
-                    <strong class="je-sm">Full amount</strong>
-                    <p class="je-xs je-muted">Nothing left to pay later</p>
-                  </ion-label>
-                  <strong slot="end" class="je-sm amt">{{ s.totalAmount | inr }}</strong>
-                  <ion-radio slot="end" value="full" aria-label="Pay the full amount" />
-                </ion-item>
-              </ion-radio-group>
+            <ion-radio-group [value]="split()" (ionChange)="onSplit($event)">
+              <ion-item lines="full" class="opt" [class.opt--on]="split() === 'advance'">
+                <ion-radio value="advance" labelPlacement="start" justify="space-between">
+                  <span class="opt__label">
+                    <span class="opt__text">
+                      <strong class="je-sm">Advance ({{ s.advancePercent }}%)</strong>
+                      <span class="je-xs je-muted">Balance of {{ (s.totalAmount - s.advanceAmount) | inr }} due later</span>
+                    </span>
+                    <strong class="je-sm opt__amt">{{ s.advanceAmount | inr }}</strong>
+                  </span>
+                </ion-radio>
+              </ion-item>
+              <ion-item lines="none" class="opt" [class.opt--on]="split() === 'full'">
+                <ion-radio value="full" labelPlacement="start" justify="space-between">
+                  <span class="opt__label">
+                    <span class="opt__text">
+                      <strong class="je-sm">Full amount</strong>
+                      <span class="je-xs je-muted">Nothing left to pay later</span>
+                    </span>
+                    <strong class="je-sm opt__amt">{{ s.totalAmount | inr }}</strong>
+                  </span>
+                </ion-radio>
+              </ion-item>
+            </ion-radio-group>
             </div>
           }
 
-          <!-- Payment method --------------------------------------------------- -->
+          <!-- Payment method ---------------------------------------------------- -->
           <div class="je-section-head"><h2>Pay with</h2></div>
           <div class="je-card je-card--flush">
-            <ion-radio-group [value]="method()" (ionChange)="method.set($any($event.detail.value))">
-              @for (option of methods; track option.id) {
-                <ion-item lines="full" class="method">
-                  <ion-icon [name]="option.icon" slot="start" color="primary" />
-                  <ion-label>
-                    <strong class="je-sm">{{ option.label }}</strong>
-                    <p class="je-xs je-muted">{{ option.description }}</p>
-                  </ion-label>
-                  <ion-radio slot="end" [value]="option.id" [attr.aria-label]="option.label" />
-                </ion-item>
-              }
-            </ion-radio-group>
+          <ion-radio-group [value]="method()" (ionChange)="onMethod($event)">
+            @for (option of methods; track option.id; let last = $last) {
+              <ion-item [lines]="last ? 'none' : 'full'" class="opt" [class.opt--on]="method() === option.id">
+                <ion-radio [value]="option.id" labelPlacement="start" justify="space-between">
+                  <span class="opt__label">
+                    <ion-icon [name]="option.icon" color="primary" class="opt__icon" />
+                    <span class="opt__text">
+                      <strong class="je-sm">{{ option.label }}</strong>
+                      <span class="je-xs je-muted">{{ option.description }}</span>
+                    </span>
+                  </span>
+                </ion-radio>
+              </ion-item>
+            }
+          </ion-radio-group>
           </div>
 
           <!-- Totals (from the server) --------------------------------------- -->
@@ -189,9 +198,14 @@ interface CheckoutSummary {
     .center { display: grid; place-items: center; height: 60vh; }
     .bk-title { font-size: var(--je-fs-md); margin: 6px 0 12px; }
     .meta { display: flex; align-items: center; gap: 7px; margin: 0 0 6px; }
-    .method { --background: transparent; --padding-start: 14px; }
-    .method p { margin: 2px 0 0; }
-    .amt { margin-right: 10px; }
+    .opt { --background: transparent; --padding-start: 14px; --inner-padding-end: 14px; }
+    .opt--on { --background: rgba(255, 107, 53, 0.08); }
+    .opt ion-radio { width: 100%; }
+    .opt ion-radio::part(label) { flex: 1; margin-right: 12px; white-space: normal; overflow: visible; }
+    .opt__label { display: flex; align-items: center; gap: 12px; width: 100%; padding: 8px 0; }
+    .opt__text { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+    .opt__icon { font-size: 22px; flex-shrink: 0; }
+    .opt__amt { flex-shrink: 0; }
     .line { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 7px 0; }
     .line--total { margin-top: 6px; padding-top: 12px; border-top: 1px solid var(--je-border-color); }
     .line--due { padding: 10px 12px; margin-top: 8px; border-radius: var(--je-radius-sm);
@@ -254,6 +268,16 @@ export class CheckoutPage implements OnInit {
       return;
     }
     this.loadQuote(this.draft);
+  }
+
+  onSplit(event: Event): void {
+    const value = (event as CustomEvent<{ value: 'advance' | 'full' }>).detail.value;
+    if (value === 'advance' || value === 'full') this.split.set(value);
+  }
+
+  onMethod(event: Event): void {
+    const value = (event as CustomEvent<{ value: string }>).detail.value;
+    if (this.methods.some(m => m.id === value)) this.method.set(value);
   }
 
   place(s: CheckoutSummary): string {
