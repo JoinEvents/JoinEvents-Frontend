@@ -1,5 +1,6 @@
 import { Component, inject, signal } from '@angular/core';
-import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
+import { CameraResultType, CameraSource } from '@capacitor/camera';
+import { base64ToBlob, photoFileInfo, pickPhoto } from '../../core/utils/camera.util';
 import {
   IonContent, IonHeader, IonToolbar, IonTitle, IonButtons, IonBackButton, IonIcon, IonButton, IonSpinner
 } from '@ionic/angular/standalone';
@@ -183,8 +184,9 @@ export class VendorVerificationPage implements ViewWillEnter {
   }
 
   async upload(doc: DocumentSlot): Promise<void> {
+    let photo;
     try {
-      const photo = await Camera.getPhoto({
+      photo = await pickPhoto({
         quality: 85,
         width: 2000,
         resultType: CameraResultType.Base64,
@@ -193,30 +195,24 @@ export class VendorVerificationPage implements ViewWillEnter {
         promptLabelPhoto: 'Choose a file',
         promptLabelPicture: 'Photograph the document'
       });
-      if (!photo.base64String) return;
-
-      this.uploading.set(doc.type);
-      const format = photo.format || 'jpeg';
-      const blob = this.base64ToBlob(photo.base64String, `image/${format}`);
-
-      this.vendorService.uploadVerificationDocument(blob, `${doc.type}.${format}`, doc.type).subscribe(success => {
-        this.uploading.set(null);
-        if (!success) {
-          void this.toast.error('Upload failed. Please try again.');
-          return;
-        }
-        void this.toast.success(`${doc.label} uploaded for review.`);
-        this.load();
-      });
-    } catch {
-      this.uploading.set(null);
+    } catch (error) {
+      void this.toast.error((error as Error).message);
+      return;
     }
-  }
+    if (!photo?.base64String) return;
 
-  private base64ToBlob(base64: string, mimeType: string): Blob {
-    const bytes = atob(base64);
-    const buffer = new Uint8Array(bytes.length);
-    for (let i = 0; i < bytes.length; i++) buffer[i] = bytes.charCodeAt(i);
-    return new Blob([buffer], { type: mimeType });
+    this.uploading.set(doc.type);
+    const { mime, ext } = photoFileInfo(photo.format);
+    const blob = base64ToBlob(photo.base64String, mime);
+
+    this.vendorService.uploadVerificationDocument(blob, `${doc.type}.${ext}`, doc.type).subscribe(error => {
+      this.uploading.set(null);
+      if (error) {
+        void this.toast.error(error);
+        return;
+      }
+      void this.toast.success(`${doc.label} uploaded for review.`);
+      this.load();
+    });
   }
 }

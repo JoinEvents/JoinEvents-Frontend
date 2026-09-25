@@ -5,6 +5,7 @@ import { catchError, map } from 'rxjs/operators';
 import { BaseApiService } from './base-api.service';
 import { API_ROUTES } from '../constants/api.constants';
 import { resolveMediaUrl } from '../utils/media-url.util';
+import { serverMessage } from '../utils/server-message.util';
 
 export interface VendorPackage {
   id: string;
@@ -18,6 +19,12 @@ export interface VendorPackage {
   maxGuests?: number;
   totalBookings?: number;
   rating?: number;
+}
+
+/** The package id on success, or a message fit to show the vendor. */
+export interface SaveResult {
+  id?: string;
+  error?: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -36,15 +43,26 @@ export class VendorPackageService extends BaseApiService {
     );
   }
 
-  create(payload: Record<string, unknown>): Observable<Record<string, unknown> | null> {
-    return this.post<unknown>(API_ROUTES.VENDOR_PACKAGES.BASE, payload, false).pipe(
-      map(res => this.single(res)),
-      catchError(() => of(null))
+  /**
+   * Creates a package. The server's reason is passed back on failure — it is
+   * usually actionable (KYC still pending, business profile incomplete), and a
+   * generic "could not create" left vendors with no way forward.
+   */
+  create(payload: Record<string, unknown>): Observable<SaveResult> {
+    return this.post<unknown>(API_ROUTES.VENDOR_PACKAGES.BASE, payload).pipe(
+      map(res => {
+        const id = this.single(res)?.['id'] as string | undefined;
+        return id ? { id } : { error: 'Could not create the package. Please try again.' };
+      }),
+      catchError(err => of({ error: serverMessage(err, 'Could not create the package. Please try again.') }))
     );
   }
 
-  update(id: string, payload: Record<string, unknown>): Observable<boolean> {
-    return this.ok(this.put<unknown>(API_ROUTES.VENDOR_PACKAGES.BY_ID(id), payload, false));
+  update(id: string, payload: Record<string, unknown>): Observable<SaveResult> {
+    return this.put<unknown>(API_ROUTES.VENDOR_PACKAGES.BY_ID(id), payload).pipe(
+      map(() => ({ id })),
+      catchError(err => of({ error: serverMessage(err, 'Could not save the changes. Please try again.') }))
+    );
   }
 
   remove(id: string): Observable<boolean> {
@@ -56,10 +74,13 @@ export class VendorPackageService extends BaseApiService {
   }
 
   /** Uploads gallery images captured with the device camera or picked from the roll. */
-  uploadImages(id: string, files: { blob: Blob; name: string }[]): Observable<boolean> {
+  uploadImages(id: string, files: { blob: Blob; name: string }[]): Observable<SaveResult> {
     const form = new FormData();
     files.forEach(f => form.append('files', f.blob, f.name));
-    return this.ok(this.post<unknown>(API_ROUTES.VENDOR_PACKAGES.IMAGES(id), form, false));
+    return this.post<unknown>(API_ROUTES.VENDOR_PACKAGES.IMAGES(id), form).pipe(
+      map(() => ({ id })),
+      catchError(err => of({ error: serverMessage(err, 'The photos could not be uploaded.') }))
+    );
   }
 
   private toPackage(p: Record<string, unknown>): VendorPackage {
@@ -68,7 +89,7 @@ export class VendorPackageService extends BaseApiService {
       name: String(p['name'] ?? ''),
       category: String(p['category'] ?? p['categoryKey'] ?? ''),
       tier: String(p['tier'] ?? ''),
-      price: Number(p['price'] ?? p['basePrice'] ?? 0),
+      price: Number((p['pricing'] as Record<string, unknown> | undefined)?.['basePrice'] ?? p['price'] ?? p['basePrice'] ?? 0),
       isActive: Boolean(p['isActive'] ?? true),
       status: String(p['status'] ?? 'draft'),
       images: Array.isArray(p['images'])
@@ -76,7 +97,7 @@ export class VendorPackageService extends BaseApiService {
             .map(item => resolveMediaUrl(typeof item === 'string' ? item : (item as { url?: string } | null)?.url))
             .filter((url): url is string => !!url)
         : [],
-      maxGuests: p['maxGuests'] as number | undefined,
+      maxGuests: ((p['capacity'] as Record<string, unknown> | undefined)?.['maxGuests'] ?? p['maxGuests']) as number | undefined,
       totalBookings: p['totalBookings'] as number | undefined,
       rating: p['rating'] as number | undefined
     };

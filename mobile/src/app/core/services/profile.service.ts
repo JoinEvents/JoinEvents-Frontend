@@ -1,13 +1,22 @@
 import { inject, Injectable } from '@angular/core';
 import { Observable, from, of } from 'rxjs';
 import { catchError, map, switchMap } from 'rxjs/operators';
-import { Camera, CameraResultType, CameraSource, Photo } from '@capacitor/camera';
+import { CameraResultType, CameraSource } from '@capacitor/camera';
 
 import { BaseApiService } from './base-api.service';
 import { API_ROUTES } from '../constants/api.constants';
 import { CustomerProfile } from '../models/user.model';
 import { AuthService } from './auth.service';
 import { resolveMediaUrl } from '../utils/media-url.util';
+import { serverMessage } from '../utils/server-message.util';
+import { base64ToBlob, photoFileInfo, pickPhoto } from '../utils/camera.util';
+
+/** Outcome of a photo change: the new URL, a message to show, or a dismissed picker. */
+export interface AvatarResult {
+  url?: string;
+  error?: string;
+  cancelled?: boolean;
+}
 
 @Injectable({ providedIn: 'root' })
 export class ProfileService extends BaseApiService {
@@ -73,16 +82,16 @@ export class ProfileService extends BaseApiService {
    * Captures or picks an avatar and uploads it.
    *
    * The photo comes back as base64 rather than a file URI so the same code path
-   * works on both platforms — iOS hands back a `file://` URI the WebView cannot
-   * read without a permission dance, while Android's content URI needs resolving.
+   * works on both platforms. No `allowEditing`: on Android that hands the photo
+   * to whatever external editor is installed, which often fails or never
+   * returns, and the upload silently never happened.
    */
-  changeAvatar(source: CameraSource): Observable<string | null> {
+  changeAvatar(source: CameraSource): Observable<AvatarResult> {
     return from(
-      Camera.getPhoto({
-        quality: 75,
+      pickPhoto({
+        quality: 80,
         width: 720,
         height: 720,
-        allowEditing: true,
         resultType: CameraResultType.Base64,
         source,
         promptLabelHeader: 'Profile photo',
@@ -90,28 +99,23 @@ export class ProfileService extends BaseApiService {
         promptLabelPicture: 'Take a photo'
       })
     ).pipe(
-      switchMap((photo: Photo) => {
-        if (!photo.base64String) return of(null);
-        const blob = this.base64ToBlob(photo.base64String, `image/${photo.format || 'jpeg'}`);
+      switchMap(photo => {
+        if (!photo?.base64String) return of<AvatarResult>({ cancelled: true });
+        const { mime, ext } = photoFileInfo(photo.format);
         const form = new FormData();
-        form.append('file', blob, `avatar.${photo.format || 'jpg'}`);
-        return this.post<{ url?: string; avatarUrl?: string }>(API_ROUTES.PROFILE.AVATAR, form, false).pipe(
-          map(res => {
-            const url = resolveMediaUrl(res?.url ?? res?.avatarUrl) ?? null;
-            if (url) this.auth.updateUserProfile({ avatar: url });
-            return url;
-          })
+        form.append('file', base64ToBlob(photo.base64String, mime), `avatar.${ext}`);
+        return this.post<{ url?: string; avatarUrl?: string }>(API_ROUTES.PROFILE.AVATAR, form).pipe(
+          map((res): AvatarResult => {
+            const url = resolveMediaUrl(res?.url ?? res?.avatarUrl);
+            if (!url) return { error: 'The photo could not be saved. Please try again.' };
+            this.auth.updateUserProfile({ avatar: url });
+            return { url };
+          }),
+          catchError(err => of<AvatarResult>({ error: serverMessage(err, 'The photo could not be uploaded. Please try again.') }))
         );
       }),
-      catchError(() => of(null))
+      catchError(err => of<AvatarResult>({ error: (err as Error)?.message || 'Could not open the camera or gallery.' }))
     );
-  }
-
-  private base64ToBlob(base64: string, mimeType: string): Blob {
-    const bytes = atob(base64);
-    const buffer = new Uint8Array(bytes.length);
-    for (let i = 0; i < bytes.length; i++) buffer[i] = bytes.charCodeAt(i);
-    return new Blob([buffer], { type: mimeType });
   }
 
   private single<T>(res: unknown): T | null {

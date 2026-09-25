@@ -63,6 +63,10 @@ jobs:
             grep -q "android.permission.$p\"" "$MANIFEST" || \
               sed -i "s#<uses-permission android:name=\"android.permission.INTERNET\" />#&\n    <uses-permission android:name=\"android.permission.$p\" />#" "$MANIFEST"
           done
+          # Gallery access on Android 12 and below (Capacitor Camera docs); newer
+          # versions use READ_MEDIA_IMAGES / the system photo picker instead.
+          grep -q 'READ_EXTERNAL_STORAGE' "$MANIFEST" || \
+            sed -i 's#<uses-permission android:name="android.permission.INTERNET" />#&\n    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />\n    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="29" />#' "$MANIFEST"
           grep uses-permission "$MANIFEST"
 
       # Optional: push notifications need Firebase config, provided as a repo secret.

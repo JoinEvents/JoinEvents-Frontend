@@ -1,7 +1,7 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
+import { CameraResultType, CameraSource } from '@capacitor/camera';
 import {
   IonContent, IonHeader, IonToolbar, IonTitle, IonButtons, IonBackButton, IonButton, IonIcon,
   IonItem, IonInput, IonTextarea, IonSelect, IonSelectOption, IonSpinner, IonChip, IonLabel
@@ -10,6 +10,11 @@ import {
 import { VendorPackageService } from '../../core/services/vendor-package.service';
 import { PackageService } from '../../core/services/package.service';
 import { ToastService } from '../../core/services/toast.service';
+import { base64ToBlob, photoFileInfo, pickPhoto } from '../../core/utils/camera.util';
+import { resolveMediaUrl } from '../../core/utils/media-url.util';
+
+/** The API accepts at most this many images per package upload. */
+const MAX_PHOTOS = 6;
 
 /**
  * Create or edit a package. Images are captured with the device camera or
@@ -47,13 +52,15 @@ import { ToastService } from '../../core/services/toast.service';
               </button>
             </div>
           }
-          <button class="photo photo--add" (click)="addPhoto()">
-            <ion-icon name="camera-outline" />
-            <span class="je-xs">Add</span>
-          </button>
+          @if (photos().length < maxPhotos) {
+            <button class="photo photo--add" (click)="addPhoto()">
+              <ion-icon name="camera-outline" />
+              <span class="je-xs">Add</span>
+            </button>
+          }
         </div>
         <p class="je-xs je-soft hint">
-          The first photo is the cover. Packages with five or more photos get noticeably more enquiries.
+          The first photo is the cover. Add up to {{ maxPhotos }} photos — packages with five or more get noticeably more enquiries.
         </p>
 
         <form [formGroup]="form">
@@ -175,8 +182,9 @@ export class VendorEditPackagePage implements OnInit {
   readonly categories = signal<{ id: string; name: string }[]>([]);
   readonly inclusions = signal<string[]>([]);
   readonly inclusionDraft = signal('');
-  readonly photos = signal<{ preview: string; blob?: Blob; name: string }[]>([]);
+  readonly photos = signal<{ preview: string; blob?: Blob; hostedUrl?: string; name: string }[]>([]);
 
+  readonly maxPhotos = MAX_PHOTOS;
   private packageId: string | null = null;
 
   readonly form = this.fb.nonNullable.group({
@@ -207,15 +215,17 @@ export class VendorEditPackagePage implements OnInit {
         category: String(pkg['category'] ?? pkg['categoryKey'] ?? ''),
         tier: String(pkg['tier'] ?? 'standard'),
         description: String(pkg['description'] ?? ''),
-        price: Number(pkg['price'] ?? 0),
-        maxGuests: Number(pkg['maxGuests'] ?? 100),
+        price: Number((pkg['pricing'] as Record<string, unknown>)?.['basePrice'] ?? pkg['price'] ?? 0),
+        maxGuests: Number((pkg['capacity'] as Record<string, unknown>)?.['maxGuests'] ?? pkg['maxGuests'] ?? 100),
         durationHours: Number(pkg['durationHours'] ?? 6),
         city: String((pkg['address'] as Record<string, unknown>)?.['city'] ?? ''),
         locality: String((pkg['address'] as Record<string, unknown>)?.['locality'] ?? '')
       });
-      this.inclusions.set((pkg['services'] as string[]) ?? (pkg['inclusions'] as string[]) ?? []);
-      // Existing images are already hosted: preview only, nothing to re-upload.
-      this.photos.set(((pkg['images'] as string[]) ?? []).map(url => ({ preview: url, name: 'existing' })));
+      this.inclusions.set((pkg['includes'] as string[]) ?? (pkg['services'] as string[]) ?? []);
+      // Existing images are already hosted: kept by URL, nothing to re-upload.
+      this.photos.set(((pkg['images'] as string[]) ?? []).map(url => ({
+        preview: resolveMediaUrl(url) ?? url, hostedUrl: url, name: 'existing'
+      })));
     });
   }
 
@@ -231,8 +241,9 @@ export class VendorEditPackagePage implements OnInit {
   }
 
   async addPhoto(): Promise<void> {
+    if (this.photos().length >= MAX_PHOTOS) return;
     try {
-      const photo = await Camera.getPhoto({
+      const photo = await pickPhoto({
         quality: 80,
         width: 1600,
         resultType: CameraResultType.Base64,
@@ -241,16 +252,16 @@ export class VendorEditPackagePage implements OnInit {
         promptLabelPhoto: 'Choose from gallery',
         promptLabelPicture: 'Take a photo'
       });
-      if (!photo.base64String) return;
+      if (!photo?.base64String) return;
 
-      const format = photo.format || 'jpeg';
-      const blob = this.base64ToBlob(photo.base64String, `image/${format}`);
+      const { mime, ext } = photoFileInfo(photo.format);
+      const blob = base64ToBlob(photo.base64String, mime);
       this.photos.update(list => [
         ...list,
-        { preview: `data:image/${format};base64,${photo.base64String}`, blob, name: `photo-${list.length + 1}.${format}` }
+        { preview: `data:${mime};base64,${photo.base64String}`, blob, name: `photo-${Date.now()}.${ext}` }
       ]);
-    } catch {
-      // The user dismissed the picker — nothing to report.
+    } catch (error) {
+      void this.toast.error((error as Error).message);
     }
   }
 
@@ -271,58 +282,64 @@ export class VendorEditPackagePage implements OnInit {
 
     this.saving.set(true);
     const value = this.form.getRawValue();
-    const payload = {
+    // Shaped like the API's CreatePackageRequest: price and guest count are
+    // nested, and inclusions are "includes" — flat fields were silently dropped.
+    const payload: Record<string, unknown> = {
       name: value.name,
       category: value.category,
-      tier: value.tier,
       description: value.description,
-      price: value.price,
-      maxGuests: value.maxGuests,
-      durationHours: value.durationHours,
-      services: this.inclusions(),
-      address: { city: value.city, locality: value.locality }
+      includes: this.inclusions(),
+      address: { city: value.city, locality: value.locality },
+      pricing: { basePrice: Number(value.price) },
+      capacity: { maxGuests: Number(value.maxGuests) },
+      tier: value.tier,
+      durationHours: Number(value.durationHours)
     };
 
-    if (this.packageId) {
-      this.vendorPackages.update(this.packageId, payload).subscribe(success => {
-        this.saving.set(false);
-        if (!success) {
-          void this.toast.error('Could not save the changes. Please try again.');
-          return;
-        }
-        this.uploadNewPhotos(this.packageId!);
-        void this.toast.success('Package updated.');
-        void this.router.navigate(['/vendor/tabs/packages'], { replaceUrl: true });
-      });
-      return;
+    const editingId = this.packageId;
+    if (editingId) {
+      // Update replaces the image list, so send the hosted photos being kept —
+      // omitting it would delete every existing photo.
+      payload['images'] = this.photos().filter(p => p.hostedUrl).map(p => p.hostedUrl!);
     }
 
-    this.vendorPackages.create(payload).subscribe(created => {
-      this.saving.set(false);
-      const id = created?.['id'] as string | undefined;
-      if (!id) {
-        void this.toast.error('Could not create the package. Please try again.');
+    const save$ = editingId
+      ? this.vendorPackages.update(editingId, payload)
+      : this.vendorPackages.create(payload);
+
+    save$.subscribe(result => {
+      if (result.error || !result.id) {
+        this.saving.set(false);
+        void this.toast.error(result.error ?? 'Could not save the package. Please try again.');
         return;
       }
-      this.uploadNewPhotos(id);
-      void this.toast.success('Package submitted — it goes live once verified.');
-      void this.router.navigate(['/vendor/tabs/packages'], { replaceUrl: true });
+      this.uploadNewPhotos(result.id, editingId ? 'Package updated.' : 'Package submitted — it goes live once verified.');
     });
   }
 
-  /** Only photos captured in this session carry a blob; the rest are already hosted. */
-  private uploadNewPhotos(packageId: string): void {
+  /**
+   * Only photos captured in this session carry a blob; the rest are already
+   * hosted. Waits for the upload so a failure is reported instead of lost
+   * behind the navigation.
+   */
+  private uploadNewPhotos(packageId: string, successMessage: string): void {
     const fresh = this.photos()
       .filter(photo => photo.blob)
       .map(photo => ({ blob: photo.blob!, name: photo.name }));
-    if (!fresh.length) return;
-    this.vendorPackages.uploadImages(packageId, fresh).subscribe();
-  }
 
-  private base64ToBlob(base64: string, mimeType: string): Blob {
-    const bytes = atob(base64);
-    const buffer = new Uint8Array(bytes.length);
-    for (let i = 0; i < bytes.length; i++) buffer[i] = bytes.charCodeAt(i);
-    return new Blob([buffer], { type: mimeType });
+    const done = (warning?: string) => {
+      this.saving.set(false);
+      if (warning) void this.toast.error(warning);
+      else void this.toast.success(successMessage);
+      void this.router.navigate(['/vendor/tabs/packages'], { replaceUrl: true });
+    };
+
+    if (!fresh.length) {
+      done();
+      return;
+    }
+    this.vendorPackages.uploadImages(packageId, fresh).subscribe(result =>
+      done(result.error ? `Package saved, but the photos were not uploaded: ${result.error}` : undefined)
+    );
   }
 }
