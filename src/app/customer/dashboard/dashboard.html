@@ -474,10 +474,10 @@
         <div class="ai-widget-premium mb-4" [style.background]="'var(--gradient-primary)'">
           <div class="widget-content">
             <div class="badge-ai"><i class="bi bi-cpu-fill me-1"></i> AI POWERED</div>
-            <h5 class="ai-widget-title mt-2">Need an Event Timeline?</h5>
-            <p class="ai-widget-desc">Our smart assistant designs full itineraries and matches packages based on your budget & guest size.</p>
-            <button class="btn btn-ai-start mt-2" routerLink="/planner">
-              Launch Planner <i class="bi bi-stars ms-1"></i>
+            <h5 class="ai-widget-title mt-2">Planning an event?</h5>
+            <p class="ai-widget-desc">Roshi finds packages for your city, budget and guest count, and answers questions about your bookings, payments and refunds.</p>
+            <button class="btn btn-ai-start mt-2" (click)="openRoshi()">
+              Ask Roshi <i class="bi bi-stars ms-1"></i>
             </button>
           </div>
           <div class="ai-widget-visual">

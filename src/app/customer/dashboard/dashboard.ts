@@ -7,6 +7,7 @@ import { LoyaltyService } from '../../core/services/loyalty.service';
 import { PackageService } from '../../core/services/package.service';
 import { FavoritesService } from '../../core/services/favorites.service';
 import { EventTierService } from '../../core/services/event-tier.service';
+import { AiService } from '../../core/services/ai.service';
 import { EventType } from '../../core/models/event.model';
 import { Booking } from '../../core/models/booking.model';
 import { ChatThread } from '../../core/models/message.model';
@@ -33,6 +34,7 @@ export class CustomerDashboard implements OnInit, OnDestroy {
   private toast = inject(ToastService);
   private router = inject(Router);
   public eventTierService = inject(EventTierService);
+  private aiService = inject(AiService);
 
   user = this.auth.currentUser;
   loading = signal<boolean>(false);
@@ -85,9 +87,9 @@ export class CustomerDashboard implements OnInit, OnDestroy {
   readonly campaigns = [
     {
       title: 'Plan Your Dream Event',
-      subtitle: 'Use our AI-powered helper to build an custom itinerary and get vendor matches instantly.',
-      btnText: 'Launch AI Planner',
-      btnRoute: '/planner',
+      subtitle: 'Ask Roshi, your AI event concierge, to find packages for your budget, check your bookings and explain refunds.',
+      btnText: 'Ask Roshi',
+      btnRoute: 'roshi',
       icon: 'bi-stars',
       badge: 'Smart Tool',
       gradient: 'linear-gradient(135deg, #FF6B35 0%, #D946EF 100%)'
@@ -96,7 +98,7 @@ export class CustomerDashboard implements OnInit, OnDestroy {
       title: 'Get Custom Vendor Bids',
       subtitle: 'Describe your event once and compare quotes from verified vendors.',
       btnText: 'Create RFP Request',
-      btnRoute: '/rfp',
+      btnRoute: '/get-quotes',
       icon: 'bi-file-earmark-text-fill',
       badge: 'Save Money',
       gradient: 'linear-gradient(135deg, #6B21A8 0%, #9333EA 100%)'
@@ -405,7 +407,15 @@ export class CustomerDashboard implements OnInit, OnDestroy {
   }
 
   selectCampaign(route: string) {
+    if (route === 'roshi') {
+      this.openRoshi();
+      return;
+    }
     this.router.navigateByUrl(route);
+  }
+
+  openRoshi() {
+    this.aiService.open();
   }
 
   setCampaignIndex(idx: number) {
