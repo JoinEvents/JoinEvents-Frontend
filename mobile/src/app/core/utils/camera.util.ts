@@ -38,3 +38,32 @@ export function photoFileInfo(format: string | undefined): { mime: string; ext: 
   if (f === 'gif') return { mime: 'image/gif', ext: 'gif' };
   return { mime: 'image/jpeg', ext: 'jpg' };
 }
+
+/**
+ * Centre-crops a picked photo to 4:3 and re-encodes it as JPEG — the frame the
+ * web console's cropper produces for package photos, so cards look the same on
+ * both. Returns null if the image cannot be decoded.
+ */
+export function cropToLandscape(base64: string, mime: string, width = 1200): Promise<Blob | null> {
+  const height = Math.round(width * 3 / 4);
+  return new Promise(resolve => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return resolve(null);
+      // Cover: scale so the frame is filled, then centre.
+      const scale = Math.max(width / img.naturalWidth, height / img.naturalHeight);
+      const w = img.naturalWidth * scale;
+      const h = img.naturalHeight * scale;
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(0, 0, width, height);
+      ctx.drawImage(img, (width - w) / 2, (height - h) / 2, w, h);
+      canvas.toBlob(blob => resolve(blob), 'image/jpeg', 0.85);
+    };
+    img.onerror = () => resolve(null);
+    img.src = `data:${mime};base64,${base64}`;
+  });
+}

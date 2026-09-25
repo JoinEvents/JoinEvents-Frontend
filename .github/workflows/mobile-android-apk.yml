@@ -59,7 +59,7 @@ jobs:
       - name: Add app permissions
         run: |
           MANIFEST=android/app/src/main/AndroidManifest.xml
-          for p in CAMERA POST_NOTIFICATIONS READ_MEDIA_IMAGES ACCESS_NETWORK_STATE; do
+          for p in CAMERA POST_NOTIFICATIONS READ_MEDIA_IMAGES ACCESS_NETWORK_STATE ACCESS_COARSE_LOCATION ACCESS_FINE_LOCATION; do
             grep -q "android.permission.$p\"" "$MANIFEST" || \
               sed -i "s#<uses-permission android:name=\"android.permission.INTERNET\" />#&\n    <uses-permission android:name=\"android.permission.$p\" />#" "$MANIFEST"
           done

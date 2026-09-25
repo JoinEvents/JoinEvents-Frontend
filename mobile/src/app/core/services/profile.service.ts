@@ -52,15 +52,23 @@ export class ProfileService extends BaseApiService {
   }
 
   updateProfile(data: Record<string, unknown>): Observable<boolean> {
-    return this.patch<unknown>(API_ROUTES.PROFILE.BASE, data, false).pipe(
+    return this.saveProfile(data).pipe(map(error => error === null));
+  }
+
+  /**
+   * PATCH /profile. Resolves null on success or the server's reason on failure.
+   * Only fields actually sent are mirrored into the session — spreading an
+   * undefined name would blank the one already stored.
+   */
+  saveProfile(data: Record<string, unknown>): Observable<string | null> {
+    return this.patch<unknown>(API_ROUTES.PROFILE.BASE, data).pipe(
       map(() => {
-        this.auth.updateUserProfile({
-          name: data['name'] as string | undefined,
-          phone: data['phone'] as string | undefined
-        });
-        return true;
+        const name = data['name'] as string | undefined;
+        const phone = data['phone'] as string | undefined;
+        this.auth.updateUserProfile({ ...(name ? { name } : {}), ...(phone ? { phone } : {}) });
+        return null;
       }),
-      catchError(() => of(false))
+      catchError(err => of(serverMessage(err, 'Could not save your profile. Please try again.')))
     );
   }
 

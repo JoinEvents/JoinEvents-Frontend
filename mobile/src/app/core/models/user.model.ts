@@ -41,3 +41,14 @@ export interface VendorProfile extends AuthUser {
   totalReviews: number;
   services: string[];
 }
+
+/** What GET /profile returns for a vendor; business fields live on the vendor record. */
+export interface VendorBusinessProfile {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  city?: string;
+  businessName?: string | null;
+  description?: string | null;
+}
