@@ -5,16 +5,6 @@ import { EventPackage, EventType } from '../models/event.model';
 import { Observable, of } from 'rxjs';
 import { catchError, map, delay } from 'rxjs/operators';
 
-const DEFAULT_INCLUSIONS: { [key: string]: string[] } = {
-  wedding: ['Premium Venue', 'Gourmet Catering', 'Elegant Stage Decor', 'High-End Sound & Lighting', 'Luxury Couple Suite', 'Photography & Videography'],
-  birthday: ['Vibrant Venue', 'Fun Party Catering', 'Themed Balloon Decor', 'Dynamic Party Anchor', 'Live Music & DJ'],
-  birthday_party: ['Vibrant Venue', 'Fun Party Catering', 'Themed Balloon Decor', 'Dynamic Party Anchor', 'Live Music & DJ'],
-  corporate: ['Conference Hall', 'Premium Buffet Catering', 'AV & Projector Setup', 'High-Speed Wi-Fi', 'Executive Lounge Access'],
-  beauty: ['Professional Makeup Artists', 'Premium Hairstyling', 'Designer Bridal Wear', 'Traditional Mehendi Art'],
-  travel: ['Luxury Chauffeur Services', 'Premium AC Coach Hire', 'Professional Tour Guide', 'Custom Travel Logistics'],
-  shopping: ['Handcrafted Invites', 'Customized Guest Hampers', 'Traditional Indian Outfit Curation']
-};
-
 @Injectable({ providedIn: 'root' })
 export class PackageService extends BaseApiService {
 
@@ -100,7 +90,7 @@ export class PackageService extends BaseApiService {
 
     let rawDesc = p.description || p.Description || '';
     let cleanedDesc = rawDesc;
-    let inclusionDetails = {};
+    let inclusionDetails: Record<string, any> = {};
     if (rawDesc.includes('---INCLUSION_DETAILS---')) {
       const parts = rawDesc.split('---INCLUSION_DETAILS---');
       cleanedDesc = parts[0].trim();
@@ -183,39 +173,15 @@ export class PackageService extends BaseApiService {
 
     // Resolve nested/flat capacity data
     const cp = p.Capacity || p.capacity || {};
-    const guests = p.MaxGuests || p.maxGuests || cp.MaxGuests || cp.maxGuests || 100;
+    const guests = p.MaxGuests || p.maxGuests || cp.MaxGuests || cp.maxGuests || 0;
     const rooms = p.RoomCount || p.roomCount || cp.TotalRooms || cp.totalRooms || 0;
 
     // Resolve food dietary settings
     const isVegOnly = p.VegOnly !== undefined ? p.VegOnly : (p.vegOnly !== undefined ? p.vegOnly : (pr.VegPrice && !pr.NonVegPrice ? true : false));
 
-    // Resolve included features arrays
-    const inc = p.Includes || p.includes || p.Services || p.services || [];
-    let finalInclusions: string[] = [];
-    if (Array.isArray(inc) && inc.length > 0) {
-      finalInclusions = inc;
-    } else {
-      const catKey = (p.Category || p.category || p.EventTypeId || p.eventTypeId || 'wedding').toString().toLowerCase();
-      if (catKey.includes('wedding') || catKey.includes('shaadi')) {
-        finalInclusions = DEFAULT_INCLUSIONS['wedding'];
-      } else if (catKey.includes('birthday') || catKey.includes('party')) {
-        finalInclusions = DEFAULT_INCLUSIONS['birthday'];
-      } else if (catKey.includes('corporate')) {
-        finalInclusions = DEFAULT_INCLUSIONS['corporate'];
-      } else if (catKey.includes('beauty')) {
-        finalInclusions = DEFAULT_INCLUSIONS['beauty'];
-      } else if (catKey.includes('travel')) {
-        finalInclusions = DEFAULT_INCLUSIONS['travel'];
-      } else if (catKey.includes('shopping')) {
-        finalInclusions = DEFAULT_INCLUSIONS['shopping'];
-      } else {
-        finalInclusions = p.Name || p.name ? [p.Name || p.name] : ['Professional Service'];
-      }
-    }
-
     // Resolve primary locations
     const addr = p.Address || p.address || {};
-    const cityLoc = p.City || p.city || addr.City || addr.city || p.Location || p.location || 'Multiple Locations';
+    const cityLoc = p.City || p.city || addr.City || addr.city || p.Location || p.location || '';
 
     // Resolve visual attachments list
     const imgs = p.Images || p.images || [];
@@ -226,7 +192,7 @@ export class PackageService extends BaseApiService {
 
     let rawDesc = p.Description || p.description || '';
     let cleanedDesc = rawDesc;
-    let inclusionDetails = {};
+    let inclusionDetails: Record<string, any> = {};
     if (rawDesc.includes('---INCLUSION_DETAILS---')) {
       const parts = rawDesc.split('---INCLUSION_DETAILS---');
       cleanedDesc = parts[0].trim();
@@ -236,6 +202,12 @@ export class PackageService extends BaseApiService {
         console.error('Failed to parse inclusion details in normalizePackage', e);
       }
     }
+
+    // What the package includes: the vendor's own list, or the services they priced.
+    const inc = p.Includes || p.includes || p.Services || p.services || [];
+    const finalInclusions: string[] = Array.isArray(inc) && inc.length > 0
+      ? inc
+      : Object.keys(inclusionDetails);
 
     const sp = p.Spaces || p.spaces || [];
     const spacesList = sp.map((s: any) => ({
@@ -254,6 +226,15 @@ export class PackageService extends BaseApiService {
       vendorName: p.VendorName || p.vendorName || 'JoinEvents Partner',
       vendorDescription: p.VendorDescription || p.vendorDescription || '',
       location: cityLoc,
+      address: {
+        street: addr.Street || addr.street || '',
+        locality: addr.Locality || addr.locality || '',
+        landmark: addr.Landmark || addr.landmark || '',
+        city: addr.City || addr.city || '',
+        state: addr.State || addr.state || '',
+        pincode: addr.Pincode || addr.pincode || '',
+        country: addr.Country || addr.country || ''
+      },
       tier: p.Tier || p.tier || p.Theme || p.theme || 'premium',
       price: priceValue,
       pricing: {

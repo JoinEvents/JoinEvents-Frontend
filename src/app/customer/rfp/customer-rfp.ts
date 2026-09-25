@@ -100,31 +100,9 @@ export class CustomerRfp implements OnInit {
       this.toast.success('Bid accepted! Redirecting to payment...');
       
       if (res && res.data && res.data.bookingId) {
-        const bookingDetails = {
-          bookingId: res.data.bookingId,
-          packageId: null, // No package since this is an RFP
-          packageName: rfp?.title || 'Custom Event Package',
-          vendorId: res.data.vendorId,
-          bookingDate: rfp?.eventDate || new Date().toISOString(),
-          bookingCity: rfp?.city || '',
-          bookingGuests: rfp?.guestCount || 100,
-          selectedAddons: [],
-          includeInsurance: false,
-          couponCode: '',
-          discountAmount: 0,
-          basePrice: res.data.basePrice,
-          addonsTotal: 0,
-          gstAmount: res.data.gstAmount,
-          insurancePrice: 0,
-          totalAmount: res.data.totalAmount,
-          advanceAmount: res.data.advanceAmount,
-          payableAmount: res.data.payableAmount,
-          isBalancePayment: true // To ensure we don't recreate the booking
-        };
-        
-        sessionStorage.setItem('joinevents_booking_pending', JSON.stringify(bookingDetails));
+        // Checkout loads the booking the server just created and charges its advance.
         this.router.navigate(['/checkout', res.data.bookingId], {
-          state: { bookingDetails }
+          state: { bookingId: res.data.bookingId }
         });
       }
     });

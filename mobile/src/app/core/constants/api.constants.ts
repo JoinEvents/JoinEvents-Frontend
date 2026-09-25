@@ -19,6 +19,8 @@ export const API_ROUTES = {
     BASE: '/bookings',
     VENDOR: '/bookings/vendor',
     CREATE: '/booking',
+    QUOTE: '/booking/quote',
+    BY_ID: (id: string) => `/bookings/${id}`,
     STATUS: (id: string) => `/bookings/${id}/status`,
     CANCEL: (id: string) => `/bookings/${id}/cancel`,
     CANCELLATION: (id: string) => `/bookings/${id}/cancellation`,

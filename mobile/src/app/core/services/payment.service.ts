@@ -5,13 +5,15 @@ import { Browser } from '@capacitor/browser';
 
 import { BaseApiService } from './base-api.service';
 import { API_ROUTES } from '../constants/api.constants';
+import { ApiResult, toResult } from '../utils/result.util';
 
-export interface PaymentIntent {
+/** A started payment. The server decides the amount. */
+export interface PaymentStart {
+  paymentId: string;
   providerRef: string;
-  checkoutUrl?: string;
   amount: number;
-  currency: string;
-  status: string;
+  /** A hosted gateway page, when the provider needs one. */
+  checkoutUrl?: string;
 }
 
 export interface PaymentRecord {
@@ -27,21 +29,26 @@ export interface PaymentRecord {
 
 @Injectable({ providedIn: 'root' })
 export class PaymentService extends BaseApiService {
-  initiate(req: { bookingId: string; paymentMethod: string; couponCode?: string }): Observable<PaymentIntent | null> {
-    return this.post<unknown>(
-      API_ROUTES.PAYMENTS.INITIATE,
-      { BookingId: req.bookingId, PaymentMethod: req.paymentMethod, CouponCode: req.couponCode },
-      false
-    ).pipe(
-      map(res => this.single<PaymentIntent>(res)),
-      catchError(() => of(null))
+  /**
+   * Starts a payment: the advance, the whole total when payInFull is set on an unpaid booking,
+   * or whatever balance is still due — the server decides.
+   */
+  start(bookingId: string, paymentMethod: string, payInFull: boolean): Observable<ApiResult<PaymentStart>> {
+    return toResult(
+      this.post<PaymentStart>(
+        API_ROUTES.PAYMENTS.INITIATE,
+        { BookingId: bookingId, PaymentMethod: paymentMethod, PayInFull: payInFull },
+        false
+      ),
+      'Payment could not be started. Please try again.'
     );
   }
 
-  confirm(providerRef: string, status: string): Observable<boolean> {
-    return this.post<unknown>(API_ROUTES.PAYMENTS.CONFIRM, { ProviderRef: providerRef, Status: status }, false).pipe(
-      map(() => true),
-      catchError(() => of(false))
+  /** The outcome is read back from the payment provider by the server. */
+  verify(providerRef: string): Observable<ApiResult<{ status: string }>> {
+    return toResult(
+      this.post<{ status: string }>(API_ROUTES.PAYMENTS.CONFIRM, { ProviderRef: providerRef }, false),
+      'We could not confirm the payment. Check your booking for its status.'
     );
   }
 
@@ -66,11 +73,5 @@ export class PaymentService extends BaseApiService {
     const payload = res as { data?: unknown[] } | unknown[] | null;
     if (Array.isArray(payload)) return payload as Record<string, unknown>[];
     return ((payload?.data ?? []) as Record<string, unknown>[]);
-  }
-
-  private single<T>(res: unknown): T | null {
-    const payload = res as { data?: unknown } | null;
-    const value = payload && typeof payload === 'object' && 'data' in payload ? payload.data : payload;
-    return (value as T) ?? null;
   }
 }

@@ -13,7 +13,7 @@
           <div class="pay-meta">{{ b.bookingNumber }} · {{ b.eventDate }}</div>
           <div class="d-flex justify-content-between mt-2">
             <div class="pay-amount-sm">Total: ₹{{ b.totalAmount.toLocaleString('en-IN') }}</div>
-            <div class="pay-balance" [class.settled]="b.status === 'settled'">{{ b.status === 'settled' ? '✓ Paid' : 'Due: ₹' + balance(b).toLocaleString('en-IN') }}</div>
+            <div class="pay-balance" [class.settled]="balance(b) === 0">{{ balance(b) === 0 ? '✓ Paid' : 'Due: ₹' + balance(b).toLocaleString('en-IN') }}</div>
           </div>
         </div>
       }
@@ -30,13 +30,13 @@
         </div>
         <div class="psh-divider"></div>
         <div>
-          <div class="psh-label">Advance Paid</div>
-          <div class="psh-value success">₹{{ b.advanceAmount.toLocaleString('en-IN') }}</div>
+          <div class="psh-label">Paid So Far</div>
+          <div class="psh-value success">₹{{ paid(b).toLocaleString('en-IN') }}</div>
         </div>
         <div class="psh-divider"></div>
         <div>
           <div class="psh-label">Balance Due</div>
-          <div class="psh-value {{ b.status === 'settled' ? 'success' : 'primary' }}">{{ b.status === 'settled' ? '₹0 (Settled)' : '₹' + balance(b).toLocaleString('en-IN') }}</div>
+          <div class="psh-value {{ balance(b) === 0 ? 'success' : 'primary' }}">₹{{ balance(b).toLocaleString('en-IN') }}</div>
         </div>
       </div>
 
@@ -45,22 +45,22 @@
         <h6 class="section-mini-title">Payment Breakdown</h6>
         <div class="breakdown-table">
           <div class="br-row header"><span>Component</span><span>Amount</span></div>
-          <div class="br-row"><span>Base Package Amount</span><span>₹{{ b.baseAmount.toLocaleString('en-IN') }}</span></div>
-          <div class="br-row"><span>Add-on Services</span><span>₹{{ b.extraServicesAmount.toLocaleString('en-IN') }}</span></div>
+          <div class="br-row"><span>Package (before GST)</span><span>₹{{ b.baseAmount.toLocaleString('en-IN') }}</span></div>
+          @if (b.extraServicesAmount) { <div class="br-row"><span>Add-on Services</span><span>₹{{ b.extraServicesAmount.toLocaleString('en-IN') }}</span></div> }
           @if (b.damageCharges) { <div class="br-row danger"><span><i class="bi bi-exclamation-triangle me-1"></i>Damage Charges</span><span>₹{{ b.damageCharges.toLocaleString('en-IN') }}</span></div> }
-          <div class="br-row"><span>GST @ 18%</span><span>₹{{ gst(b).toLocaleString('en-IN') }}</span></div>
+          <div class="br-row"><span>GST</span><span>₹{{ gst(b).toLocaleString('en-IN') }}</span></div>
           <div class="br-row total"><span>Grand Total</span><span>₹{{ b.totalAmount.toLocaleString('en-IN') }}</span></div>
-          <div class="br-row paid"><span><i class="bi bi-check-circle-fill me-1"></i>Advance Paid</span><span>- ₹{{ b.advanceAmount.toLocaleString('en-IN') }}</span></div>
-          <div class="br-row balance-due"><span class="fw-bold">Balance Due</span><span class="fw-bold">{{ b.status === 'settled' ? '₹0' : '₹' + balance(b).toLocaleString('en-IN') }}</span></div>
+          <div class="br-row paid"><span><i class="bi bi-check-circle-fill me-1"></i>Paid</span><span>- ₹{{ paid(b).toLocaleString('en-IN') }}</span></div>
+          <div class="br-row balance-due"><span class="fw-bold">Balance Due</span><span class="fw-bold">₹{{ balance(b).toLocaleString('en-IN') }}</span></div>
         </div>
 
-        @if (b.status !== 'settled' && b.status !== 'cancelled') {
+        @if (canPay(b)) {
           <button class="btn-ee-primary w-100 justify-content-center py-3 mt-4" (click)="payBalance(b)">
-            <i class="bi bi-credit-card me-2"></i> Pay Balance — ₹{{ balance(b).toLocaleString('en-IN') }}
+            <i class="bi bi-credit-card me-2"></i> {{ paid(b) === 0 ? 'Pay Now' : 'Pay Balance — ₹' + balance(b).toLocaleString('en-IN') }}
           </button>
           <p class="pay-note">Payments are 100% secure. GST invoice will be shared after final payment.</p>
-        } @else if (b.status === 'settled') {
-          <div class="settled-banner"><i class="bi bi-check-circle-fill me-2"></i>This booking is fully paid and settled. Thank you! 🎉</div>
+        } @else if (balance(b) === 0) {
+          <div class="settled-banner"><i class="bi bi-check-circle-fill me-2"></i>This booking is fully paid. Thank you! 🎉</div>
         }
       </div>
     </div>

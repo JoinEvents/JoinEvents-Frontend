@@ -16,7 +16,7 @@ const FAQS = [
   { q: 'When is my advance refunded?', a: 'Cancel 30 or more days before the event and the advance is refunded in full. Inside 30 days a cancellation fee applies on a sliding scale, shown to you before you confirm.' },
   { q: 'How does escrow protect me?', a: 'Your advance is held by JoinEvents, not the vendor. It is released only after your event is marked complete, so a vendor who does not show up is never paid.' },
   { q: 'What if the vendor cancels?', a: 'You receive a full refund and we help you find a replacement. The vendor is penalised and repeated cancellations remove them from the platform.' },
-  { q: 'How do I use my reward points?', a: 'Points apply at checkout: 100 points is ₹100 off. Tap Apply on the checkout screen before paying.' },
+  { q: 'How do I earn reward points?', a: 'You earn 10 points for every ₹100 you pay on a booking. Your balance and history are on the Rewards screen.' },
   { q: 'Can I change my event date?', a: 'Message the vendor to agree a new date. Once they confirm, our support team updates the booking for you.' }
 ];
 

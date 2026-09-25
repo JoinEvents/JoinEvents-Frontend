@@ -5,7 +5,8 @@ import { catchError, map } from 'rxjs/operators';
 import { BaseApiService } from './base-api.service';
 import { API_ROUTES } from '../constants/api.constants';
 import { resolveMediaUrl } from '../utils/media-url.util';
-import { EventPackage, EventType } from '../models/event.model';
+import { EventPackage, EventType, PackageServiceDetail } from '../models/event.model';
+import { InclusionDetail, splitDescription } from '../utils/package-draft.util';
 import { Tier } from '../models/catalogue.model';
 
 export interface PackageSearchParams {
@@ -129,18 +130,26 @@ export class PackageService extends BaseApiService {
 
   private toPackage(p: Record<string, unknown>): EventPackage {
     const images = this.toImageUrls(p['images']);
+    const pricing = (p['pricing'] ?? {}) as NonNullable<EventPackage['pricing']>;
+    const capacity = (p['capacity'] ?? {}) as NonNullable<EventPackage['capacity']>;
+    // The vendor console stores per-service details after a marker in the description.
+    const { text, details } = splitDescription(p['description'] as string | undefined);
+    const serviceDetails = this.toServiceDetails(details);
+    const includes = (p['includes'] ?? p['services'] ?? p['inclusions']) as string[] | undefined;
+
     return {
       id: String(p['id'] ?? p['packageId'] ?? ''),
-      eventTypeId: String(p['eventTypeId'] ?? p['categoryKey'] ?? ''),
+      eventTypeId: String(p['eventTypeId'] ?? p['category'] ?? p['categoryKey'] ?? ''),
       vendorId: p['vendorId'] as string | undefined,
       vendorName: p['vendorName'] as string | undefined,
       vendorDescription: p['vendorDescription'] as string | undefined,
-      name: String(p['name'] ?? p['packageName'] ?? 'Package'),
+      name: String(p['name'] ?? p['packageName'] ?? ''),
       tier: String(p['theme'] ?? p['tier'] ?? ''),
-      price: Number(p['price'] ?? p['basePrice'] ?? 0),
-      description: String(p['description'] ?? ''),
-      services: (p['services'] as string[]) ?? (p['inclusions'] as string[]) ?? [],
-      maxGuests: Number(p['maxGuests'] ?? p['capacity'] ?? 0),
+      // The listed price: the package for its full capacity, GST included.
+      price: Number(p['price'] ?? pricing.basePrice ?? pricing.rent ?? pricing.vegPrice ?? 0) || 0,
+      description: text,
+      services: includes?.length ? includes : Object.keys(serviceDetails),
+      maxGuests: Number(p['maxGuests'] ?? capacity.maxGuests ?? 0) || 0,
       durationHours: Number(p['durationHours'] ?? 0),
       isPopular: Boolean(p['isPopular']),
       image: resolveMediaUrl(p['image'] as string | undefined) ?? images[0],
@@ -151,10 +160,31 @@ export class PackageService extends BaseApiService {
       addons: (p['addons'] as EventPackage['addons']) ?? [],
       sustainabilityTags: (p['sustainabilityTags'] as string[]) ?? [],
       address: p['address'] as EventPackage['address'],
-      pricing: p['pricing'] as EventPackage['pricing'],
-      capacity: p['capacity'] as EventPackage['capacity'],
+      pricing,
+      capacity,
+      amenities: p['amenities'] as EventPackage['amenities'],
       policies: p['policies'] as EventPackage['policies'],
-      spaces: p['spaces'] as EventPackage['spaces']
+      spaces: p['spaces'] as EventPackage['spaces'],
+      serviceDetails
     };
+  }
+
+  private toServiceDetails(raw: Record<string, Partial<InclusionDetail>>): Record<string, PackageServiceDetail> {
+    const list = (value: unknown): string[] =>
+      Array.isArray(value) ? value.map(v => String(v).trim()).filter(Boolean)
+        : typeof value === 'string' ? value.split(',').map(v => v.trim()).filter(Boolean)
+        : [];
+    const result: Record<string, PackageServiceDetail> = {};
+    for (const [name, d] of Object.entries(raw ?? {})) {
+      result[name] = {
+        description: String(d?.description ?? ''),
+        minPrice: Number(d?.minPrice) || 0,
+        maxPrice: Number(d?.maxPrice) || 0,
+        images: this.toImageUrls(d?.images),
+        keyFeatures: list(d?.keyFeatures),
+        inclusions: list(d?.inclusions)
+      };
+    }
+    return result;
   }
 }

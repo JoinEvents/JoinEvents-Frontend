@@ -4,7 +4,8 @@ import { catchError, map } from 'rxjs/operators';
 
 import { BaseApiService } from './base-api.service';
 import { API_ROUTES } from '../constants/api.constants';
-import { Booking, BookingStatus } from '../models/booking.model';
+import { Booking, BookingQuote, BookingStatus, CreateBookingRequest } from '../models/booking.model';
+import { ApiResult, toResult } from '../utils/result.util';
 
 export interface CancellationBreakdown {
   cancellationFee: number;
@@ -30,17 +31,28 @@ export class BookingService extends BaseApiService {
   }
 
   getById(id: string): Observable<Booking | null> {
-    return this.get<unknown>(`${API_ROUTES.BOOKINGS.BASE}/${id}`, undefined, false).pipe(
+    return this.get<unknown>(API_ROUTES.BOOKINGS.BY_ID(id), undefined, false).pipe(
       map(res => this.single(res)),
       catchError(() => of(null))
     );
   }
 
-  create(payload: Record<string, unknown>): Observable<Booking | null> {
-    return this.post<unknown>(API_ROUTES.BOOKINGS.CREATE, payload, false).pipe(
-      map(res => this.single(res)),
-      catchError(() => of(null))
+  /** Loads one booking, with the server's reason when it cannot. */
+  fetch(id: string): Observable<ApiResult<Booking>> {
+    return toResult(this.get<Booking>(API_ROUTES.BOOKINGS.BY_ID(id), undefined, false), 'Could not load this booking.');
+  }
+
+  /** The server's price for a package and guest count: exactly what a booking will charge. */
+  quote(packageId: string, guestCount: number): Observable<ApiResult<BookingQuote>> {
+    return toResult(
+      this.post<BookingQuote>(API_ROUTES.BOOKINGS.QUOTE, { packageId, guestCount }, false),
+      'Could not price this package. Please try again.'
     );
+  }
+
+  /** Creates a booking. Only what is being booked is sent; the server prices it. */
+  create(request: CreateBookingRequest): Observable<ApiResult<Booking>> {
+    return toResult(this.post<Booking>(API_ROUTES.BOOKINGS.CREATE, request, false), 'We could not create the booking.');
   }
 
   updateStatus(bookingId: string, status: BookingStatus): Observable<boolean> {

@@ -1,4 +1,5 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DecimalPipe, TitleCasePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
@@ -238,6 +239,7 @@ export class CustomerEventsPage implements OnInit {
   readonly filtersOpen = signal(false);
 
   readonly query = signal('');
+  private destroyRef = inject(DestroyRef);
   readonly category = signal<string | null>(null);
   /** Active tiers from the admin catalogue — the tier filter's options. */
   readonly tiers = signal<Tier[]>([]);
@@ -259,10 +261,13 @@ export class CustomerEventsPage implements OnInit {
   private readonly pageSize = 12;
 
   ngOnInit(): void {
-    this.category.set(this.route.snapshot.queryParamMap.get('category'));
     this.packageService.getEventTypes().subscribe(types => this.categories.set(types));
     this.packageService.getTiers().subscribe(tiers => this.tiers.set(tiers));
-    this.fetch(true);
+    // The tab page stays alive, so follow every category picked on the dashboard, not just the first.
+    this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(params => {
+      this.category.set(params.get('category'));
+      this.fetch(true);
+    });
   }
 
   onSearch(value: string): void {

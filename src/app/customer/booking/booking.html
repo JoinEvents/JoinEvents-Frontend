@@ -58,7 +58,6 @@
       <div class="hero-meta-row">
         <span class="meta-item"><i class="bi bi-geo-alt-fill"></i> {{ selectedPackage()?.location }}</span>
         <span class="meta-item meta-item-clickable" (click)="scrollToReviews()"><i class="bi bi-star-fill"></i> {{ averageRating().toFixed(1) }} <span class="meta-sub">({{ totalReviewsCount() }} reviews)</span></span>
-        <span class="meta-item"><i class="bi bi-clock"></i> 8-12 Hrs</span>
       </div>
     </div>
   </div>
@@ -82,7 +81,7 @@
           <div class="stat-icon guests"><i class="bi bi-people-fill"></i></div>
           <div>
             <span class="stat-label">Capacity</span>
-            <span class="stat-val">{{ selectedPackage()?.maxGuests || 300 }}</span>
+            <span class="stat-val">{{ selectedPackage()?.maxGuests || '—' }}</span>
           </div>
         </div>
         <div class="stat-chip">
@@ -91,7 +90,7 @@
           </div>
           <div>
             <span class="stat-label">Tier</span>
-            <span class="stat-val">{{ selectedPackage()?.tier || 'Silver' }}</span>
+            <span class="stat-val">{{ selectedPackage()?.tier || '—' }}</span>
           </div>
         </div>
         <div class="stat-chip">
@@ -222,23 +221,36 @@
                 </div>
               </div>
             }
-            @if (selectedPackage()?.pricing?.rent || selectedPackage()?.pricing?.basePrice) {
+            @if (selectedPackage()?.pricing?.rent) {
               <div class="pricing-structure-item rent">
                 <div class="pricing-item-header">
                   <i class="bi bi-building rent-icon"></i>
-                  <span class="item-title">Venue Hire / Rent</span>
+                  <span class="item-title">Venue Rent</span>
                 </div>
                 <div class="item-price">
                   <span class="currency">₹</span>
-                  <span class="val">{{ selectedPackage()?.pricing?.rent || selectedPackage()?.pricing?.basePrice }}</span>
+                  <span class="val">{{ selectedPackage()?.pricing?.rent.toLocaleString('en-IN') }}</span>
                   <span class="unit">/ Event</span>
+                </div>
+              </div>
+            }
+            @if (selectedPackage()?.pricing?.basePrice) {
+              <div class="pricing-structure-item rent">
+                <div class="pricing-item-header">
+                  <i class="bi bi-tag-fill rent-icon"></i>
+                  <span class="item-title">Package Price @if (selectedPackage()?.maxGuests) {(for {{ selectedPackage()?.maxGuests }} guests)}</span>
+                </div>
+                <div class="item-price">
+                  <span class="currency">₹</span>
+                  <span class="val">{{ selectedPackage()?.pricing?.basePrice.toLocaleString('en-IN') }}</span>
+                  <span class="unit">incl. GST</span>
                 </div>
               </div>
             }
           </div>
           <div class="pricing-info-footer">
             <i class="bi bi-info-circle-fill"></i>
-            <span>Base Unit pricing type is configured as <strong>{{ selectedPackage()?.pricing?.unit || 'per event' }}</strong>.</span>
+            <span>Your price is worked out for your guest count when you book: per-plate catering is charged per guest.</span>
           </div>
         </div>
       }
@@ -252,7 +264,7 @@
               <div class="logistics-icon guests"><i class="bi bi-people-fill"></i></div>
               <div class="logistics-details">
                 <span class="logistics-label">Maximum Guests</span>
-                <span class="logistics-val">{{ selectedPackage()?.capacity?.maxGuests || selectedPackage()?.maxGuests || 100 }} Guests</span>
+                <span class="logistics-val">{{ selectedPackage()?.capacity?.maxGuests || selectedPackage()?.maxGuests || '—' }} Guests</span>
               </div>
             </div>
             <div class="logistics-item">
@@ -536,28 +548,6 @@
         </div>
       </div>
 
-      <!-- Add-ons -->
-      @if (selectedPackage()?.addons?.length) {
-        <div class="detail-card">
-          <div class="card-label">Customize Your Experience</div>
-          <div class="addons-grid">
-            @for (addon of selectedPackage()?.addons; track addon.id) {
-              <button class="addon-card" [class.selected]="selectedAddons().includes(addon)" (click)="toggleAddon(addon)">
-                <div class="addon-check">
-                  <i class="bi" [class.bi-plus-lg]="!selectedAddons().includes(addon)" [class.bi-check-lg]="selectedAddons().includes(addon)"></i>
-                </div>
-                <div class="addon-info">
-                  <span class="addon-name">{{ addon.name }}</span>
-                  <span class="addon-price">+₹{{ addon.price.toLocaleString('en-IN') }}</span>
-                </div>
-              </button>
-            }
-          </div>
-        </div>
-      }
-
-
-
     </div>
 
     <!-- Right Column: Booking Sidebar -->
@@ -591,40 +581,72 @@
             <label>Number of Guests</label>
             <div class="input-wrap">
               <i class="bi bi-people"></i>
-              <input type="number" [(ngModel)]="bookingGuests" placeholder="e.g. 150">
+              <input type="number" name="guests" min="1" [attr.max]="selectedPackage()?.maxGuests || null"
+                     [ngModel]="bookingGuests" (ngModelChange)="onGuestsChange($event)" placeholder="How many guests?">
             </div>
-          </div>
-
-          <!-- Price Breakdown -->
-          <div class="price-breakdown">
-            <div class="price-row">
-              <span>Package Price</span>
-              <span>₹{{ (selectedPackage()?.price || 0).toLocaleString('en-IN') }}</span>
-            </div>
-            @if (getAddonsTotal() > 0) {
-              <div class="price-row accent">
-                <span>Add-ons</span>
-                <span>+₹{{ getAddonsTotal().toLocaleString('en-IN') }}</span>
-              </div>
+            @if (selectedPackage()?.maxGuests) {
+              <small class="text-muted">This package caters for up to {{ selectedPackage()?.maxGuests }} guests.</small>
             }
-            <div class="price-row">
-              <span>GST (18%)</span>
-              <span>₹{{ getGstAmount().toLocaleString('en-IN') }}</span>
-            </div>
-            <div class="price-row total">
-              <span>Total</span>
-              <span>₹{{ getTotalAmount().toLocaleString('en-IN') }}</span>
+          </div>
+
+          <div class="form-field">
+            <label>Event Name <span class="text-muted fw-normal">(optional)</span></label>
+            <div class="input-wrap">
+              <i class="bi bi-stars"></i>
+              <input type="text" name="eventName" [(ngModel)]="eventName" [placeholder]="selectedPackage()?.name || 'e.g. Asha & Rahul wedding'">
             </div>
           </div>
 
-          <!-- Deposit Info -->
-          <div class="deposit-box">
-            <div class="deposit-label">Advance (20%)</div>
-            <div class="deposit-amount">₹{{ getAdvanceAmount().toLocaleString('en-IN') }}</div>
-            <div class="deposit-note">Pay now to confirm your booking</div>
+          <div class="form-field">
+            <label>Venue</label>
+            <div class="input-wrap">
+              <i class="bi bi-building"></i>
+              <input type="text" name="venue" [(ngModel)]="bookingVenue" placeholder="Where is the event?">
+            </div>
           </div>
 
-          <button class="btn-confirm" [disabled]="!bookingDate || isLoading() || !isDateAvailable() || checkingAvailability()" (click)="confirmBooking()">
+          <div class="form-field">
+            <label>City</label>
+            <div class="input-wrap">
+              <i class="bi bi-geo-alt"></i>
+              <input type="text" name="city" [(ngModel)]="bookingCity" placeholder="City">
+            </div>
+          </div>
+
+          <!-- Price Breakdown: the server's price for this guest count -->
+          @if (quoting()) {
+            <div class="price-breakdown text-muted small"><span class="spinner-border spinner-border-sm me-2"></span>Pricing your booking…</div>
+          } @else if (quoteError()) {
+            <div class="date-warning-container"><i class="bi bi-exclamation-triangle-fill"></i><span>{{ quoteError() }}</span></div>
+          } @else if (quote(); as q) {
+            <div class="price-breakdown">
+              @for (line of q.lines; track line.description) {
+                <div class="price-row">
+                  <span>{{ line.description }}@if (line.detail) {<small class="d-block text-muted">{{ line.detail }}</small>}</span>
+                  <span>₹{{ line.amount.toLocaleString('en-IN') }}</span>
+                </div>
+              }
+              <div class="price-row">
+                <span>GST ({{ q.gstPercent }}%)</span>
+                <span>₹{{ q.gstAmount.toLocaleString('en-IN') }}</span>
+              </div>
+              <div class="price-row total">
+                <span>Total</span>
+                <span>₹{{ q.totalAmount.toLocaleString('en-IN') }}</span>
+              </div>
+            </div>
+
+            <!-- Deposit Info -->
+            <div class="deposit-box">
+              <div class="deposit-label">Advance ({{ q.advancePercent }}%)</div>
+              <div class="deposit-amount">₹{{ q.advanceAmount.toLocaleString('en-IN') }}</div>
+              <div class="deposit-note">Pay the advance or the full amount at checkout</div>
+            </div>
+          } @else {
+            <div class="price-breakdown text-muted small">Enter the number of guests to see the price.</div>
+          }
+
+          <button class="btn-confirm" [disabled]="!bookingDate || isLoading() || !isDateAvailable() || checkingAvailability() || !quote() || quoting()" (click)="confirmBooking()">
             @if (isLoading()) {
               <span class="spinner-border spinner-border-sm me-2"></span> Processing...
             } @else if (checkingAvailability()) {
@@ -786,16 +808,34 @@
             <label>Guests</label>
             <div class="input-wrap">
               <i class="bi bi-people"></i>
-              <input type="number" [(ngModel)]="bookingGuests" placeholder="e.g. 150">
+              <input type="number" min="1" [ngModel]="bookingGuests" (ngModelChange)="onGuestsChange($event)" placeholder="How many guests?">
+            </div>
+          </div>
+          <div class="form-field">
+            <label>Venue</label>
+            <div class="input-wrap">
+              <i class="bi bi-building"></i>
+              <input type="text" [(ngModel)]="bookingVenue" placeholder="Where is the event?">
+            </div>
+          </div>
+          <div class="form-field">
+            <label>City</label>
+            <div class="input-wrap">
+              <i class="bi bi-geo-alt"></i>
+              <input type="text" [(ngModel)]="bookingCity" placeholder="City">
             </div>
           </div>
 
-          <div class="deposit-box">
-            <div class="deposit-label">Advance Payment</div>
-            <div class="deposit-amount">₹{{ getAdvanceAmount().toLocaleString('en-IN') }}</div>
-          </div>
+          @if (quoteError()) {
+            <div class="date-warning-container"><i class="bi bi-exclamation-triangle-fill"></i><span>{{ quoteError() }}</span></div>
+          } @else if (quote(); as q) {
+            <div class="deposit-box">
+              <div class="deposit-label">Total ₹{{ q.totalAmount.toLocaleString('en-IN') }} incl. GST · Advance ({{ q.advancePercent }}%)</div>
+              <div class="deposit-amount">₹{{ q.advanceAmount.toLocaleString('en-IN') }}</div>
+            </div>
+          }
 
-          <button class="btn-confirm" [disabled]="!bookingDate || isLoading() || !isDateAvailable() || checkingAvailability()" (click)="confirmBooking()">
+          <button class="btn-confirm" [disabled]="!bookingDate || isLoading() || !isDateAvailable() || checkingAvailability() || !quote() || quoting()" (click)="confirmBooking()">
             @if (isLoading()) {
               <span class="spinner-border spinner-border-sm me-2"></span> Processing...
             } @else if (checkingAvailability()) {
@@ -845,6 +885,7 @@
         </button>
 
         <div class="service-modal-scroll-area">
+          @if (selectedServiceDetail().images.length) {
           <div class="service-gallery">
           <div class="main-img-wrapper">
             <img [src]="selectedModalImage() || selectedServiceDetail().images[0]" [alt]="selectedServiceDetail().name">
@@ -859,6 +900,7 @@
             </div>
           }
         </div>
+          }
 
         <div class="service-modal-body p-4">
           <div class="d-flex align-items-center gap-2 mb-2">
@@ -866,15 +908,18 @@
             <h3 class="m-0 fw-900">{{ selectedServiceDetail().name }}</h3>
           </div>
           
-          <p class="text-muted mb-3 lead-sm">{{ selectedServiceDetail().description }}</p>
+          @if (selectedServiceDetail().description) {
+            <p class="text-muted mb-3 lead-sm">{{ selectedServiceDetail().description }}</p>
+          }
 
           @if (selectedServiceDetail().priceRange) {
             <div class="alert alert-info py-2 px-3 rounded-3 mb-4 small fw-bold d-inline-flex align-items-center gap-2" style="font-size: 0.85rem; border: none; background: rgba(14, 165, 233, 0.08); color: #0369a1;">
               <i class="bi bi-tag-fill"></i>
-              Estimated Cost: {{ selectedServiceDetail().priceRange }}
+              Price: {{ selectedServiceDetail().priceRange }} <span class="fw-normal">(before GST)</span>
             </div>
           }
 
+          @if (selectedServiceDetail().features.length) {
           <div class="features-section">
             <h6 class="fw-800 color-navy mb-3">Key Features & Inclusions:</h6>
             <div class="features-list">
@@ -886,15 +931,11 @@
               }
             </div>
           </div>
+          }
 
-          <div class="modal-footer-info mt-4 pt-4 border-top">
-            <div class="d-flex align-items-center gap-3">
-              <div class="info-avatar"><i class="bi bi-shield-shaded"></i></div>
-              <div class="small text-muted">
-                This service is provided by our premium verified partners and is fully covered under JoinEvents protection.
-              </div>
-            </div>
-          </div>
+          @if (!selectedServiceDetail().description && !selectedServiceDetail().features.length && !selectedServiceDetail().images.length) {
+            <p class="text-muted mb-0">The vendor has not added further details for this service yet.</p>
+          }
         </div>
         </div>
       </div>
