@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { DecimalPipe, TitleCasePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
@@ -9,6 +9,8 @@ import {
 } from '@ionic/angular/standalone';
 
 import { PackageService, PackageSearchParams } from '../../core/services/package.service';
+import { Tier } from '../../core/models/catalogue.model';
+import { compareTiers } from '../../core/utils/catalogue.util';
 import { LocationService } from '../../core/services/location.service';
 import { FavoritesService } from '../../core/services/favorites.service';
 import { EventPackage, EventType } from '../../core/models/event.model';
@@ -160,9 +162,9 @@ import { EmptyStateComponent } from '../../shared/components/empty-state.compone
             <ion-select [value]="tier()" placeholder="Any tier"
                         (ionChange)="tier.set($any($event.detail.value))" interface="action-sheet">
               <ion-select-option [value]="null">Any tier</ion-select-option>
-              <ion-select-option value="basic">Basic</ion-select-option>
-              <ion-select-option value="standard">Standard</ion-select-option>
-              <ion-select-option value="premium">Premium</ion-select-option>
+              @for (name of tierNames(); track name) {
+                <ion-select-option [value]="name">{{ name }}</ion-select-option>
+              }
             </ion-select>
           </ion-item>
 
@@ -237,6 +239,17 @@ export class CustomerEventsPage implements OnInit {
 
   readonly query = signal('');
   readonly category = signal<string | null>(null);
+  /** Active tiers from the admin catalogue — the tier filter's options. */
+  readonly tiers = signal<Tier[]>([]);
+
+  /** Tier names for the selected category (or every category), cheapest first. */
+  readonly tierNames = computed(() => {
+    const selected = this.categories().find(c => c.id === this.category());
+    const relevant = this.tiers()
+      .filter(t => !selected || String(t.categoryId) === selected.uuid || String(t.categoryId) === selected.id)
+      .sort(compareTiers);
+    return [...new Set(relevant.map(t => t.name))];
+  });
   readonly maxPrice = signal(2_000_000);
   readonly guests = signal<number | null>(null);
   readonly tier = signal<string | null>(null);
@@ -248,6 +261,7 @@ export class CustomerEventsPage implements OnInit {
   ngOnInit(): void {
     this.category.set(this.route.snapshot.queryParamMap.get('category'));
     this.packageService.getEventTypes().subscribe(types => this.categories.set(types));
+    this.packageService.getTiers().subscribe(tiers => this.tiers.set(tiers));
     this.fetch(true);
   }
 

@@ -1,4 +1,5 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, effect, inject, OnInit, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CameraResultType, CameraSource } from '@capacitor/camera';
@@ -12,6 +13,8 @@ import { PackageService } from '../../core/services/package.service';
 import { ToastService } from '../../core/services/toast.service';
 import { base64ToBlob, photoFileInfo, pickPhoto } from '../../core/utils/camera.util';
 import { resolveMediaUrl } from '../../core/utils/media-url.util';
+import { compareTiers } from '../../core/utils/catalogue.util';
+import { Tier } from '../../core/models/catalogue.model';
 
 /** The API accepts at most this many images per package upload. */
 const MAX_PHOTOS = 6;
@@ -78,13 +81,25 @@ const MAX_PHOTOS = 6;
             </ion-select>
           </ion-item>
 
-          <ion-item class="je-field" lines="none">
-            <ion-select formControlName="tier" placeholder="Tier" interface="action-sheet">
-              <ion-select-option value="basic">Basic</ion-select-option>
-              <ion-select-option value="standard">Standard</ion-select-option>
-              <ion-select-option value="premium">Premium</ion-select-option>
-            </ion-select>
-          </ion-item>
+          @if (tierOptions().length) {
+            <ion-item class="je-field" lines="none">
+              <ion-select formControlName="tier" placeholder="Pricing tier" interface="action-sheet">
+                @for (tier of tierOptions(); track tier.id) {
+                  <ion-select-option [value]="tier.name">{{ tier.name }}</ion-select-option>
+                }
+              </ion-select>
+            </ion-item>
+            @if (selectedTier()?.priceRanges?.length) {
+              <div class="je-card ranges">
+                <span class="je-xs je-bold">{{ selectedTier()!.name }} price ranges</span>
+                @for (r of selectedTier()!.priceRanges; track r.serviceName) {
+                  <div class="ranges__row je-xs">
+                    <span>{{ r.serviceName }}</span><span>₹{{ r.minPrice }} – ₹{{ r.maxPrice }}</span>
+                  </div>
+                }
+              </div>
+            }
+          }
 
           <ion-item class="je-field" lines="none">
             <ion-textarea formControlName="description" [rows]="4" [autoGrow]="true"
@@ -167,6 +182,8 @@ const MAX_PHOTOS = 6;
     ion-chip { --background: var(--je-bg-light); --color: var(--je-text-main); margin: 0;
                font-size: var(--je-fs-xs); font-weight: 600; }
     .submit { margin: 0; width: 100%; }
+    .ranges { padding: 10px 12px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 4px; }
+    .ranges__row { display: flex; justify-content: space-between; gap: 10px; color: var(--je-text-muted); }
   `]
 })
 export class VendorEditPackagePage implements OnInit {
@@ -179,7 +196,9 @@ export class VendorEditPackagePage implements OnInit {
 
   readonly saving = signal(false);
   readonly editing = signal(false);
-  readonly categories = signal<{ id: string; name: string }[]>([]);
+  readonly categories = signal<{ id: string; uuid?: string; name: string }[]>([]);
+  /** Active tiers from the admin catalogue; filtered to the chosen category below. */
+  readonly tiers = signal<Tier[]>([]);
   readonly inclusions = signal<string[]>([]);
   readonly inclusionDraft = signal('');
   readonly photos = signal<{ preview: string; blob?: Blob; hostedUrl?: string; name: string }[]>([]);
@@ -190,7 +209,8 @@ export class VendorEditPackagePage implements OnInit {
   readonly form = this.fb.nonNullable.group({
     name: ['', Validators.required],
     category: ['', Validators.required],
-    tier: ['standard', Validators.required],
+    // The admin-defined tier name; required only when the category has tiers.
+    tier: [''],
     description: ['', [Validators.required, Validators.minLength(20)]],
     price: [0, [Validators.required, Validators.min(1)]],
     maxGuests: [100, [Validators.required, Validators.min(1)]],
@@ -199,10 +219,40 @@ export class VendorEditPackagePage implements OnInit {
     locality: ['']
   });
 
+  private readonly categoryValue = toSignal(this.form.controls.category.valueChanges, {
+    initialValue: this.form.controls.category.value
+  });
+  private readonly tierValue = toSignal(this.form.controls.tier.valueChanges, {
+    initialValue: this.form.controls.tier.value
+  });
+
+  /** Tiers belong to a category by its record id; the form holds the category key. */
+  readonly tierOptions = computed(() => {
+    const category = this.categories().find(c => c.id === this.categoryValue());
+    if (!category) return [];
+    return this.tiers()
+      .filter(t => String(t.categoryId) === category.uuid || String(t.categoryId) === category.id)
+      .sort(compareTiers);
+  });
+
+  readonly selectedTier = computed(() => this.tierOptions().find(t => t.name === this.tierValue()) ?? null);
+
+  constructor() {
+    // A tier from another category is not valid for this one.
+    effect(() => {
+      const options = this.tierOptions();
+      const current = this.form.controls.tier.value;
+      if (current && this.tiers().length && !options.some(t => t.name === current)) {
+        this.form.controls.tier.setValue('');
+      }
+    });
+  }
+
   ngOnInit(): void {
     this.packageService.getEventTypes().subscribe(types =>
-      this.categories.set(types.map(t => ({ id: t.id, name: t.name })))
+      this.categories.set(types.map(t => ({ id: t.id, uuid: t.uuid, name: t.name })))
     );
+    this.packageService.getTiers().subscribe(tiers => this.tiers.set(tiers));
 
     this.packageId = this.route.snapshot.paramMap.get('id');
     if (!this.packageId) return;
@@ -213,7 +263,7 @@ export class VendorEditPackagePage implements OnInit {
       this.form.patchValue({
         name: String(pkg['name'] ?? ''),
         category: String(pkg['category'] ?? pkg['categoryKey'] ?? ''),
-        tier: String(pkg['tier'] ?? 'standard'),
+        tier: String(pkg['theme'] ?? pkg['tier'] ?? ''),
         description: String(pkg['description'] ?? ''),
         price: Number((pkg['pricing'] as Record<string, unknown>)?.['basePrice'] ?? pkg['price'] ?? 0),
         maxGuests: Number((pkg['capacity'] as Record<string, unknown>)?.['maxGuests'] ?? pkg['maxGuests'] ?? 100),
@@ -275,6 +325,10 @@ export class VendorEditPackagePage implements OnInit {
       void this.toast.error('Complete every field before publishing.');
       return;
     }
+    if (this.tierOptions().length && !this.form.controls.tier.value) {
+      void this.toast.error('Choose a pricing tier for this category.');
+      return;
+    }
     if (!this.inclusions().length) {
       void this.toast.error('Add at least one inclusion so customers know what they get.');
       return;
@@ -292,7 +346,8 @@ export class VendorEditPackagePage implements OnInit {
       address: { city: value.city, locality: value.locality },
       pricing: { basePrice: Number(value.price) },
       capacity: { maxGuests: Number(value.maxGuests) },
-      tier: value.tier,
+      // The API files a package's tier under "theme", as the web app does.
+      theme: value.tier,
       durationHours: Number(value.durationHours)
     };
 

@@ -41,6 +41,17 @@ export const API_ROUTES = {
     DASHBOARD: '/customer/dashboard',
   },
   EVENT_CATEGORIES: '/event-categories',
+  /** Active pricing tiers, public: what vendors pick from and customers filter by. */
+  TIERS: '/tiers',
+  /** Admin catalogue: every category and tier, active or not, with full CRUD. */
+  ADMIN_CATALOGUE: {
+    CATEGORIES: '/admin/event-categories',
+    CATEGORY: (id: string) => `/admin/event-categories/${id}`,
+    CATEGORY_TOGGLE: (id: string) => `/admin/event-categories/${id}/toggle-active`,
+    TIERS: '/admin/tiers',
+    TIER: (id: string) => `/admin/tiers/${id}`,
+    TIER_TOGGLE: (id: string) => `/admin/tiers/${id}/toggle-active`,
+  },
   RFPS: {
     MY: '/rfps',
   },
