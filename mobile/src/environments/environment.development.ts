@@ -8,6 +8,13 @@ export const environment = {
   apiUrl: 'http://10.0.2.2:7010/api/v1',
   googleClientId: 'YOUR_GOOGLE_CLIENT_ID',
   facebookAppId: 'YOUR_FACEBOOK_APP_ID',
+  /**
+   * Android push needs Firebase (google-services.json in android/app/). Without
+   * it, PushNotifications.register() crashes the app on launch, so push stays
+   * off until Firebase is configured. The APK workflow flips this on when the
+   * GOOGLE_SERVICES_JSON secret is present.
+   */
+  pushEnabled: false,
   chatPollSeconds: 5,
   notificationPollSeconds: 30
 };
