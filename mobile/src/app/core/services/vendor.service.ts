@@ -4,6 +4,7 @@ import { catchError, map } from 'rxjs/operators';
 
 import { BaseApiService } from './base-api.service';
 import { API_ROUTES } from '../constants/api.constants';
+import { serverMessage } from '../utils/server-message.util';
 
 export interface CalendarDay {
   date: string;
@@ -54,11 +55,15 @@ export class VendorService extends BaseApiService {
     );
   }
 
-  uploadVerificationDocument(file: Blob, fileName: string, documentType: string): Observable<boolean> {
+  /** Resolves to null on success, or a message fit to show the vendor. */
+  uploadVerificationDocument(file: Blob, fileName: string, documentType: string): Observable<string | null> {
     const form = new FormData();
     form.append('file', file, fileName);
     form.append('documentType', documentType);
-    return this.ok(this.post<unknown>(API_ROUTES.VENDOR_VERIFICATION.UPLOAD, form, false));
+    return this.post<unknown>(API_ROUTES.VENDOR_VERIFICATION.UPLOAD, form).pipe(
+      map(() => null),
+      catchError(err => of(serverMessage(err, 'Upload failed. Please try again.')))
+    );
   }
 
   // ---- calendar --------------------------------------------------------

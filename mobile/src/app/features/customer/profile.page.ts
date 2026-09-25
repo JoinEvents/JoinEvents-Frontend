@@ -42,13 +42,13 @@ interface MenuLink {
       <div class="je-section">
         <!-- Identity ---------------------------------------------------- -->
         <div class="je-card ident">
-          <button class="ident__avatar" (click)="changeAvatar()" aria-label="Change profile photo">
+          <button class="ident__avatar" (click)="changeAvatar()" [disabled]="uploadingAvatar()" aria-label="Change profile photo">
             @if (auth.currentUser()?.avatar) {
               <ion-avatar><img [src]="auth.currentUser()?.avatar" alt="" /></ion-avatar>
             } @else {
               <span class="initials">{{ initials() }}</span>
             }
-            <span class="ident__camera"><ion-icon name="camera" /></span>
+            <span class="ident__camera"><ion-icon [name]="uploadingAvatar() ? 'hourglass-outline' : 'camera'" /></span>
           </button>
 
           <div class="ident__body">
@@ -139,6 +139,7 @@ export class CustomerProfilePage implements ViewWillEnter {
   private actionSheet = inject(ActionSheetController);
 
   readonly profile = signal<CustomerProfile | null>(null);
+  readonly uploadingAvatar = signal(false);
 
   readonly links: MenuLink[] = [
     { label: 'Notifications', icon: 'notifications-outline', route: '/customer/notifications', badge: () => this.notifications.unreadCount() },
@@ -173,9 +174,11 @@ export class CustomerProfilePage implements ViewWillEnter {
   }
 
   private upload(source: CameraSource): void {
-    this.profileService.changeAvatar(source).subscribe(url => {
-      if (!url) return;
-      void this.toast.success('Profile photo updated.');
+    this.uploadingAvatar.set(true);
+    this.profileService.changeAvatar(source).subscribe(result => {
+      this.uploadingAvatar.set(false);
+      if (result.error) void this.toast.error(result.error);
+      else if (result.url) void this.toast.success('Profile photo updated.');
     });
   }
 
