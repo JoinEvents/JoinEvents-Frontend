@@ -13,9 +13,9 @@ import { AuthService } from '../../core/services/auth.service';
 import { ToastService } from '../../core/services/toast.service';
 
 /**
- * Chat thread. Messages are polled while this page is on screen and the poll
- * is torn down on leave — a background poll on a phone is a battery cost with
- * no benefit.
+ * Chat thread. New messages arrive over the live connection; the page polls only while
+ * that connection is down, and stops on leave — a background poll on a phone is a battery
+ * cost with no benefit.
  */
 @Component({
   selector: 'app-chat',
@@ -127,6 +127,7 @@ export class ChatPage implements ViewWillEnter, ViewWillLeave {
   readonly title = signal('Chat');
 
   private poll?: Subscription;
+  private live?: Subscription;
   private threadId = '';
 
   ionViewWillEnter(): void {
@@ -136,8 +137,17 @@ export class ChatPage implements ViewWillEnter, ViewWillLeave {
       return;
     }
 
+    this.messenger.activeThreadId.set(this.threadId);
     const thread = this.messenger.threads().find(t => t.id === this.threadId);
-    if (thread) this.title.set(thread.participantName);
+    if (thread) {
+      this.title.set(thread.participantName);
+    } else {
+      // Opened from a notification or a booking: the list has not been loaded yet.
+      this.messenger.getThreads().subscribe(threads => {
+        const found = threads.find(t => t.id === this.threadId);
+        if (found) this.title.set(found.participantName);
+      });
+    }
 
     this.messenger.isAlive(this.threadId).subscribe(alive => this.threadClosed.set(!alive));
     this.messenger.markAsRead(this.threadId).subscribe();
@@ -149,11 +159,23 @@ export class ChatPage implements ViewWillEnter, ViewWillLeave {
       this.loading.set(false);
       if (isFirstLoad || hasNew) this.scrollToBottom(isFirstLoad);
     });
+
+    // Messages from the other side appear as they are sent.
+    this.live = this.messenger.liveMessages$.subscribe(message => {
+      if (message.threadId !== this.threadId) return;
+      if (this.messages().some(m => m.id === message.id)) return;
+      this.messages.update(list => [...list, message]);
+      this.scrollToBottom();
+      if (!this.isMine(message)) this.messenger.markAsRead(this.threadId).subscribe();
+    });
   }
 
   ionViewWillLeave(): void {
     this.poll?.unsubscribe();
     this.poll = undefined;
+    this.live?.unsubscribe();
+    this.live = undefined;
+    this.messenger.activeThreadId.set(null);
   }
 
   isMine(message: ChatMessage): boolean {
@@ -182,7 +204,8 @@ export class ChatPage implements ViewWillEnter, ViewWillLeave {
         this.draft.set(body); // Give the text back so it is not lost.
         return;
       }
-      this.messages.update(list => [...list, message]);
+      // The hub may have delivered our own message already.
+      if (!this.messages().some(m => m.id === message.id)) this.messages.update(list => [...list, message]);
       this.scrollToBottom();
     });
   }

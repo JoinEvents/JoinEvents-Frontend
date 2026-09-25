@@ -3,6 +3,8 @@ import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { environment } from '../../../environments/environment';
 import { AuthService } from './auth.service';
+import { RealtimeService } from './realtime.service';
+import { ToastService } from './toast.service';
 
 export interface NotificationItem {
   id: string;
@@ -21,14 +23,11 @@ export class NotificationService {
   private http = inject(HttpClient);
   private router = inject(Router);
   private apiUrl = environment.apiUrl;
+  private realtime = inject(RealtimeService);
+  private toast = inject(ToastService);
 
-  private notificationsList = signal<NotificationItem[]>([
-    { id: 'notif-init-1', title: 'Booking Confirmed', message: 'Your booking for Wedding Reception has been confirmed.', type: 'booking', isRead: false, createdAt: '2026-05-07T21:00:00.000Z', targetRole: 'customer', targetUserId: 'c1' },
-    { id: 'notif-init-2', title: 'New Message', message: 'You have a new message from Priya Nair regarding your event.', type: 'message', isRead: false, createdAt: '2026-05-07T20:30:00.000Z', targetRole: 'customer', targetUserId: 'c1' },
-    { id: 'notif-init-3', title: 'Payment Received', message: 'Advance payment for Gruhapravesh Puja received successfully.', type: 'payment', isRead: true, createdAt: '2026-05-07T18:00:00.000Z', targetRole: 'customer', targetUserId: 'c1' },
-    { id: 'notif-init-4', title: 'Verification Update', message: 'Your vendor verification is now in progress.', type: 'verification', isRead: true, createdAt: '2026-05-07T12:00:00.000Z', targetRole: 'vendor', targetUserId: 'v1' },
-    { id: 'notif-init-5', title: 'New Booking Request', message: 'You have received a new booking request for Grand Wedding Hall on June 12th.', type: 'booking', isRead: false, createdAt: '2026-05-07T21:10:00.000Z', targetRole: 'vendor', targetUserId: 'v1' }
-  ]);
+  /** The signed-in user's notifications, from the API and pushed live by the hub. */
+  private notificationsList = signal<NotificationItem[]>([]);
 
   // Expose signal of active notifications for currently logged in role
   activeNotifications = computed(() => {
@@ -53,13 +52,44 @@ export class NotificationService {
       this.loadPendingSessionNotifications(user.id);
     }
 
-    // Automatically fetch notifications from backend whenever the current user changes
+    // Load the signed-in user's notifications whenever the user changes.
     effect(() => {
       const currentUser = this.auth.currentUser();
+      this.notificationsList.set([]);
       if (currentUser) {
         this.fetchNotifications();
       }
     }, { allowSignalWrites: true });
+
+    // New notifications arrive the moment the server saves them.
+    this.realtime.notifications$.subscribe(n => {
+      const user = this.auth.currentUser();
+      if (!user) return;
+      const item = this.toItem(n, user);
+      if (this.notificationsList().some(existing => existing.id === item.id)) return;
+      this.notificationsList.update(list => [item, ...list]);
+      this.toast.info(`${item.title}: ${item.message}`);
+    });
+
+    // A periodic refresh covers the times the live connection is down.
+    setInterval(() => {
+      if (this.auth.currentUser() && !this.realtime.connected()) this.fetchNotifications();
+    }, 60_000);
+  }
+
+  private toItem(n: any, user: { id: string; role: any }): NotificationItem {
+    const rawType = (n.type || n.Type || 'system').toLowerCase();
+    const allowedTypes = ['booking', 'message', 'payment', 'verification', 'system'];
+    return {
+      id: n.id || n.Id,
+      title: n.title || n.Title,
+      message: n.message || n.Message,
+      type: allowedTypes.includes(rawType) ? (rawType as any) : 'system',
+      isRead: n.isRead !== undefined ? n.isRead : n.IsRead,
+      createdAt: n.createdAt || n.CreatedAt || new Date().toISOString(),
+      targetRole: user.role,
+      targetUserId: user.id
+    };
   }
 
   fetchNotifications() {
@@ -68,22 +98,7 @@ export class NotificationService {
 
     this.http.get<any[]>(`${this.apiUrl}/notifications`).subscribe({
       next: (list) => {
-        const items: NotificationItem[] = list.map(n => {
-          const rawType = (n.type || n.Type || 'system').toLowerCase();
-          const allowedTypes = ['booking', 'message', 'payment', 'verification', 'system'];
-          const type = allowedTypes.includes(rawType) ? (rawType as any) : 'system';
-          
-          return {
-            id: n.id || n.Id,
-            title: n.title || n.Title,
-            message: n.message || n.Message,
-            type,
-            isRead: n.isRead !== undefined ? n.isRead : n.IsRead,
-            createdAt: n.createdAt || n.CreatedAt || new Date().toISOString(),
-            targetRole: user.role,
-            targetUserId: user.id
-          };
-        });
+        const items: NotificationItem[] = list.map(n => this.toItem(n, user));
 
         // Merge with existing notifications to keep local ones, avoiding duplicates
         this.notificationsList.update(curr => {
@@ -131,9 +146,14 @@ export class NotificationService {
   }
 
   markAsRead(id: string) {
+    const target = this.notificationsList().find(n => n.id === id);
     this.notificationsList.update(list =>
       list.map(n => (n.id === id ? { ...n, isRead: true } : n))
     );
+    // Server-side notifications are stored; mark them read there too.
+    if (target && !target.isRead && id.startsWith('notif_')) {
+      this.http.patch(`${this.apiUrl}/notifications/${id}/read`, {}).subscribe({ error: () => {} });
+    }
   }
 
   onNotificationClick(n: NotificationItem) {

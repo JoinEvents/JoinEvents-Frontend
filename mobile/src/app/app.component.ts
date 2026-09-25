@@ -15,6 +15,7 @@ import { PushService } from './core/services/push.service';
 import { FavoritesService } from './core/services/favorites.service';
 import { LocationService } from './core/services/location.service';
 import { ProfileService } from './core/services/profile.service';
+import { RealtimeService } from './core/services/realtime.service';
 import { OfflineBannerComponent } from './shared/components/offline-banner.component';
 
 @Component({
@@ -37,6 +38,8 @@ export class AppComponent implements OnInit {
   private favorites = inject(FavoritesService);
   private location = inject(LocationService);
   private profile = inject(ProfileService);
+  // Keeps chat and notifications live while someone is signed in.
+  private realtime = inject(RealtimeService);
   private router = inject(Router);
 
   constructor() {
@@ -61,7 +64,10 @@ export class AppComponent implements OnInit {
       await SplashScreen.hide();
       await this.push.init();
       this.wireHardwareBackButton();
-      void CapacitorApp.addListener('resume', () => this.profile.refreshCurrentUser());
+      void CapacitorApp.addListener('resume', () => {
+        this.profile.refreshCurrentUser();
+        void this.realtime.ensureConnected();
+      });
     }
   }
 
