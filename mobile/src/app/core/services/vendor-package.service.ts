@@ -4,6 +4,7 @@ import { catchError, map } from 'rxjs/operators';
 
 import { BaseApiService } from './base-api.service';
 import { API_ROUTES } from '../constants/api.constants';
+import { resolveMediaUrl } from '../utils/media-url.util';
 
 export interface VendorPackage {
   id: string;
@@ -70,7 +71,11 @@ export class VendorPackageService extends BaseApiService {
       price: Number(p['price'] ?? p['basePrice'] ?? 0),
       isActive: Boolean(p['isActive'] ?? true),
       status: String(p['status'] ?? 'draft'),
-      images: (p['images'] as string[]) ?? [],
+      images: Array.isArray(p['images'])
+        ? (p['images'] as unknown[])
+            .map(item => resolveMediaUrl(typeof item === 'string' ? item : (item as { url?: string } | null)?.url))
+            .filter((url): url is string => !!url)
+        : [],
       maxGuests: p['maxGuests'] as number | undefined,
       totalBookings: p['totalBookings'] as number | undefined,
       rating: p['rating'] as number | undefined
@@ -82,9 +87,10 @@ export class VendorPackageService extends BaseApiService {
   }
 
   private unwrap(res: unknown): Record<string, unknown>[] {
-    const payload = res as { data?: unknown[]; items?: unknown[] } | unknown[] | null;
+    const payload = res as { data?: unknown[]; items?: unknown[]; packages?: unknown[] } | unknown[] | null;
     if (Array.isArray(payload)) return payload as Record<string, unknown>[];
-    return ((payload?.data ?? payload?.items ?? []) as Record<string, unknown>[]);
+    // Package lists come back as { packages: [...], totalCount, ... }.
+    return ((payload?.data ?? payload?.items ?? payload?.packages ?? []) as Record<string, unknown>[]);
   }
 
   private single(res: unknown): Record<string, unknown> | null {

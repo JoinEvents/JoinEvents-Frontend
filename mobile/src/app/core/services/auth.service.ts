@@ -7,6 +7,7 @@ import { catchError, map, tap } from 'rxjs/operators';
 import { AuthUser, UserRole } from '../models/user.model';
 import { environment } from '../../../environments/environment';
 import { StorageService } from './storage.service';
+import { resolveMediaUrl } from '../utils/media-url.util';
 
 export interface AuthResult {
   success: boolean;
@@ -157,7 +158,7 @@ export class AuthService {
       email: response.user.email,
       phone: response.user.phone,
       role: response.user.role || fallbackRole,
-      avatar: response.user.avatar,
+      avatar: resolveMediaUrl(response.user.avatar),
       token
     };
     this.storage.setObject(USER_KEY, user);

@@ -9,6 +9,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { MessengerService } from '../../core/services/messenger.service';
 import { ToastService } from '../../core/services/toast.service';
+import { ProfileService } from '../../core/services/profile.service';
 
 /** Everything that does not earn a tab: finance, verification, messages, settings. */
 @Component({
@@ -105,6 +106,11 @@ export class VendorMorePage {
   notifications = inject(NotificationService);
   messenger = inject(MessengerService);
   private toast = inject(ToastService);
+  private profileService = inject(ProfileService);
+
+  ionViewWillEnter(): void {
+    this.profileService.refreshCurrentUser();
+  }
 
   initials(): string {
     const name = this.auth.currentUser()?.name ?? '';
