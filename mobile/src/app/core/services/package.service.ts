@@ -4,6 +4,7 @@ import { catchError, map } from 'rxjs/operators';
 
 import { BaseApiService } from './base-api.service';
 import { API_ROUTES } from '../constants/api.constants';
+import { resolveMediaUrl } from '../utils/media-url.util';
 import { EventPackage, EventType } from '../models/event.model';
 
 export interface PackageSearchParams {
@@ -79,10 +80,19 @@ export class PackageService extends BaseApiService {
 
   // ---- normalisation ---------------------------------------------------
 
+  /** Image lists arrive as plain URLs or as { url } objects; both become loadable URLs. */
+  private toImageUrls(value: unknown): string[] {
+    if (!Array.isArray(value)) return [];
+    return value
+      .map(item => resolveMediaUrl(typeof item === 'string' ? item : (item as { url?: string } | null)?.url))
+      .filter((url): url is string => !!url);
+  }
+
   private unwrap(res: unknown): Record<string, unknown>[] {
-    const payload = res as { data?: unknown[]; items?: unknown[] } | unknown[] | null;
+    const payload = res as { data?: unknown[]; items?: unknown[]; packages?: unknown[] } | unknown[] | null;
     if (Array.isArray(payload)) return payload as Record<string, unknown>[];
-    return ((payload?.data ?? payload?.items ?? []) as Record<string, unknown>[]);
+    // Package lists come back as { packages: [...], totalCount, ... }.
+    return ((payload?.data ?? payload?.items ?? payload?.packages ?? []) as Record<string, unknown>[]);
   }
 
   private single(res: unknown): Record<string, unknown> {
@@ -106,7 +116,7 @@ export class PackageService extends BaseApiService {
   }
 
   private toPackage(p: Record<string, unknown>): EventPackage {
-    const images = (p['images'] as string[]) ?? [];
+    const images = this.toImageUrls(p['images']);
     return {
       id: String(p['id'] ?? p['packageId'] ?? ''),
       eventTypeId: String(p['eventTypeId'] ?? p['categoryKey'] ?? ''),
@@ -121,7 +131,7 @@ export class PackageService extends BaseApiService {
       maxGuests: Number(p['maxGuests'] ?? p['capacity'] ?? 0),
       durationHours: Number(p['durationHours'] ?? 0),
       isPopular: Boolean(p['isPopular']),
-      image: (p['image'] as string) ?? images[0],
+      image: resolveMediaUrl(p['image'] as string | undefined) ?? images[0],
       images,
       rating: Number(p['rating'] ?? 0),
       totalReviews: Number(p['totalReviews'] ?? 0),
