@@ -29,7 +29,8 @@ export class DashboardService extends BaseApiService {
   getBookings(): Observable<Booking[]> {
     return this.get<any>(API_ROUTES.BOOKINGS.BASE).pipe(
       map(res => {
-        const list = res.bookings || res.data || (Array.isArray(res) ? res : []);
+        // GET /bookings is paged: { items, page, total, … }.
+        const list = res.items || res.Items || res.bookings || res.data || (Array.isArray(res) ? res : []);
         return list.map((b: any) => this.normalizeBooking(b));
       }),
       catchError(() => of([]))

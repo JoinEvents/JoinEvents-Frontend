@@ -1,4 +1,6 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, DestroyRef, inject, OnInit, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ViewWillEnter } from '@ionic/angular';
 import { DatePipe } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import {
@@ -13,6 +15,7 @@ import { Booking } from '../../core/models/booking.model';
 import { EventType } from '../../core/models/event.model';
 import { EventRfp } from '../../core/models/rfp.model';
 import { CustomerProfile } from '../../core/models/user.model';
+import { RealtimeService } from '../../core/services/realtime.service';
 import { CurrencyInrPipe } from '../../shared/pipes/currency-inr.pipe';
 import { StatusPillComponent } from '../../shared/components/status-pill.component';
 
@@ -74,7 +77,7 @@ import { StatusPillComponent } from '../../shared/components/status-pill.compone
               <ion-icon name="calendar-outline" /> {{ booking.eventDate | date: 'EEE, d MMM y' }}
             </p>
             <p class="next__meta">
-              <ion-icon name="location-outline" /> {{ booking.venue }}, {{ booking.city }}
+              <ion-icon name="location-outline" /> {{ place(booking) }}
             </p>
             <div class="next__foot">
               <app-status-pill [status]="booking.status" />
@@ -106,8 +109,8 @@ import { StatusPillComponent } from '../../shared/components/status-pill.compone
         <!-- Stats -------------------------------------------------------- -->
         <div class="je-grid-3 stats">
           <div class="je-stat">
-            <div class="je-stat__value">{{ bookings().length }}</div>
-            <div class="je-stat__label">Bookings</div>
+            <div class="je-stat__value">{{ upcomingCount() }}</div>
+            <div class="je-stat__label">Upcoming</div>
           </div>
           <div class="je-stat">
             <div class="je-stat__value">{{ profile()?.loyaltyPoints ?? 0 }}</div>
@@ -212,7 +215,7 @@ import { StatusPillComponent } from '../../shared/components/status-pill.compone
     .row__end { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
   `]
 })
-export class CustomerDashboardPage implements OnInit {
+export class CustomerDashboardPage implements OnInit, ViewWillEnter {
   auth = inject(AuthService);
   notifications = inject(NotificationService);
   private dashboard = inject(DashboardService);
@@ -231,18 +234,30 @@ export class CustomerDashboardPage implements OnInit {
     { label: 'Support', icon: 'help-buoy', route: '/customer/support', tint: 'linear-gradient(135deg,#16A34A,#4ADE80)' }
   ];
 
+  private realtime = inject(RealtimeService);
+  private destroyRef = inject(DestroyRef);
+  private loaded = false;
+
   ngOnInit(): void {
+    // A booking confirmed, paid or cancelled elsewhere changes what this screen shows.
+    this.realtime.notifications$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => this.load());
+  }
+
+  /** Home is a tab that stays alive, so refresh whenever it is shown again. */
+  ionViewWillEnter(): void {
     this.load();
   }
 
   load(event?: CustomEvent): void {
-    this.loading.set(true);
+    // Skeletons only on the first load; later refreshes update in place.
+    if (!this.loaded) this.loading.set(true);
     this.dashboard.getCustomerDashboard().subscribe(data => {
       this.profile.set(data.profile);
       this.bookings.set(data.bookings);
       this.categories.set(data.categories.slice(0, 8));
       this.quotes.set(data.rfps);
       this.loading.set(false);
+      this.loaded = true;
       void (event?.target as HTMLIonRefresherElement | undefined)?.complete();
     });
   }
@@ -250,10 +265,18 @@ export class CustomerDashboardPage implements OnInit {
   /** The soonest future booking that has not been cancelled. */
   nextBooking(): Booking | null {
     const upcoming = this.bookings()
-      .filter(b => new Date(b.eventDate).getTime() >= Date.now())
-      .filter(b => !['cancelled', 'rejected'].includes(b.status))
+      .filter(b => new Date(b.eventDate).getTime() >= new Date().setHours(0, 0, 0, 0))
+      .filter(b => !['cancelled', 'rejected', 'completed', 'settled'].includes(b.status))
       .sort((a, b) => new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime());
     return upcoming[0] ?? null;
+  }
+
+  /** Bookings still ahead: not cancelled, rejected or finished. */
+  upcomingCount(): number {
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    return this.bookings()
+      .filter(b => !['cancelled', 'rejected', 'completed', 'settled'].includes(b.status))
+      .filter(b => new Date(b.eventDate).getTime() >= today.getTime()).length;
   }
 
   recentBookings(): Booking[] {
@@ -264,6 +287,14 @@ export class CustomerDashboardPage implements OnInit {
 
   openQuotes(): EventRfp[] {
     return this.quotes().filter(q => String(q.status).toLowerCase() === 'open');
+  }
+
+  /** The venue already ends with its city when the package has a full address; don't repeat it. */
+  place(booking: Booking): string {
+    const venue = (booking.venue || '').trim();
+    const city = (booking.city || '').trim();
+    if (!venue) return city;
+    return !city || venue.toLowerCase().endsWith(city.toLowerCase()) ? venue : `${venue}, ${city}`;
   }
 
   daysAway(date: string): string {
