@@ -127,7 +127,7 @@ export class LoginPage {
         void this.toast.error(result.message);
         return;
       }
-      void this.toast.success(result.message);
+      // Signed in: go straight to the app; landing there is the confirmation.
       // Honour a returnUrl set by the guard so a deep link resumes after login.
       const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
       void this.router.navigateByUrl(this.isSafeReturnUrl(returnUrl) ? returnUrl! : this.auth.homeRoute(), {
