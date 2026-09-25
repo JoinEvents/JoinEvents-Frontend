@@ -110,6 +110,11 @@ export class Checkout implements OnInit {
 
   readonly isDev = !environment.production;
 
+  /** Rupees in Indian digit grouping (₹2,00,600), as on the package page. */
+  inr(amount: number | null | undefined): string {
+    return (amount ?? 0).toLocaleString('en-IN', { maximumFractionDigits: 2 });
+  }
+
   ngOnInit() {
     const routeId = this.route.snapshot.paramMap.get('packageId');
     const state = history.state ?? {};

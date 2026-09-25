@@ -181,7 +181,7 @@ export class PackageService extends BaseApiService {
 
     // Resolve primary locations
     const addr = p.Address || p.address || {};
-    const cityLoc = p.City || p.city || addr.City || addr.city || p.Location || p.location || 'Multiple Locations';
+    const cityLoc = p.City || p.city || addr.City || addr.city || p.Location || p.location || '';
 
     // Resolve visual attachments list
     const imgs = p.Images || p.images || [];
@@ -226,6 +226,15 @@ export class PackageService extends BaseApiService {
       vendorName: p.VendorName || p.vendorName || 'JoinEvents Partner',
       vendorDescription: p.VendorDescription || p.vendorDescription || '',
       location: cityLoc,
+      address: {
+        street: addr.Street || addr.street || '',
+        locality: addr.Locality || addr.locality || '',
+        landmark: addr.Landmark || addr.landmark || '',
+        city: addr.City || addr.city || '',
+        state: addr.State || addr.state || '',
+        pincode: addr.Pincode || addr.pincode || '',
+        country: addr.Country || addr.country || ''
+      },
       tier: p.Tier || p.tier || p.Theme || p.theme || 'premium',
       price: priceValue,
       pricing: {

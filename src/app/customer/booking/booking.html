@@ -221,23 +221,36 @@
                 </div>
               </div>
             }
-            @if (selectedPackage()?.pricing?.rent || selectedPackage()?.pricing?.basePrice) {
+            @if (selectedPackage()?.pricing?.rent) {
               <div class="pricing-structure-item rent">
                 <div class="pricing-item-header">
                   <i class="bi bi-building rent-icon"></i>
-                  <span class="item-title">Venue Hire / Rent</span>
+                  <span class="item-title">Venue Rent</span>
                 </div>
                 <div class="item-price">
                   <span class="currency">₹</span>
-                  <span class="val">{{ selectedPackage()?.pricing?.rent || selectedPackage()?.pricing?.basePrice }}</span>
+                  <span class="val">{{ selectedPackage()?.pricing?.rent.toLocaleString('en-IN') }}</span>
                   <span class="unit">/ Event</span>
+                </div>
+              </div>
+            }
+            @if (selectedPackage()?.pricing?.basePrice) {
+              <div class="pricing-structure-item rent">
+                <div class="pricing-item-header">
+                  <i class="bi bi-tag-fill rent-icon"></i>
+                  <span class="item-title">Package Price @if (selectedPackage()?.maxGuests) {(for {{ selectedPackage()?.maxGuests }} guests)}</span>
+                </div>
+                <div class="item-price">
+                  <span class="currency">₹</span>
+                  <span class="val">{{ selectedPackage()?.pricing?.basePrice.toLocaleString('en-IN') }}</span>
+                  <span class="unit">incl. GST</span>
                 </div>
               </div>
             }
           </div>
           <div class="pricing-info-footer">
             <i class="bi bi-info-circle-fill"></i>
-            <span>Base Unit pricing type is configured as <strong>{{ selectedPackage()?.pricing?.unit || 'per event' }}</strong>.</span>
+            <span>Your price is worked out for your guest count when you book: per-plate catering is charged per guest.</span>
           </div>
         </div>
       }

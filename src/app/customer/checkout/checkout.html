@@ -37,7 +37,7 @@
                   <input type="radio" name="paymentSplit" value="advance" [checked]="paymentType() === 'advance'" class="d-none">
                   <div class="split-info">
                     <span class="split-title">Pay {{ s.advancePercent }}% Advance</span>
-                    <span class="split-amount">₹{{ s.advanceAmount | number }}</span>
+                    <span class="split-amount">₹{{ inr(s.advanceAmount) }}</span>
                   </div>
                   <div class="split-badge">Secures Booking</div>
                 </label>
@@ -46,7 +46,7 @@
                   <input type="radio" name="paymentSplit" value="full" [checked]="paymentType() === 'full'" class="d-none">
                   <div class="split-info">
                     <span class="split-title">Pay Full Amount</span>
-                    <span class="split-amount">₹{{ s.totalAmount | number }}</span>
+                    <span class="split-amount">₹{{ inr(s.totalAmount) }}</span>
                   </div>
                   <div class="split-badge success">Zero Balance Due</div>
                 </label>
@@ -150,7 +150,7 @@
                   </div>
                   <div class="qr-info">
                     <span class="qr-title">Scan QR Code</span>
-                    <span class="qr-amount">Payable: ₹{{ payableAmount() | number }}</span>
+                    <span class="qr-amount">Payable: ₹{{ inr(payableAmount()) }}</span>
                   </div>
                 </div>
 
@@ -222,13 +222,13 @@
               @for (line of s.lines; track $index) {
                 <div class="price-row">
                   <span>{{ line.description }}@if (line.detail) {<small class="d-block text-muted">{{ line.detail }}</small>}</span>
-                  <span>₹{{ line.amount | number }}</span>
+                  <span>₹{{ inr(line.amount) }}</span>
                 </div>
               }
               @if (s.gstAmount !== undefined) {
                 <div class="price-row">
                   <span>GST ({{ s.gstPercent }}%)</span>
-                  <span>₹{{ s.gstAmount | number }}</span>
+                  <span>₹{{ inr(s.gstAmount) }}</span>
                 </div>
               }
 
@@ -236,24 +236,24 @@
 
               <div class="price-row total">
                 <span>Total Amount <small class="text-muted">(incl. GST)</small></span>
-                <span>₹{{ s.totalAmount | number }}</span>
+                <span>₹{{ inr(s.totalAmount) }}</span>
               </div>
 
               @if (s.amountPaid > 0) {
                 <div class="price-row paid-row text-success">
                   <span>Already Paid</span>
-                  <span>- ₹{{ s.amountPaid | number }}</span>
+                  <span>- ₹{{ inr(s.amountPaid) }}</span>
                 </div>
               }
 
               <div class="price-row payable mt-2">
                 <span>Amount Payable Today</span>
-                <span class="payable-today-value">₹{{ payableAmount() | number }}</span>
+                <span class="payable-today-value">₹{{ inr(payableAmount()) }}</span>
               </div>
 
               @if (canChooseSplit() && paymentType() === 'advance') {
                 <div class="price-row balance-due-hint mt-1 text-end small-text text-muted">
-                  <span>Balance of ₹{{ (s.totalAmount - s.advanceAmount) | number }} due later</span>
+                  <span>Balance of ₹{{ inr((s.totalAmount - s.advanceAmount)) }} due later</span>
                 </div>
               }
             </div>
@@ -279,7 +279,7 @@
 
             <!-- Pay CTA -->
             <button class="btn-pay-confirm mt-4" (click)="payAndConfirm()" [disabled]="isProcessing() || payableAmount() <= 0">
-              <i class="bi bi-lock-fill me-2"></i> Pay ₹{{ payableAmount() | number }}
+              <i class="bi bi-lock-fill me-2"></i> Pay ₹{{ inr(payableAmount()) }}
             </button>
               <div class="escrow-note">
                 <i class="bi bi-lock-fill"></i>
@@ -302,7 +302,7 @@
       </div>
       
       <h2 class="success-title">Payment Received!</h2>
-      <p class="success-desc">Your payment of <strong>₹{{ paidAmount() | number }}</strong> has been processed. The vendor will now confirm your booking.</p>
+      <p class="success-desc">Your payment of <strong>₹{{ inr(paidAmount()) }}</strong> has been processed. The vendor will now confirm your booking.</p>
       
       <div class="receipt-box mt-4">
         <h4 class="receipt-title">Transaction Receipt</h4>
@@ -330,7 +330,7 @@
           </div>
           <div class="receipt-row border-top pt-2 mt-2">
             <span>Paid Amount</span>
-            <strong class="text-purple">₹{{ paidAmount() | number }}</strong>
+            <strong class="text-purple">₹{{ inr(paidAmount()) }}</strong>
           </div>
         </div>
       </div>

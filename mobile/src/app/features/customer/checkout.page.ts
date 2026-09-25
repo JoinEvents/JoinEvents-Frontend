@@ -69,7 +69,9 @@ interface CheckoutSummary {
         <div class="je-section">
           <!-- Booking summary -------------------------------------------- -->
           <div class="je-card">
-            <span class="je-xs je-soft">{{ s.packageName }}</span>
+            @if (s.eventName && s.eventName !== s.packageName) {
+              <span class="je-xs je-soft">{{ s.packageName }}</span>
+            }
             <h2 class="bk-title">{{ s.eventName || s.packageName }}</h2>
             <p class="je-sm je-muted meta">
               <ion-icon name="calendar-outline" /> {{ s.eventDate | date: 'EEE, d MMM y' }}
