@@ -4,15 +4,15 @@ import { ViewWillEnter } from '@ionic/angular';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import {
-  IonContent, IonHeader, IonToolbar, IonButtons, IonButton, IonIcon, IonBadge,
-  IonRefresher, IonRefresherContent, IonSkeletonText, IonFab, IonFabButton
+  IonContent, IonHeader, IonToolbar, IonTitle, IonButtons, IonButton, IonIcon, IonBadge,
+  IonRefresher, IonRefresherContent, IonFab, IonFabButton
 } from '@ionic/angular/standalone';
 
 import { DashboardService } from '../../core/services/dashboard.service';
 import { AuthService } from '../../core/services/auth.service';
 import { NotificationService } from '../../core/services/notification.service';
+import { MessengerService } from '../../core/services/messenger.service';
 import { Booking } from '../../core/models/booking.model';
-import { EventType } from '../../core/models/event.model';
 import { CustomerProfile } from '../../core/models/user.model';
 import { RealtimeService } from '../../core/services/realtime.service';
 import { CurrencyInrPipe } from '../../shared/pipes/currency-inr.pipe';
@@ -27,31 +27,23 @@ interface Todo {
 }
 
 /**
- * Customer home, kept to what people open the app for: their next event and its next step,
- * anything that needs them (pay, review), and a way to start planning. Everything else
- * (quotes, payments, rewards, saved packages, support) lives in Profile; bookings in their tab.
+ * Customer home, laid out like the support work queue: the next event (or a welcome), four
+ * numbers at a glance that each open their screen, anything that needs the customer, and a
+ * "Jump to" list for everything else. Roshi stays as the floating button.
  */
 @Component({
   selector: 'app-customer-dashboard',
   standalone: true,
   imports: [
     DatePipe, DecimalPipe, RouterLink, CurrencyInrPipe,
-    IonContent, IonHeader, IonToolbar, IonButtons, IonButton, IonIcon, IonBadge,
-    IonRefresher, IonRefresherContent, IonSkeletonText, IonFab, IonFabButton
+    IonContent, IonHeader, IonToolbar, IonTitle, IonButtons, IonButton, IonIcon, IonBadge,
+    IonRefresher, IonRefresherContent, IonFab, IonFabButton
   ],
   template: `
     <ion-header class="ion-no-border">
       <ion-toolbar>
-        <div class="greet" slot="start">
-          <span class="je-xs je-muted">{{ greeting() }}</span>
-          <strong>{{ firstName() }}</strong>
-        </div>
+        <ion-title>Home</ion-title>
         <ion-buttons slot="end">
-          @if (profile()?.loyaltyPoints) {
-            <a class="points" routerLink="/customer/rewards" aria-label="Reward points">
-              <ion-icon name="gift" /> {{ profile()!.loyaltyPoints | number }}
-            </a>
-          }
           <ion-button routerLink="/customer/notifications" aria-label="Notifications">
             <ion-icon slot="icon-only" name="notifications-outline" />
             @if (notifications.unreadCount() > 0) {
@@ -67,78 +59,72 @@ interface Todo {
         <ion-refresher-content pullingText="Pull to refresh" />
       </ion-refresher>
 
-      <div class="je-section home">
-        <!-- 1. The one thing people open the app to check ------------------ -->
-        @if (loading()) {
-          <div class="je-card">
-            <ion-skeleton-text [animated]="true" style="width: 40%; height: 12px;" />
-            <ion-skeleton-text [animated]="true" style="width: 70%; height: 22px; margin-top: 12px;" />
-            <ion-skeleton-text [animated]="true" style="width: 55%; height: 12px;" />
-          </div>
-        } @else if (nextBooking(); as booking) {
-          <a class="next je-gradient" [routerLink]="['/customer/booking', booking.id]">
-            <div class="next__top">
-              <span class="next__label">Your next event</span>
-              <span class="next__days">{{ daysAway(booking.eventDate) }}</span>
-            </div>
-            <h2>{{ booking.eventName }}</h2>
-            <p class="next__meta">{{ booking.eventDate | date: 'EEE, d MMM' }} · {{ place(booking) }}</p>
-            <p class="next__step">
-              <ion-icon [name]="nextStep(booking).icon" /> {{ nextStep(booking).text }}
-            </p>
+      <div class="je-section">
+        <!-- Hero: the next event, or a welcome ------------------------------------ -->
+        @if (nextBooking(); as booking) {
+          <a class="hello je-gradient" [routerLink]="['/customer/booking', booking.id]">
+            <span class="hello__label">Your next event · {{ daysAway(booking.eventDate) }}</span>
+            <strong class="hello__name">{{ booking.eventName }}</strong>
+            <span class="hello__sub">{{ booking.eventDate | date: 'EEE, d MMM' }} · {{ place(booking) }}</span>
+            <span class="hello__step"><ion-icon [name]="nextStep(booking).icon" /> {{ nextStep(booking).text }}</span>
           </a>
         } @else {
-          <a class="start" routerLink="/customer/tabs/events">
-            <span class="start__text">
-              <strong>What are you celebrating?</strong>
-              <span class="je-sm je-muted">Find a package in minutes</span>
-            </span>
-            <span class="start__go"><ion-icon name="search" /></span>
+          <a class="hello je-gradient" routerLink="/customer/tabs/events">
+            <span class="hello__label">{{ greeting() }}</span>
+            <strong class="hello__name hello__name--person">{{ firstName() }}</strong>
+            <span class="hello__sub">Plan your next celebration <ion-icon name="arrow-forward" /></span>
           </a>
         }
 
-        <!-- 2. Only what needs the customer, only when it does --------------- -->
+        <!-- At a glance ------------------------------------------------------------ -->
+        <div class="je-grid-2 stats">
+          <a class="je-stat" routerLink="/customer/tabs/bookings">
+            <div class="je-stat__value">{{ loading() ? '–' : upcomingCount() }}</div>
+            <div class="je-stat__label">Upcoming events</div>
+          </a>
+          <a class="je-stat" routerLink="/customer/payments">
+            <div class="je-stat__value">{{ loading() ? '–' : (amountDue() | inr: true) }}</div>
+            <div class="je-stat__label">Amount due</div>
+          </a>
+          <a class="je-stat" routerLink="/customer/rewards">
+            <div class="je-stat__value">{{ (profile()?.loyaltyPoints ?? 0) | number }}</div>
+            <div class="je-stat__label">Reward points</div>
+          </a>
+          <a class="je-stat" routerLink="/customer/tabs/messages">
+            <div class="je-stat__value">{{ messenger.totalUnread() }}</div>
+            <div class="je-stat__label">Unread messages</div>
+          </a>
+        </div>
+
+        <!-- Only when something needs the customer ----------------------------------- -->
         @if (!loading() && todos().length) {
-          <h2 class="head">To do</h2>
-          <div class="list">
-            @for (todo of todos(); track todo.key) {
-              <a class="todo" [routerLink]="todo.link">
-                <span class="todo__icon" [class]="'todo__icon--' + todo.tone"><ion-icon [name]="todo.icon" /></span>
-                <span class="todo__text">
-                  <strong class="je-truncate">{{ todo.title }}</strong>
-                  <span class="je-xs je-muted je-truncate">{{ todo.detail }}</span>
-                </span>
-                <ion-icon name="chevron-forward" class="todo__chev" />
-              </a>
-            }
-          </div>
+          <div class="je-section-head"><h2>Needs your attention</h2></div>
+          @for (todo of todos(); track todo.key) {
+            <a class="je-card queue" [routerLink]="todo.link">
+              <span class="queue__icon" [style.background]="tints[todo.tone]"><ion-icon [name]="todo.icon" /></span>
+              <div class="queue__body">
+                <strong class="je-sm">{{ todo.title }}</strong>
+                <span class="je-xs je-muted">{{ todo.detail }}</span>
+              </div>
+              <ion-icon name="chevron-forward" color="medium" />
+            </a>
+          }
         }
 
-        <!-- 3. Start planning: the categories are the way in ------------------ -->
-        <div class="head head--row">
-          <h2>Plan an event</h2>
-          <a routerLink="/customer/tabs/events">See all</a>
-        </div>
-        <div class="cats">
-          @for (category of categories(); track category.id) {
-            <a class="cat" [routerLink]="['/customer/tabs/events']" [queryParams]="{ category: category.id }">
-              <span class="cat__art" [style.background]="category.gradient || 'var(--je-gradient-primary)'">
-                @if (category.icon) { <i class="bi {{ category.icon }}"></i> } @else { <ion-icon name="sparkles" /> }
-              </span>
-              <span class="cat__name je-truncate">{{ category.name }}</span>
-              @if (category.startingPrice) {
-                <span class="je-xs je-soft">from {{ category.startingPrice | inr: true }}</span>
-              }
-            </a>
-          } @empty {
-            @if (loading()) {
-              @for (i of [1, 2, 3, 4]; track i) {
-                <span class="cat"><ion-skeleton-text [animated]="true" class="cat__art" /></span>
-              }
-            }
-          }
-        </div>
-
+        <!-- Everything else, one tap away --------------------------------------------- -->
+        <div class="je-section-head"><h2>Jump to</h2></div>
+        @for (shortcut of shortcuts; track shortcut.route) {
+          <a class="je-card queue" [routerLink]="shortcut.route">
+            <span class="queue__icon" [style.background]="shortcut.tint">
+              <ion-icon [name]="shortcut.icon" />
+            </span>
+            <div class="queue__body">
+              <strong class="je-sm">{{ shortcut.label }}</strong>
+              <span class="je-xs je-muted">{{ shortcut.detail }}</span>
+            </div>
+            <ion-icon name="chevron-forward" color="medium" />
+          </a>
+        }
       </div>
 
       <!-- Room for the Roshi button, so it never covers the last card -->
@@ -154,57 +140,23 @@ interface Todo {
     </ion-content>
   `,
   styles: [`
-    .greet { display: flex; flex-direction: column; padding-left: 16px; line-height: 1.25; }
-    .greet strong { font-family: var(--je-font-heading); font-size: var(--je-fs-lg); text-transform: capitalize; }
     .dot { position: absolute; top: 2px; right: 2px; font-size: 10px; padding: 2px 5px; }
-    .points { display: inline-flex; align-items: center; gap: 5px; margin-right: 4px; padding: 5px 10px;
-              border-radius: var(--je-radius-full); background: rgba(245, 158, 11, 0.12); color: #b45309;
-              font-size: var(--je-fs-xs); font-weight: 700; text-decoration: none; }
-
-    .home { display: flex; flex-direction: column; gap: 14px; padding-bottom: 28px; }
-    .head { font-size: var(--je-fs-md); font-weight: 700; margin: 10px 0 0; }
-    .head--row { display: flex; align-items: baseline; justify-content: space-between; }
-    .head--row h2 { font-size: var(--je-fs-md); font-weight: 700; margin: 0; }
-    .head--row a { font-size: var(--je-fs-sm); font-weight: 600; color: var(--ion-color-primary); text-decoration: none; }
-
-    .next { display: block; border-radius: var(--je-radius-lg); padding: 18px 20px; text-decoration: none;
-            box-shadow: 0 12px 28px rgba(255, 107, 53, 0.25); }
-    .next__top { display: flex; align-items: center; justify-content: space-between; }
-    .next__label { font-size: var(--je-fs-xs); text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.85; }
-    .next__days { font-size: var(--je-fs-xs); font-weight: 700; background: rgba(255,255,255,0.22);
-                  padding: 3px 10px; border-radius: var(--je-radius-full); }
-    .next h2 { font-size: var(--je-fs-xl); margin: 8px 0 4px; }
-    .next__meta { margin: 0; font-size: var(--je-fs-sm); opacity: 0.92; }
-    .next__step { display: flex; align-items: center; gap: 7px; margin: 14px 0 0; padding-top: 12px;
-                  border-top: 1px solid rgba(255,255,255,0.25); font-size: var(--je-fs-sm); font-weight: 600; }
-
-    .start { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 18px 18px 18px 20px;
-             border-radius: var(--je-radius-lg); background: var(--je-bg-card); border: 1px solid var(--je-border-color);
-             box-shadow: var(--je-shadow-sm); text-decoration: none; }
-    .start__text { display: flex; flex-direction: column; gap: 3px; }
-    .start__text strong { font-size: var(--je-fs-md); color: var(--je-text-main); }
-    .start__go { width: 44px; height: 44px; flex-shrink: 0; display: grid; place-items: center; border-radius: 50%;
-                 background: var(--je-gradient-primary); color: #fff; font-size: 19px; }
-
-    .list { display: flex; flex-direction: column; border-radius: var(--je-radius-lg); overflow: hidden;
-            background: var(--je-bg-card); border: 1px solid var(--je-border-color); }
-    .todo { display: flex; align-items: center; gap: 12px; padding: 13px 14px; text-decoration: none; }
-    .todo + .todo { border-top: 1px solid var(--je-border-color); }
-    .todo__icon { width: 38px; height: 38px; flex-shrink: 0; display: grid; place-items: center;
-                                border-radius: 12px; font-size: 18px; }
-    .todo__icon--pay { background: rgba(255,107,53,0.12); color: #ea580c; }
-    .todo__icon--wait { background: rgba(59,130,246,0.12); color: #2563eb; }
-    .todo__icon--review { background: rgba(245,158,11,0.14); color: #d97706; }
-    .todo__text { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
-    .todo__text strong { font-size: var(--je-fs-sm); color: var(--je-text-main); }
-    .todo__chev { color: var(--je-text-soft); font-size: 16px; flex-shrink: 0; }
-
-    .cats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
-    .cat { display: flex; flex-direction: column; align-items: center; gap: 5px; text-decoration: none; min-width: 0; }
-    .cat__art { width: 58px; height: 58px; display: grid; place-items: center; border-radius: 18px; color: #fff; }
-    .cat__art ion-icon, .cat__art i { font-size: 24px; }
-    .cat__name { font-size: var(--je-fs-xs); font-weight: 600; color: var(--je-text-main); max-width: 100%; text-align: center; }
-
+    .hello { display: block; border-radius: var(--je-radius-lg); padding: 20px; margin-top: 6px; text-decoration: none;
+             box-shadow: 0 12px 28px rgba(255, 107, 53, 0.28); }
+    .hello__label { font-size: var(--je-fs-xs); text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.85; }
+    .hello__name { display: block; font-family: var(--je-font-heading); font-size: var(--je-fs-xl);
+                   font-weight: 700; margin: 4px 0 2px; }
+    .hello__name--person { text-transform: capitalize; }
+    .hello__sub { display: flex; align-items: center; gap: 6px; font-size: var(--je-fs-sm); opacity: 0.9; }
+    .hello__step { display: flex; align-items: center; gap: 7px; margin-top: 14px; padding-top: 12px;
+                   border-top: 1px solid rgba(255, 255, 255, 0.25); font-size: var(--je-fs-sm); font-weight: 600; }
+    .stats { margin-top: 18px; }
+    .stats a { text-decoration: none; display: block; }
+    .queue { display: flex; align-items: center; gap: 13px; text-decoration: none; }
+    .queue__icon { width: 40px; height: 40px; flex-shrink: 0; display: grid; place-items: center;
+                   border-radius: var(--je-radius-sm); color: #fff; }
+    .queue__icon ion-icon { font-size: 19px; }
+    .queue__body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
     .fab-space { height: 76px; }
     .roshi-fab { display: flex; flex-direction: column; align-items: center; gap: 4px; }
     .roshi-fab ion-fab-button { --background: var(--je-gradient-primary); --background-activated: var(--je-gradient-primary);
@@ -221,10 +173,11 @@ export class CustomerDashboardPage implements OnInit, ViewWillEnter {
   private realtime = inject(RealtimeService);
   private destroyRef = inject(DestroyRef);
 
+  messenger = inject(MessengerService);
+
   readonly loading = signal(true);
   readonly profile = signal<CustomerProfile | null>(null);
   readonly bookings = signal<Booking[]>([]);
-  readonly categories = signal<EventType[]>([]);
 
   /** The soonest event still ahead that hasn't been cancelled. */
   readonly nextBooking = computed<Booking | null>(() => {
@@ -261,6 +214,32 @@ export class CustomerDashboardPage implements OnInit, ViewWillEnter {
     return items.sort((a, b) => a.at - b.at).slice(0, 3);
   });
 
+  /** Everything else a customer needs, one tap away (the same pattern as the support queue). */
+  readonly shortcuts = [
+    { label: 'Browse packages', detail: 'Venues, catering, decor and more', icon: 'sparkles', route: '/customer/tabs/events', tint: 'linear-gradient(135deg,#FF6B35,#FF8C5A)' },
+    { label: 'My bookings', detail: 'Status, payments and invoices', icon: 'journal', route: '/customer/tabs/bookings', tint: 'linear-gradient(135deg,#0EA5E9,#38BDF8)' },
+    { label: 'Get quotes', detail: 'Describe your event, compare vendor offers', icon: 'chatbubble-ellipses', route: '/customer/quotes', tint: 'linear-gradient(135deg,#6B21A8,#9333EA)' },
+    { label: 'Saved packages', detail: 'Packages you liked', icon: 'heart', route: '/customer/favorites', tint: 'linear-gradient(135deg,#E91E8C,#FF6B9D)' },
+    { label: 'Help & support', detail: 'Raise a ticket or track one', icon: 'help-buoy', route: '/customer/support', tint: 'linear-gradient(135deg,#16A34A,#4ADE80)' }
+  ];
+
+  readonly tints: Record<Todo['tone'], string> = {
+    pay: 'linear-gradient(135deg,#FF6B35,#FF8C5A)',
+    wait: 'linear-gradient(135deg,#0EA5E9,#38BDF8)',
+    review: 'linear-gradient(135deg,#F59E0B,#FBBF24)'
+  };
+
+  /** Events still ahead that haven't been cancelled or finished. */
+  readonly upcomingCount = computed(() => {
+    const today = new Date().setHours(0, 0, 0, 0);
+    return this.bookings().filter(b => !CLOSED.includes(b.status) && new Date(b.eventDate).getTime() >= today).length;
+  });
+
+  /** What is still owed across bookings that are going ahead (unpaid bookings are due in full). */
+  readonly amountDue = computed(() => this.bookings()
+    .filter(b => !['cancelled', 'rejected'].includes(b.status))
+    .reduce((sum, b) => sum + (b.balanceDue ?? (b.status === 'pending' ? b.totalAmount : 0)), 0));
+
   private loaded = false;
 
   ngOnInit(): void {
@@ -276,10 +255,10 @@ export class CustomerDashboardPage implements OnInit, ViewWillEnter {
   load(event?: CustomEvent): void {
     // Skeletons only on the first load; later refreshes update in place.
     if (!this.loaded) this.loading.set(true);
+    this.messenger.getThreads().subscribe();
     this.dashboard.getCustomerDashboard().subscribe(data => {
       this.profile.set(data.profile);
       this.bookings.set(data.bookings);
-      this.categories.set(data.categories.slice(0, 8));
       this.loading.set(false);
       this.loaded = true;
       void (event?.target as HTMLIonRefresherElement | undefined)?.complete();
