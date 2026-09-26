@@ -5,10 +5,11 @@
       <stop offset="0.55" stop-color="#E8458F"/>
       <stop offset="1" stop-color="#6B21A8"/>
     </linearGradient>
+    <clipPath id="je-cal"><rect x="40" y="44" width="432" height="424" rx="100"/></clipPath>
   </defs>
-  <rect width="512" height="512" rx="116" fill="url(#je-bg)"/>
-  <path d="M292 214V322a86 86 0 0 1-172 0" fill="none" stroke="#fff" stroke-width="66" stroke-linecap="round"/>
-  <circle cx="292" cy="128" r="42" fill="#fff"/>
-  <path d="M396 96q8 44 52 52q-44 8-52 52q-8-44-52-52q44-8 52-52z" fill="#fff"/>
-  <circle cx="412" cy="256" r="15" fill="#fff" fill-opacity=".8"/>
+  <rect x="40" y="44" width="432" height="424" rx="100" fill="url(#je-bg)"/>
+  <rect x="40" y="44" width="432" height="116" fill="#1E0B2E" fill-opacity=".22" clip-path="url(#je-cal)"/>
+  <rect x="146" y="72" width="40" height="60" rx="20" fill="#fff"/>
+  <rect x="326" y="72" width="40" height="60" rx="20" fill="#fff"/>
+  <path fill="#fff" d="M247.4 234.5V344.4Q247.4 369.9 233 383.7Q218.7 397.5 194.3 397.5Q168.8 397.5 153.3 383Q137.9 368.6 137.9 341.9H177Q177 352 181.2 357.2Q185.3 362.3 193.1 362.3Q200.3 362.3 204.2 357.7Q208.1 353.1 208.1 344.4V234.5ZM314.5 266V298.6H367.2V329H314.5V364.4H374.1V395.9H275.2V234.5H374.1V266Z"/>
 </svg>
