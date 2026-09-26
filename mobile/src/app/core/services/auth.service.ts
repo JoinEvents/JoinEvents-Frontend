@@ -127,6 +127,12 @@ export class AuthService {
   logout(): void {
     if (this.getToken()) {
       this.http.post(`${this.apiUrl}/auth/logout`, {}).subscribe({ error: () => void 0 });
+      // This phone stops receiving the account's notifications. Sent before the session is
+      // cleared, so the request still carries the user's token.
+      const device = this.storage.get('joinevents_device_token');
+      if (device) {
+        this.http.delete(`${this.apiUrl}/profile/device-token`, { body: { token: device } }).subscribe({ error: () => void 0 });
+      }
     }
     this.clearSession();
     void this.router.navigateByUrl('/auth/login', { replaceUrl: true });

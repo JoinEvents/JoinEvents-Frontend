@@ -8,6 +8,8 @@ import { ToastService } from './toast.service';
 
 export interface NotificationItem {
   id: string;
+  /** The server's notification type (booking, support, dispute, rfp, ...), which decides where it opens. */
+  kind?: string;
   title: string;
   message: string;
   type: 'booking' | 'message' | 'payment' | 'verification' | 'system';
@@ -82,6 +84,7 @@ export class NotificationService {
     const allowedTypes = ['booking', 'message', 'payment', 'verification', 'system'];
     return {
       id: n.id || n.Id,
+      kind: rawType,
       title: n.title || n.Title,
       message: n.message || n.Message,
       type: allowedTypes.includes(rawType) ? (rawType as any) : 'system',
@@ -159,33 +162,7 @@ export class NotificationService {
   onNotificationClick(n: NotificationItem) {
     this.markAsRead(n.id);
     const role = this.auth.currentUser()?.role || 'customer';
-    
-    if (role === 'vendor') {
-      if (n.type === 'booking') {
-        this.router.navigate(['/vendor/bookings']);
-      } else if (n.type === 'message') {
-        this.router.navigate(['/vendor/messages']);
-      } else if (n.type === 'payment') {
-        this.router.navigate(['/vendor/finance']);
-      } else if (n.type === 'verification') {
-        this.router.navigate(['/vendor/verification']);
-      } else {
-        this.router.navigate(['/vendor/notifications']);
-      }
-    } else {
-      // Customer
-      if (n.type === 'booking') {
-        this.router.navigate(['/bookings']);
-      } else if (n.type === 'message') {
-        this.router.navigate(['/messages']);
-      } else if (n.type === 'payment') {
-        this.router.navigate(['/payments']);
-      } else if (n.type === 'system' || n.title.toLowerCase().includes('referral') || n.message.toLowerCase().includes('referral') || n.message.toLowerCase().includes('points')) {
-        this.router.navigate(['/rewards']);
-      } else {
-        this.router.navigate(['/notifications']);
-      }
-    }
+    this.router.navigateByUrl(notificationLink(role, n.kind || n.type, `${n.title} ${n.message}`));
   }
 
   markAllAsRead() {
@@ -317,6 +294,31 @@ export class NotificationService {
         subject: `JoinEvents Notification: ${n.title}`,
         body: n.message
       });
+    }
+  }
+}
+
+/**
+ * Where a notification opens on the website, per role and type (the mobile app and the API's
+ * push links use the same rules for their own routes).
+ */
+export function notificationLink(role: string, kind: string, text = ''): string {
+  const k = (kind || '').toLowerCase();
+  switch (role) {
+    case 'vendor':
+      return ({ booking: '/vendor/bookings', dispute: '/vendor/bookings', message: '/vendor/messages', payment: '/vendor/finance',
+                verification: '/vendor/verification', rfp: '/vendor/quote-board' } as Record<string, string>)[k] ?? '/vendor/notifications';
+    case 'support':
+      return ({ booking: '/support/bookings', dispute: '/support/bookings', verification: '/support/verifications',
+                support: '/support/tickets' } as Record<string, string>)[k] ?? '/support/notifications';
+    case 'admin':
+      return ({ booking: '/admin/bookings', dispute: '/admin/reviews', verification: '/admin/vendors',
+                rfp: '/admin/quote-requests' } as Record<string, string>)[k] ?? '/admin/notifications';
+    default: {
+      const byType = ({ booking: '/bookings', dispute: '/bookings', message: '/messages', payment: '/payments',
+                        support: '/support', rfp: '/get-quotes' } as Record<string, string>)[k];
+      if (byType) return byType;
+      return /referral|points|reward/i.test(text) ? '/rewards' : '/notifications';
     }
   }
 }
