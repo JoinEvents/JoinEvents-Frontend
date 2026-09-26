@@ -5,6 +5,7 @@ import { catchError, map, tap } from 'rxjs/operators';
 import { BaseApiService } from './base-api.service';
 import { API_ROUTES } from '../constants/api.constants';
 import { RealtimeService } from './realtime.service';
+import { AuthService } from './auth.service';
 import { ToastService } from './toast.service';
 
 export type NotificationType = 'booking' | 'message' | 'payment' | 'verification' | 'system';
@@ -36,6 +37,7 @@ export class NotificationService extends BaseApiService {
   readonly loading = signal(false);
 
   private realtime = inject(RealtimeService);
+  private auth = inject(AuthService);
   private toast = inject(ToastService);
 
   constructor() {
@@ -115,7 +117,7 @@ export class NotificationService extends BaseApiService {
       body: String(n['body'] ?? n['message'] ?? ''),
       isRead: Boolean(n['isRead'] ?? n['read'] ?? false),
       createdAt: String(n['createdAt'] ?? new Date().toISOString()),
-      link: (n['link'] as string) ?? undefined,
+      link: (n['link'] as string) ?? notificationLink(this.auth.role(), String(n['type'] ?? '')),
       entityId: (n['entityId'] as string) ?? undefined
     }));
   }
@@ -127,4 +129,23 @@ const TYPES: NotificationType[] = ['booking', 'message', 'payment', 'verificatio
 function toType(raw: unknown): NotificationType {
   const value = String(raw ?? '').toLowerCase();
   return TYPES.find(t => value.includes(t)) ?? (value.includes('chat') ? 'message' : 'system');
+}
+
+/**
+ * Where a notification opens in the app, per role and type: the same screens the API's push
+ * links open (EventEase/Push/PushLinks.cs), so the list and a tapped push agree.
+ */
+export function notificationLink(role: string | null, kind: string): string {
+  const k = (kind || '').toLowerCase();
+  const map: Record<string, Record<string, string>> = {
+    customer: { booking: '/customer/tabs/bookings', dispute: '/customer/tabs/bookings', message: '/customer/tabs/messages',
+                payment: '/customer/payments', support: '/customer/support', rfp: '/customer/quotes' },
+    vendor: { booking: '/vendor/tabs/bookings', dispute: '/vendor/tabs/bookings', message: '/vendor/messages',
+              payment: '/vendor/finance', verification: '/vendor/verification', rfp: '/vendor/tabs/quote-board' },
+    support: { booking: '/support/tabs/bookings', dispute: '/support/tabs/bookings', verification: '/support/tabs/verifications',
+               support: '/support/tabs/tickets' },
+    admin: { booking: '/admin/tabs/bookings', dispute: '/admin/disputes', verification: '/admin/verifications' }
+  };
+  const area = role && map[role] ? role : 'customer';
+  return map[area][k] ?? `/${area}/notifications`;
 }

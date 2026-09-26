@@ -75,6 +75,12 @@ export class AdminLayout {
     return meta[type] || { color: '#6366F1', icon: 'bi-bell' };
   }
 
+  /** Opens what the notification is about and closes the dropdown. */
+  openNotification(n: any) {
+    this.showNotifications.set(false);
+    this.notifService.onNotificationClick(n);
+  }
+
   notifications = computed(() => {
     return this.notifService.activeNotifications().map(n => {
       const meta = this.getTypeMeta(n.type);

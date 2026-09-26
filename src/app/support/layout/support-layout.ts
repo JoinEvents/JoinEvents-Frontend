@@ -50,6 +50,14 @@ export class SupportLayout implements OnInit {
     return date.toLocaleDateString();
   }
 
+  unreadCount = computed(() => this.notificationService.unreadCount());
+
+  /** Opens what the notification is about and closes the dropdown. */
+  openNotification(n: any) {
+    this.showNotifications.set(false);
+    this.notificationService.onNotificationClick(n);
+  }
+
   notifications = computed(() => {
     return this.notificationService.activeNotifications().map(n => {
       const meta = this.getTypeMeta(n.type);

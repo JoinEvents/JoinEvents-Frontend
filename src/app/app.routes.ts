@@ -97,6 +97,7 @@ export const routes: Routes = [
       { path: 'vendors', loadComponent: () => import('./admin/vendors/admin-vendors').then(m => m.AdminVendors) },
       { path: 'reviews', loadComponent: () => import('./support/reviews/admin-reviews').then(m => m.AdminReviews) },
       { path: 'verifications', loadComponent: () => import('./support/verifications/admin-verifications').then(m => m.AdminVerifications) },
+      { path: 'notifications', loadComponent: () => import('./shared/pages/notifications/notifications').then(m => m.NotificationsPage) },
       { path: 'profile', loadComponent: () => import('./support/profile/support-profile').then(m => m.SupportProfile) },
     ]
   },
